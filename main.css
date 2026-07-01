@@ -1,0 +1,216 @@
+/* === خلفية وتهيئة عامة === */
+body, html {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    direction: rtl;
+    font-family: "Cairo", sans-serif;
+}
+
+body {
+    background: linear-gradient(135deg, hwb(227 51% 23%), #1c2240, hwb(188 40% 45%));
+    background-attachment: fixed;
+    color: #fff;
+}
+
+/* === شريط العنوان العلوي === */
+header {
+    background: #28254759;
+    backdrop-filter: blur(6px);
+    padding: 10px 0;
+}
+
+#user-info span {
+    font-size: 13px;
+    color: hsl(0, 0%, 100%);
+    margin-left: 18px;
+}
+
+/* === شكل القائمة الرئيسية === */
+.dropdown-container {
+    display: flex;
+    gap: 12px;
+    padding: 8px 20px;
+    justify-content: flex-start;
+}
+
+/* === زر القائمة === */
+.dropbtn {
+    background: linear-gradient(135deg, #3a6cf4, #5f86ff);
+    color: #fff;
+    padding: 10px 18px;
+    font-size: 14px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.4s;
+    box-shadow: 0 3px 10px rgba(90,125,255,0.25);
+}
+
+.dropbtn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 18px rgba(90,125,255,0.35);
+}
+
+/* === القائمة المنسدلة === */
+.dropdown {
+    position: relative;
+}
+
+/* مخفية مبدئياً */
+.dropdown-content {
+    display: none; /* ✅ تغيير من opacity إلى display */
+    position: absolute;
+    background: rgba(255, 255, 255, 0.95); /* ✅ تصحيح لون الخلفية */
+    backdrop-filter: blur(6px);
+    border-radius: 10px;
+    min-width: 200px; /* ✅ زيادة العرض */
+    padding: 8px 0;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    top: 100%;
+    right: 0;
+    z-index: 1000;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* ✅ تظهر عند المرور أو النقر */
+.dropdown:hover .dropdown-content,
+.dropdown:focus-within .dropdown-content {
+    display: block; /* ✅ تغيير إلى display block */
+}
+
+/* ✅ إضافة تأثير ظهور سلس */
+.dropdown-content {
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* === روابط القائمة === */
+.dropdown-content a {
+    display: block;
+    padding: 10px 16px;
+    color: #333; /* ✅ تغيير اللون ليكون مرئياً */
+    text-decoration: none;
+    font-size: 14px;
+    transition: 0.25s;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.dropdown-content a:last-child {
+    border-bottom: none;
+}
+
+.dropdown-content a:hover {
+    background: #3a6cf4;
+    color: white;
+    padding-right: 20px;
+}
+
+/* شاشات بدون صلاحية */
+.disabled-link {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+    text-decoration: line-through;
+    color: #999 !important;
+    background: #f5f5f5 !important;
+}
+
+.disabled-link:hover {
+    background: #f5f5f5 !important;
+    color: #999 !important;
+    padding-right: 16px !important;
+}
+
+/* مؤشر الصلاحيات */
+.permission-indicator {
+    font-size: 11px !important;
+    margin-left: 5px;
+    color: #ffd43b;
+}
+
+/* ✅ إصلاح مشكلة التراكب مع القوائم الأخرى */
+.dropdown-content {
+    margin-top: 5px;
+}
+
+/* ✅ تحسين responsiveness */
+@media (max-width: 768px) {
+    .dropdown-container {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .dropbtn {
+        padding: 8px 12px;
+        font-size: 13px;
+    }
+    
+    .dropdown-content {
+        min-width: 180px;
+    }
+}
+
+/* ✅ إصلاح مشكلة ظهور القوائم خلف العناصر الأخرى */
+.dropdown-content {
+    z-index: 1000;
+}
+
+/* ✅ تحسين مظهر الروابط المفعلة */
+.dropdown-content a:not(.disabled-link) {
+    color: #2c3e50;
+    font-weight: 500;
+}
+
+.dropdown-content a:not(.disabled-link):hover {
+    background: linear-gradient(135deg, #3a6cf4, #5a7dff);
+    color: white;
+}
+
+/* ✅ إضافة أيقونة صغيرة للروابط */
+.dropdown-content a:not(.disabled-link)::before {
+    content: "▸";
+    margin-left: 8px;
+    color: #3a6cf4;
+    transition: 0.3s;
+}
+
+.dropdown-content a:not(.disabled-link):hover::before {
+    color: white;
+    transform: translateX(-3px);
+}
+
+.disabled-link {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+    text-decoration: line-through;
+    color: #999 !important;
+}
+.no-permission {
+    background-color: #ffe6e6;
+    padding: 5px;
+    border-radius: 3px;
+    margin: 2px 0;
+}
+.permission-indicator {
+    font-size: 10px;
+    color: #666;
+    margin-right: 5px;
+}
+/* 🔒 إخفاء أيقونات الشاشات داخل القوائم */
+.dropdown-content a i,
+.dropdown-content a svg {
+    display: none !important;
+}
+

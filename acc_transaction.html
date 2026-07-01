@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة الحركات المحاسبية</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding-top: 20px;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            border-radius: 0 0 20px 20px;
+        }
+        .card {
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: none;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        .enter-hint {
+            font-size: 0.75rem;
+            color: #6c757d;
+            margin-top: 0.25rem;
+        }
+        .enter-save-hint {
+            font-size: 0.8rem;
+            color: #28a745;
+            margin-top: 5px;
+            font-weight: bold;
+        }
+        .balance-info {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .connection-status {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: #fff;
+            padding: 8px 12px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1000;
+            font-size: 12px;
+        }
+        .connection-status.supabase {
+            border-left: 4px solid #28a745;
+        }
+        .disabled-field {
+            background-color: #f8f9fa !important;
+            cursor: not-allowed !important;
+            opacity: 0.6 !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="connectionStatus" class="connection-status">
+        <i class="fas fa-sync-alt fa-spin"></i> جاري تهيئة النظام...
+    </div>
+
+    <div class="header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h1><i class="fas fa-exchange-alt me-2"></i>إدارة الحركات المحاسبية</h1>
+                    <p class="mb-0">تسجيل وعرض الحركات المالية والقيود المحاسبية - استخدم Enter للتنقل</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- قسم إضافة القيود -->
+        <div class="row mb-4">
+            <div class="col">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0"><i class="fas fa-plus me-2"></i>إضافة قيد محاسبي جديد</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="transactionForm">
+                            <div class="row mb-3">
+                                <div class="col-md-3">
+                                    <label for="transactionDate" class="form-label">تاريخ القيد *</label>
+                                    <input type="date" class="form-control" id="transactionDate" required>
+                                    <div class="enter-hint">↵ اضغط Enter للمتابعة</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="entryNumber" class="form-label">رقم القيد *</label>
+                                    <input type="text" class="form-control" id="entryNumber" required>
+                                    <div class="enter-hint">↵ اضغط Enter للمتابعة</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="balance-info">
+                                        <div class="row text-center">
+                                            <div class="col">
+                                                <small>إجمالي المدين</small>
+                                                <h4 id="totalDebit">0</h4>
+                                            </div>
+                                            <div class="col">
+                                                <small>إجمالي الدائن</small>
+                                                <h4 id="totalCredit">0</h4>
+                                            </div>
+                                            <div class="col">
+                                                <small>حالة القيد</small>
+                                                <div><span id="balanceStatus" class="badge bg-secondary">غير متوازن</span></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row entry-line p-3 mb-3">
+                                <div class="col-md-3">
+                                    <label for="accountType" class="form-label">نوع الحساب</label>
+                                    <select class="form-select" id="accountType">
+                                        <option value="">اختر نوع الحساب</option>
+                                    </select>
+                                    <div class="enter-hint">↵ اضغط Enter للمتابعة</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="accountId" class="form-label">الحساب الفرعي *</label>
+                                    <select class="form-select" id="accountId">
+                                        <option value="">اختر الحساب الفرعي</option>
+                                    </select>
+                                    <div class="enter-hint">↵ اضغط Enter للمتابعة</div>
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="debitAmount" class="form-label">مدين</label>
+                                    <input type="number" class="form-control" id="debitAmount" step="0.01" min="0" placeholder="0.00">
+                                    <div class="enter-hint">↵ اضغط Enter للمتابعة</div>
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="creditAmount" class="form-label">دائن</label>
+                                    <input type="number" class="form-control" id="creditAmount" step="0.01" min="0" placeholder="0.00">
+                                    <div class="enter-hint">↵ اضغط Enter للمتابعة</div>
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="lineDescription" class="form-label">الوصف</label>
+                                    <input type="text" class="form-control" id="lineDescription" placeholder="وصف الحركة">
+                                    <div class="enter-hint">↵ اضغط Enter لإضافة البند</div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col">
+                                    <button type="button" class="btn btn-success me-2" id="addLineBtn">
+                                        <i class="fas fa-plus me-2"></i>إضافة بند
+                                    </button>
+                                    <button type="button" class="btn btn-primary me-2" id="saveEntryBtn" disabled>
+                                        <i class="fas fa-save me-2"></i>حفظ القيد
+                                        <div class="enter-save-hint">↵ اضغط Enter للحفظ</div>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary" id="newEntryBtn">
+                                        <i class="fas fa-file me-2"></i>قيد جديد
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- بنود القيد الحالي -->
+        <div class="row mb-4">
+            <div class="col">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0"><i class="fas fa-list me-2"></i>بنود القيد الحالي</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>الحساب</th>
+                                        <th>مدين</th>
+                                        <th>دائن</th>
+                                        <th>الوصف</th>
+                                        <th>إجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="currentEntryTable">
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted">لا توجد بنود مضافة</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- قسم البحث -->
+        <div class="row mb-4">
+            <div class="col">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0"><i class="fas fa-search me-2"></i>بحث في الحركات</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label for="searchStartDate" class="form-label">من تاريخ</label>
+                                <input type="date" class="form-control" id="searchStartDate">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="searchEndDate" class="form-label">إلى تاريخ</label>
+                                <input type="date" class="form-control" id="searchEndDate">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="searchAccountId" class="form-label">الحساب</label>
+                                <select class="form-select" id="searchAccountId">
+                                    <option value="">جاري التحميل...</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="searchEntryNumber" class="form-label">رقم القيد</label>
+                                <input type="text" class="form-control" id="searchEntryNumber" placeholder="ابحث برقم القيد...">
+                            </div>
+                            <div class="col-md-12">
+                                <button type="button" class="btn btn-primary me-2" id="searchBtn">
+                                    <i class="fas fa-search me-2"></i>بحث
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" id="resetSearchBtn">
+                                    <i class="fas fa-undo me-2"></i>إعادة تعيين
+                                </button>
+                                <button type="button" class="btn btn-info" id="printBtn">
+                                    <i class="fas fa-print me-2"></i>طباعة الكشف
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- جدول الحركات -->
+        <div class="row">
+            <div class="col">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0"><i class="fas fa-history me-2"></i>سجل الحركات المحاسبية</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="loading" id="loading" style="display: none;">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">جاري التحميل...</span>
+                            </div>
+                            <p class="mt-2">جاري تحميل البيانات...</p>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="transactionsTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>التاريخ</th>
+                                        <th>الحساب</th>
+                                        <th>النوع</th>
+                                        <th>مدين</th>
+                                        <th>دائن</th>
+                                        <th>الوصف</th>
+                                        <th>المستخدم</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tableBody">
+                                    <tr>
+                                        <td colspan="8" class="text-center text-muted">
+                                            <i class="fas fa-inbox me-2"></i>جاري تحميل البيانات...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+  
+    <script src="./acc_transaction.js"></script>
+</body>
+</html>

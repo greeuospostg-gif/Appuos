@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>💰 إدارة الرواتب</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --primary-color: #3498db;
+      --secondary-color: #2c3e50;
+      --accent-color: #1abc9c;
+      --light-color: #f5f7fa;
+      --dark-color: #34495e;
+      --success-color: #2ecc71;
+      --warning-color: #f39c12;
+      --danger-color: #e74c3c;
+      --border-radius: 12px;
+      --box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
+      --transition: all 0.3s ease;
+      --gradient-primary: linear-gradient(135deg, #3498db, #1abc9c);
+      --gradient-secondary: linear-gradient(135deg, #2c3e50, #34495e);
+      --gradient-success: linear-gradient(135deg, #2ecc71, #27ae60);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ed 100%);
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .header {
+      background: var(--gradient-primary);
+      color: white;
+      padding: 25px;
+      border-radius: var(--border-radius);
+      margin-bottom: 25px;
+      text-align: center;
+      box-shadow: var(--box-shadow);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .header::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M0,0 L100,0 L100,100 Z" fill="rgba(255,255,255,0.1)"/></svg>');
+      background-size: cover;
+    }
+
+    .header h2 {
+      font-size: 2.2rem;
+      margin: 0;
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 15px;
+    }
+
+    .connection-status {
+      position: fixed;
+      top: 15px;
+      left: 15px;
+      background: white;
+      padding: 10px 15px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 1000;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-left: 4px solid #28a745;
+      transition: var(--transition);
+    }
+
+    .loading-spinner {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 9999;
+    }
+
+    .main-content {
+      display: grid;
+      grid-template-columns: 1fr 1.8fr;
+      gap: 25px;
+      margin-top: 20px;
+    }
+
+    @media (max-width: 1024px) {
+      .main-content {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: white;
+      border-radius: var(--border-radius);
+      padding: 25px;
+      box-shadow: var(--box-shadow);
+      transition: var(--transition);
+      border: none;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    .card-title {
+      font-size: 1.4rem;
+      margin-bottom: 20px;
+      color: var(--secondary-color);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--light-color);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group.full-width {
+      grid-column: 1 / -1;
+    }
+
+    .salary-summary {
+      grid-column: 1 / -1;
+      background: var(--light-color);
+      padding: 15px;
+      border-radius: var(--border-radius);
+      margin-top: 10px;
+    }
+
+    .summary-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+
+    .summary-total {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 2px solid #ddd;
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--success-color);
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: var(--dark-color);
+      font-size: 1rem;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 14px 16px;
+      border: 2px solid #e1e5e9;
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: var(--transition);
+      background-color: var(--light-color);
+      font-family: inherit;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+      background-color: white;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 14px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      min-width: 120px;
+    }
+
+    .btn-primary {
+      background: var(--gradient-primary);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(52, 152, 219, 0.3);
+    }
+
+    .btn-secondary {
+      background: var(--gradient-secondary);
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(44, 62, 80, 0.3);
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--primary-color);
+      border: 2px solid var(--primary-color);
+    }
+
+    .btn-outline:hover {
+      background: var(--primary-color);
+      color: white;
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 15px;
+      margin-top: 25px;
+      flex-wrap: wrap;
+    }
+
+    .table-container {
+      overflow-x: auto;
+      border-radius: var(--border-radius);
+      box-shadow: var(--box-shadow);
+      background: white;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: white;
+      min-width: 1000px;
+    }
+
+    th {
+      background: var(--gradient-secondary);
+      color: white;
+      padding: 16px 12px;
+      text-align: right;
+      font-weight: 600;
+      font-size: 0.95rem;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 14px 12px;
+      border-bottom: 1px solid #e1e5e9;
+      font-size: 0.95rem;
+      text-align: right;
+    }
+
+    tr:hover {
+      background-color: rgba(52, 152, 219, 0.05);
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+    }
+
+    .actions button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1.1rem;
+      padding: 6px 8px;
+      border-radius: 6px;
+      transition: var(--transition);
+    }
+
+    .actions button:hover {
+      background-color: rgba(0, 0, 0, 0.1);
+      transform: scale(1.1);
+    }
+
+    .edit-btn {
+      color: var(--primary-color);
+    }
+
+    .delete-btn {
+      color: var(--danger-color);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #7f8c8d;
+    }
+
+    .empty-state i {
+      font-size: 3rem;
+      margin-bottom: 15px;
+      opacity: 0.5;
+    }
+
+    .required::after {
+      content: " *";
+      color: var(--danger-color);
+    }
+
+    .error-msg {
+      color: var(--danger-color);
+      font-weight: bold;
+      margin-top: 5px;
+      display: none;
+      font-size: 0.9rem;
+    }
+
+    .controls-container {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .search-box {
+      flex: 1;
+      min-width: 250px;
+      position: relative;
+    }
+
+    .search-box i {
+      position: absolute;
+      right: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #7f8c8d;
+    }
+
+    .search-box input {
+      padding-right: 45px;
+    }
+
+    .pagination {
+      display: flex;
+      gap: 5px;
+      margin-top: 20px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .page-btn {
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      background: white;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .page-btn.active {
+      background: var(--primary-color);
+      color: white;
+      border-color: var(--primary-color);
+    }
+
+    .page-btn:hover:not(.active) {
+      background: #f8f9fa;
+    }
+
+    .count-display {
+      text-align: center;
+      margin-top: 15px;
+      font-weight: 600;
+      color: var(--dark-color);
+      padding: 10px;
+      background: var(--light-color);
+      border-radius: var(--border-radius);
+    }
+
+    .salary-badge {
+      background: var(--gradient-success);
+      color: white;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 15px;
+      }
+      
+      .header {
+        padding: 20px;
+        border-radius: 10px;
+      }
+      
+      .header h2 {
+        font-size: 1.8rem;
+      }
+      
+      .card {
+        padding: 20px;
+      }
+      
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .form-actions {
+        flex-direction: column;
+      }
+      
+      .btn {
+        width: 100%;
+      }
+      
+      th, td {
+        padding: 12px 8px;
+      }
+      
+      .connection-status {
+        top: 10px;
+        left: 10px;
+        right: 10px;
+        font-size: 12px;
+      }
+      
+      .controls-container {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      
+      .search-box {
+        min-width: 100%;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .header {
+        border-radius: 8px;
+      }
+      
+      .header h2 {
+        font-size: 1.5rem;
+      }
+      
+      .card {
+        padding: 15px;
+        border-radius: 10px;
+      }
+      
+      input, select {
+        padding: 12px 14px;
+      }
+      
+      .btn {
+        padding: 12px 20px;
+      }
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .card, .table-container {
+      animation: fadeIn 0.5s ease;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <!-- شريط حالة الاتصال -->
+    <div class="connection-status">
+      <span id="connection-status">
+        <i class="fas fa-spinner fa-spin"></i> جاري الاتصال...
+      </span>
+    </div>
+
+    <!-- مؤشر التحميل -->
+    <div id="loading-spinner" class="loading-spinner">
+      <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;">
+        <span class="visually-hidden">جاري التحميل...</span>
+      </div>
+    </div>
+
+    <div class="header">
+      <h2><i class="fas fa-money-bill-wave"></i> إدارة الرواتب الشهرية</h2>
+    </div>
+
+    <div class="main-content">
+      <!-- نموذج الإضافة -->
+      <div class="card">
+        <h3 class="card-title"><i class="fas fa-plus-circle"></i> تسجيل راتب جديد</h3>
+        <form id="pay-form">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="emp_id" class="required"><i class="fas fa-user-tie"></i> الموظف:</label>
+              <select id="emp_id" required>
+                <option value="">اختر الموظف...</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="pay_month" class="required"><i class="fas fa-calendar-alt"></i> شهر الراتب:</label>
+              <input type="month" id="pay_month" required />
+            </div>
+
+            <div class="form-group">
+              <label for="base_salary" class="required"><i class="fas fa-money-check"></i> الراتب الأساسي:</label>
+              <input type="number" id="base_salary" step="0.01" min="0" required placeholder="أدخل الراتب الأساسي" />
+            </div>
+
+            <div class="form-group">
+              <label for="allowance"><i class="fas fa-plus-circle"></i> البدلات:</label>
+              <input type="number" id="allowance" step="0.01" min="0" value="0" placeholder="أدخل قيمة البدلات" />
+            </div>
+
+            <div class="form-group">
+              <label for="deductions"><i class="fas fa-minus-circle"></i> الخصومات:</label>
+              <input type="number" id="deductions" step="0.01" min="0" value="0" placeholder="أدخل قيمة الخصومات" />
+            </div>
+
+            <div class="form-group">
+              <label for="payment_method"><i class="fas fa-credit-card"></i> طريقة الدفع:</label>
+              <select id="payment_method">
+                <option value="تحويل بنكي">تحويل بنكي</option>
+                <option value="نقدي">نقدي</option>
+                <option value="شيك">شيك</option>
+              </select>
+            </div>
+
+            <div class="form-group full-width">
+              <div class="salary-summary">
+                <div class="summary-item">
+                  <span>الراتب الأساسي:</span>
+                  <span id="summary-base">0 ج.م</span>
+                </div>
+                <div class="summary-item">
+                  <span>البدلات:</span>
+                  <span id="summary-allowance">0 ج.م</span>
+                </div>
+                <div class="summary-item">
+                  <span>الخصومات:</span>
+                  <span id="summary-deductions">0 ج.م</span>
+                </div>
+                <div class="summary-total">
+                  <span>صافي الراتب:</span>
+                  <span id="summary-net">0 ج.م</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" id="save-btn" class="btn btn-primary">
+              <i class="fas fa-save"></i> حفظ الراتب
+            </button>
+            <button type="button" id="clear-btn" class="btn btn-outline">
+              <i class="fas fa-broom"></i> مسح النموذج
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- جدول الرواتب -->
+      <div class="card">
+        <h3 class="card-title"><i class="fas fa-list"></i> سجل الرواتب</h3>
+        
+        <!-- عناصر التحكم -->
+        <div class="controls-container">
+          <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" id="searchBox" placeholder="ابحث عن راتب بالاسم أو الشهر...">
+          </div>
+          
+          <select id="pageSizeSelector" class="form-select" style="width: auto;">
+            <option value="10">عرض 10</option>
+            <option value="20" selected>عرض 20</option>
+            <option value="50">عرض 50</option>
+            <option value="all">عرض الكل</option>
+          </select>
+        </div>
+
+        <div class="table-container">
+          <table id="payrollTable">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>الموظف</th>
+                <th>الشهر</th>
+                <th>الأساسي</th>
+                <th>البدلات</th>
+                <th>الخصومات</th>
+                <th>الصافي</th>
+                <th>طريقة الدفع</th>
+                <th>تاريخ الدفع</th>
+                <th>الإجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="payrollTableBody">
+              <tr>
+                <td colspan="10" class="empty-state">
+                  <div><i class="fas fa-money-bill-wave"></i></div>
+                  <p>لا توجد بيانات للرواتب</p>
+                  <small>قم بإضافة راتب جديد باستخدام النموذج</small>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div id="pagination" class="pagination"></div>
+        <div id="payrollCount" class="count-display"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // PayrollApp - مع دعم Supabase
+    class PayrollApp {
+      constructor() {
+        // تكوين Supabase
+        this.SUPABASE_URL = 'https://rvjacvrrpguehbapvewe.supabase.co';
+        this.SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2amFjdnJycGd1ZWhiYXB2ZXdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwMjUxNTksImV4cCI6MjA3ODYwMTE1OX0.wSavKzxKOF7-56G-pzDMtbXNrCNAbGs0wvadw-cilBg';
+        this.supabase = null;
+        this.isOnline = false;
+        this.currentEditId = null;
+        
+        this.allPayrolls = [];
+        this.allEmployees = [];
+        this.currentPage = 1;
+        this.itemsPerPage = 20;
+        
+        this.init();
+      }
+
+      async init() {
+        this.dom = this._initDOM();
+        this._bindEvents();
+        const connected = await this.initSupabase();
+        
+        if (connected) {
+          await this.loadEmployees();
+          await this.loadPayrolls();
+        } else {
+          this.showError('فشل في الاتصال بقاعدة البيانات. يرجى التحقق من الاتصال بالإنترنت.');
+        }
+      }
+
+      _initDOM() {
+        return {
+          form: document.getElementById("pay-form"),
+          empId: document.getElementById("emp_id"),
+          payMonth: document.getElementById("pay_month"),
+          baseSalary: document.getElementById("base_salary"),
+          allowance: document.getElementById("allowance"),
+          deductions: document.getElementById("deductions"),
+          paymentMethod: document.getElementById("payment_method"),
+          saveBtn: document.getElementById("save-btn"),
+          clearBtn: document.getElementById("clear-btn"),
+          searchBox: document.getElementById("searchBox"),
+          pageSizeSelector: document.getElementById("pageSizeSelector"),
+          tableBody: document.querySelector("#payrollTableBody"),
+          pagination: document.getElementById("pagination"),
+          payrollCount: document.getElementById("payrollCount"),
+          connectionStatus: document.getElementById("connection-status"),
+          loadingSpinner: document.getElementById("loading-spinner"),
+          summaryBase: document.getElementById("summary-base"),
+          summaryAllowance: document.getElementById("summary-allowance"),
+          summaryDeductions: document.getElementById("summary-deductions"),
+          summaryNet: document.getElementById("summary-net")
+        };
+      }
+
+      _bindEvents() {
+        // أحداث الأزرار
+        this.dom.saveBtn.addEventListener("click", () => this.savePayroll());
+        this.dom.clearBtn.addEventListener("click", () => this.clearForm());
+        
+        // أحداث الإدخال
+        this.dom.baseSalary.addEventListener("input", () => this.updateSalarySummary());
+        this.dom.allowance.addEventListener("input", () => this.updateSalarySummary());
+        this.dom.deductions.addEventListener("input", () => this.updateSalarySummary());
+        
+        this.dom.searchBox.addEventListener("input", () => {
+          this.currentPage = 1;
+          this.renderTable();
+        });
+        
+        this.dom.pageSizeSelector.addEventListener("change", (e) => {
+          this.itemsPerPage = e.target.value === "all" ? "all" : parseInt(e.target.value);
+          this.currentPage = 1;
+          this.renderTable();
+        });
+        
+        // تعيين الشهر الحالي كقيمة افتراضية
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        this.dom.payMonth.value = `${year}-${month}`;
+        
+        // تحديث ملخص الراتب عند التحميل
+        this.updateSalarySummary();
+      }
+
+      async initSupabase() {
+        try {
+          this.showLoading(true);
+          this.updateConnectionStatus('warning', '<i class="fas fa-spinner fa-spin"></i> جاري الاتصال...');
+          
+          console.log('🔄 جاري تهيئة Supabase...');
+          this.supabase = supabase.createClient(this.SUPABASE_URL, this.SUPABASE_KEY);
+          
+          // اختبار الاتصال البسيط
+          const { data, error } = await this.supabase.auth.getSession();
+          
+          if (error) {
+            console.error('❌ خطأ في المصادقة:', error);
+            throw error;
+          }
+
+          this.isOnline = true;
+          this.updateConnectionStatus('success', '<i class="fas fa-cloud-check"></i> متصل بالسحابة');
+          console.log('✅ Supabase متصل بنجاح');
+          return true;
+          
+        } catch (error) {
+          console.error('❌ فشل في الاتصال بـ Supabase:', error);
+          this.isOnline = false;
+          this.updateConnectionStatus('danger', '<i class="fas fa-cloud-slash"></i> غير متصل');
+          
+          let errorMessage = 'فشل في الاتصال بقاعدة البيانات';
+          if (error.message) {
+            errorMessage += `: ${error.message}`;
+          }
+          this.showError(errorMessage);
+          return false;
+        } finally {
+          this.showLoading(false);
+        }
+      }
+
+      // تحديث حالة الاتصال
+      updateConnectionStatus(type, message) {
+        if (!this.dom.connectionStatus) return;
+        
+        this.dom.connectionStatus.innerHTML = message;
+        this.dom.connectionStatus.style.borderLeftColor = 
+          type === 'success' ? '#28a745' : 
+          type === 'danger' ? '#dc3545' : '#ffc107';
+      }
+
+      // إظهار/إخفاء مؤشر التحميل
+      showLoading(show) {
+        if (this.dom.loadingSpinner) {
+          this.dom.loadingSpinner.style.display = show ? 'block' : 'none';
+        }
+      }
+
+      async loadEmployees() {
+        try {
+          this.showLoading(true);
+          console.log('🔄 جاري تحميل بيانات الموظفين...');
+          
+          if (!this.supabase) {
+            throw new Error('Supabase غير مهيئ');
+          }
+
+          const { data, error } = await this.supabase
+            .from('employees')
+            .select('emp_id, first_name, last_name')
+            .order('first_name');
+
+          if (error) {
+            console.error('❌ خطأ في تحميل الموظفين:', error);
+            
+            if (error.code === '42P01') {
+              console.log('⚠️ جدول employees غير موجود، استخدام بيانات تجريبية');
+              this.loadSampleEmployees();
+              return;
+            }
+            throw error;
+          }
+
+          console.log('✅ تم تحميل الموظفين:', data);
+          this.allEmployees = data || [];
+          this.renderEmployees();
+              
+        } catch (error) {
+          console.error('❌ خطأ في تحميل بيانات الموظفين:', error);
+          this.loadSampleEmployees();
+        } finally {
+          this.showLoading(false);
+        }
+      }
+
+      // تحميل بيانات تجريبية للموظفين
+      loadSampleEmployees() {
+        this.allEmployees = [
+          { emp_id: 1, first_name: 'أحمد', last_name: 'محمد' },
+          { emp_id: 2, first_name: 'فاطمة', last_name: 'علي' },
+          { emp_id: 3, first_name: 'يوسف', last_name: 'خالد' },
+          { emp_id: 4, first_name: 'سارة', last_name: 'إبراهيم' },
+          { emp_id: 5, first_name: 'محمد', last_name: 'حسن' }
+        ];
+        
+        this.renderEmployees();
+        this.showInfo('يتم استخدام بيانات تجريبية للموظفين');
+      }
+
+      renderEmployees() {
+        this.dom.empId.innerHTML = '<option value="">اختر الموظف...</option>';
+        this.allEmployees.forEach(emp => {
+          const option = document.createElement('option');
+          option.value = emp.emp_id;
+          option.textContent = `${emp.first_name} ${emp.last_name}`;
+          this.dom.empId.appendChild(option);
+        });
+      }
+
+      async loadPayrolls() {
+        try {
+          this.showLoading(true);
+          console.log('🔄 جاري تحميل بيانات الرواتب...');
+          
+          if (!this.supabase) {
+            throw new Error('Supabase غير مهيئ');
+          }
+
+          const { data, error } = await this.supabase
+            .from('payroll')
+            .select(`
+              *,
+              employees!payroll_emp_id_fkey (
+                first_name,
+                last_name
+              )
+            `)
+            .order('pay_month', { ascending: false });
+
+          if (error) {
+            console.error('❌ خطأ في تحميل الرواتب:', error);
+            
+            if (error.code === '42P01') {
+              console.log('⚠️ جدول payroll غير موجود، استخدام بيانات تجريبية');
+              this.loadSamplePayrolls();
+              return;
+            }
+            throw error;
+          }
+
+          console.log('✅ تم تحميل الرواتب:', data);
+          this.allPayrolls = data || [];
+          this.renderTable();
+              
+        } catch (error) {
+          console.error('❌ خطأ في تحميل بيانات الرواتب:', error);
+          this.loadSamplePayrolls();
+        } finally {
+          this.showLoading(false);
+        }
+      }
+
+      // تحميل بيانات تجريبية للرواتب
+      loadSamplePayrolls() {
+        this.allPayrolls = [
+          {
+            payroll_id: 1,
+            emp_id: 1,
+            pay_month: '2023-11-01',
+            base_salary: 8500,
+            allowance: 500,
+            deductions: 200,
+            payment_method: 'تحويل بنكي',
+            payment_date: '2023-11-05',
+            employees: { first_name: 'أحمد', last_name: 'محمد' }
+          },
+          {
+            payroll_id: 2,
+            emp_id: 2,
+            pay_month: '2023-11-01',
+            base_salary: 7200,
+            allowance: 300,
+            deductions: 150,
+            payment_method: 'نقدي',
+            payment_date: '2023-11-05',
+            employees: { first_name: 'فاطمة', last_name: 'علي' }
+          },
+          {
+            payroll_id: 3,
+            emp_id: 3,
+            pay_month: '2023-10-01',
+            base_salary: 10500,
+            allowance: 800,
+            deductions: 400,
+            payment_method: 'تحويل بنكي',
+            payment_date: '2023-10-05',
+            employees: { first_name: 'يوسف', last_name: 'خالد' }
+          }
+        ];
+        
+        this.renderTable();
+        this.showInfo('يتم استخدام بيانات تجريبية للرواتب');
+      }
+
+      renderTable() {
+        const payrolls = this.filteredPayrolls();
+        const totalPages = Math.ceil(payrolls.length / (this.itemsPerPage === "all" ? payrolls.length : this.itemsPerPage));
+        const start = this.itemsPerPage === "all" ? 0 : (this.currentPage - 1) * this.itemsPerPage;
+        const end = this.itemsPerPage === "all" ? payrolls.length : start + this.itemsPerPage;
+        const pagePayrolls = payrolls.slice(start, end);
+
+        this.dom.tableBody.innerHTML = "";
+        
+        if (pagePayrolls.length === 0) {
+          this.dom.tableBody.innerHTML = `
+            <tr>
+              <td colspan="10" class="empty-state">
+                <div><i class="fas fa-money-bill-wave"></i></div>
+                <p>لا توجد بيانات للرواتب</p>
+                <small>قم بإضافة راتب جديد باستخدام النموذج</small>
+              </td>
+            </tr>
+          `;
+        } else {
+          pagePayrolls.forEach((p, index) => {
+            const serial = (this.itemsPerPage === "all") ? (index + 1) : (start + index + 1);
+            const employeeName = p.employees ? `${p.employees.first_name} ${p.employees.last_name}` : 'غير معروف';
+            const payMonth = p.pay_month ? new Date(p.pay_month).toLocaleDateString('ar-SA', { year: 'numeric', month: 'long' }) : '';
+            const paymentDate = p.payment_date ? new Date(p.payment_date).toLocaleDateString('ar-SA') : '';
+            const netSalary = (p.base_salary || 0) + (p.allowance || 0) - (p.deductions || 0);
+
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+              <td>${serial}</td>
+              <td>${employeeName}</td>
+              <td>${payMonth}</td>
+              <td>${(p.base_salary || 0).toLocaleString()} ج.م</td>
+              <td>${(p.allowance || 0).toLocaleString()} ج.م</td>
+              <td>${(p.deductions || 0).toLocaleString()} ج.م</td>
+              <td><span class="salary-badge">${netSalary.toLocaleString()} ج.م</span></td>
+              <td>${p.payment_method || ''}</td>
+              <td>${paymentDate}</td>
+              <td class="actions">
+                <button class="edit-btn" onclick="app.editPayroll(${p.payroll_id})">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button class="delete-btn" onclick="app.deletePayroll(${p.payroll_id})">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </td>
+            `;
+            this.dom.tableBody.appendChild(tr);
+          });
+        }
+        
+        this.renderPagination(totalPages);
+        this.renderCount(payrolls.length);
+      }
+
+      filteredPayrolls() {
+        const query = this.dom.searchBox.value.trim().toLowerCase();
+        if (!query) return this.allPayrolls;
+        
+        return this.allPayrolls.filter(p => {
+          const employeeName = p.employees ? 
+            `${p.employees.first_name} ${p.employees.last_name}`.toLowerCase() : '';
+          const payMonth = p.pay_month ? new Date(p.pay_month).toLocaleDateString('ar-SA', { year: 'numeric', month: 'long' }).toLowerCase() : '';
+          
+          return employeeName.includes(query) || payMonth.includes(query);
+        });
+      }
+
+      renderPagination(totalPages) {
+        this.dom.pagination.innerHTML = "";
+        if (this.itemsPerPage === "all" || totalPages <= 1) return;
+        
+        for (let i = 1; i <= totalPages; i++) {
+          const btn = document.createElement("button");
+          btn.textContent = i;
+          btn.className = "page-btn" + (i === this.currentPage ? " active" : "");
+          btn.onclick = () => {
+            this.currentPage = i;
+            this.renderTable();
+          };
+          this.dom.pagination.appendChild(btn);
+        }
+      }
+
+      renderCount(count) {
+        this.dom.payrollCount.textContent = `عدد سجلات الرواتب: ${count}`;
+      }
+
+      updateSalarySummary() {
+        const base = parseFloat(this.dom.baseSalary.value) || 0;
+        const allowance = parseFloat(this.dom.allowance.value) || 0;
+        const deductions = parseFloat(this.dom.deductions.value) || 0;
+        const net = base + allowance - deductions;
+
+        this.dom.summaryBase.textContent = `${base.toLocaleString()} ج.م`;
+        this.dom.summaryAllowance.textContent = `${allowance.toLocaleString()} ج.م`;
+        this.dom.summaryDeductions.textContent = `${deductions.toLocaleString()} ج.م`;
+        this.dom.summaryNet.textContent = `${net.toLocaleString()} ج.م`;
+      }
+
+      async savePayroll() {
+        // التحقق من البيانات
+        if (!this.dom.empId.value || !this.dom.payMonth.value || !this.dom.baseSalary.value) {
+          this.showError('يرجى إدخال جميع البيانات المطلوبة');
+          return;
+        }
+
+        const payrollData = {
+          emp_id: parseInt(this.dom.empId.value),
+          pay_month: this.dom.payMonth.value + '-01',
+          base_salary: parseFloat(this.dom.baseSalary.value),
+          allowance: parseFloat(this.dom.allowance.value) || 0,
+          deductions: parseFloat(this.dom.deductions.value) || 0,
+          payment_method: this.dom.paymentMethod.value,
+          payment_date: new Date().toISOString().split('T')[0]
+        };
+
+        try {
+          this.showLoading(true);
+          
+          if (!this.supabase || !this.isOnline) {
+            this.showInfo('⚠️ لا يمكن الحفظ - غير متصل بالسحابة');
+            return;
+          }
+
+          let result;
+          if (this.currentEditId) {
+            // حالة التعديل
+            result = await this.supabase
+              .from('payroll')
+              .update(payrollData)
+              .eq('payroll_id', this.currentEditId);
+          } else {
+            // حالة الإضافة
+            result = await this.supabase
+              .from('payroll')
+              .insert([payrollData]);
+          }
+
+          if (result.error) {
+            throw result.error;
+          }
+
+          const message = this.currentEditId ? '✅ تم تحديث الراتب بنجاح' : '✅ تم حفظ الراتب بنجاح';
+          this.showSuccess(message);
+          this.clearForm();
+          await this.loadPayrolls();
+              
+        } catch (error) {
+          console.error('❌ خطأ في حفظ الراتب:', error);
+          this.showError('فشل في حفظ البيانات: ' + error.message);
+        } finally {
+          this.showLoading(false);
+        }
+      }
+
+      async editPayroll(id) {
+        try {
+          this.showLoading(true);
+          
+          if (!this.supabase || !this.isOnline) {
+            this.showInfo('⚠️ لا يمكن التعديل - غير متصل بالسحابة');
+            return;
+          }
+
+          const { data, error } = await this.supabase
+            .from('payroll')
+            .select('*')
+            .eq('payroll_id', id)
+            .single();
+
+          if (error) {
+            throw error;
+          }
+
+          // تعبئة النموذج
+          this.dom.empId.value = data.emp_id;
+          
+          if (data.pay_month) {
+            const date = new Date(data.pay_month);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            this.dom.payMonth.value = `${year}-${month}`;
+          }
+          
+          this.dom.baseSalary.value = data.base_salary;
+          this.dom.allowance.value = data.allowance;
+          this.dom.deductions.value = data.deductions;
+          this.dom.paymentMethod.value = data.payment_method;
+
+          // تحديث حالة الزر للنمط التعديلي
+          this.currentEditId = id;
+          this.dom.saveBtn.innerHTML = '<i class="fas fa-edit"></i> تحديث الراتب';
+          this.dom.saveBtn.classList.remove('btn-primary');
+          this.dom.saveBtn.classList.add('btn-secondary');
+          
+          // تحديث ملخص الراتب
+          this.updateSalarySummary();
+          
+          this.showInfo('يمكنك الآن تعديل بيانات الراتب');
+              
+        } catch (error) {
+          console.error('❌ خطأ في تحميل بيانات الراتب:', error);
+          this.showError('فشل في تحميل بيانات الراتب للتعديل');
+        } finally {
+          this.showLoading(false);
+        }
+      }
+
+      async deletePayroll(id) {
+        if (!confirm("هل تريد حذف سجل الراتب هذا؟")) return;
+
+        try {
+          this.showLoading(true);
+          
+          if (!this.supabase || !this.isOnline) {
+            this.showInfo('⚠️ لا يمكن الحذف - غير متصل بالسحابة');
+            return;
+          }
+
+          const { error } = await this.supabase
+            .from('payroll')
+            .delete()
+            .eq('payroll_id', id);
+
+          if (error) {
+            throw error;
+          }
+
+          this.showSuccess('✅ تم حذف الراتب بنجاح');
+          await this.loadPayrolls();
+              
+        } catch (error) {
+          console.error('❌ خطأ في حذف الراتب:', error);
+          this.showError('فشل في حذف البيانات: ' + error.message);
+        } finally {
+          this.showLoading(false);
+        }
+      }
+
+      clearForm() {
+        this.dom.form.reset();
+        
+        // إعادة تعيين الشهر الحالي
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        this.dom.payMonth.value = `${year}-${month}`;
+        
+        // إعادة الزر لحالته الأصلية
+        this.currentEditId = null;
+        this.dom.saveBtn.innerHTML = '<i class="fas fa-save"></i> حفظ الراتب';
+        this.dom.saveBtn.classList.remove('btn-secondary');
+        this.dom.saveBtn.classList.add('btn-primary');
+        
+        // تحديث ملخص الراتب
+        this.updateSalarySummary();
+      }
+
+      // دوال مساعدة للرسائل
+      showError(message) {
+        alert(`❌ ${message}`);
+      }
+
+      showSuccess(message) {
+        alert(`✅ ${message}`);
+      }
+
+      showInfo(message) {
+        alert(`ℹ️ ${message}`);
+      }
+    }
+
+    // تهيئة التطبيق
+    const app = new PayrollApp();
+  </script>
+</body>
+</html>

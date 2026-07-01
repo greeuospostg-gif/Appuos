@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مرتجع المبيعات</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* احتفظ بكل الـ CSS كما هو */
+        .connection-status {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: #28a745;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1000;
+            font-size: 12px;
+            border-left: 4px solid #1e7e34;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #1e7e34;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.8; }
+            50% { opacity: 0.4; }
+            100% { opacity: 0.8; }
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .user-info {
+            background: #ecf0f1;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #bdc3c7;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 20px;
+        }
+        
+        .section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            border: 2px solid #e9ecef;
+        }
+        
+        .section-title {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin: -20px -20px 20px -20px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #bdc3c7;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-control:focus {
+            border-color: #3498db;
+            outline: none;
+        }
+        
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #27ae60, #229954);
+            color: white;
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+            color: white;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .search-results {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #bdc3c7;
+            border-radius: 5px;
+            margin-top: 10px;
+            background: white;
+        }
+        
+        .search-item {
+            padding: 10px;
+            border-bottom: 1px solid #ecf0f1;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .search-item:hover {
+            background: #3498db;
+            color: white;
+        }
+        
+        .items-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #bdc3c7;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        
+        /* تحديث CSS ليشمل 7 أعمدة بدلاً من 6 */
+        .item-row {
+            display: grid;
+            grid-template-columns: 50px 1fr 80px 80px 100px 100px 80px;
+            gap: 10px;
+            padding: 10px;
+            border-bottom: 1px solid #ecf0f1;
+            align-items: center;
+        }
+        
+        .item-row.header {
+            background: #34495e;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .warning-row {
+            background-color: #fff3cd !important;
+            border-right: 4px solid #ffc107;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .summary-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid #bdc3c7;
+            text-align: center;
+        }
+        
+        .summary-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-top: 5px;
+        }
+        
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .inventory-info {
+            background: #e8f6f3;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            border-right: 4px solid #27ae60;
+        }
+        
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #2ecc71;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 5px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            z-index: 1000;
+            display: none;
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            background: #ecf0f1;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: background 0.3s;
+            font-weight: bold;
+        }
+        
+        .tab.active {
+            background: #3498db;
+            color: white;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .text-muted {
+            color: #6c757d !important;
+        }
+        
+        .small {
+            font-size: 0.875em;
+        }
+        
+        .text-warning {
+            color: #ffc107 !important;
+        }
+        
+        .text-success {
+            color: #28a745 !important;
+        }
+        
+        .text-info {
+            color: #17a2b8 !important;
+        }
+        
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <!-- شريط حالة الاتصال المبسط -->
+    <div id="connectionStatus" class="connection-status">
+        <div class="status-indicator"></div>
+        <span id="statusText">🌐 متصل بـ Supabase</span>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1> نظام مرتجع المبيعات - </h1>
+            <p>إدارة مرتجعات المبيعات مع أو بدون فاتورة</p>
+        </div>
+        
+        <div class="user-info">
+            <div id="userInfo">مرحباً: </div>
+            <div>
+                <button class="btn btn-warning" onclick="app.newReturn()">فاتورة جديدة</button>
+                <button class="btn btn-primary" onclick="window.location.href='main.html'">القائمة الرئيسية</button>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" data-tab="with-invoice">🔄 مرتجع بفاتورة</div>
+            <div class="tab" data-tab="without-invoice">📦 مرتجع بدون فاتورة</div>
+        </div>
+
+        <div class="main-content">
+            <!-- قسم البحث عن الفاتورة -->
+            <div class="section tab-content active" id="with-invoice">
+                <div class="section-title">🔍 البحث عن الفاتورة الأصلية</div>
+                
+                <div class="form-group">
+                    <label for="searchInvoice">رقم الفاتورة:</label>
+                    <input type="text" id="searchInvoice" class="form-control" placeholder="أدخل رقم الفاتورة...">
+                </div>
+                
+                <div class="form-group">
+                    <label for="searchDate">تاريخ الفاتورة:</label>
+                    <input type="date" id="searchDate" class="form-control">
+                </div>
+                
+                <button class="btn btn-primary" onclick="app.searchInvoice()">بحث عن الفاتورة</button>
+                
+                <div id="invoiceResults" class="search-results" style="display: none;"></div>
+            </div>
+
+            <!-- قسم البحث عن الصنف -->
+            <div class="section tab-content" id="without-invoice">
+                <div class="section-title">🔍 البحث عن الصنف</div>
+                
+                <div class="form-group">
+                    <label for="storeSelect">الفرع:</label>
+                    <select id="storeSelect" class="form-control">
+                        <option value="">اختر الفرع</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="itemSearch">كود أو اسم الصنف:</label>
+                    <input type="text" id="itemSearch" class="form-control" placeholder="ابحث بالكود أو الاسم...">
+                    <div id="itemResults" class="search-results" style="display: none;"></div>
+                </div>
+                
+                <div id="inventoryInfo" class="inventory-info" style="display: none;">
+                    <div>الرصيد المتاح: <span id="availableStock">0</span></div>
+                    <div>آخر سعر بيع: <span id="lastSalePrice">0</span></div>
+                </div>
+            </div>
+
+            <!-- قسم إضافة المرتجع -->
+            <div class="section">
+                <div class="section-title">➕ إضافة صنف للمرتجع</div>
+                
+                <div class="form-group">
+                    <label for="returnQty">الكمية المرتجعة:</label>
+                    <input type="number" id="returnQty" class="form-control" min="0.01" step="0.01" value="1">
+                </div>
+                
+                <div class="form-group">
+                    <label for="returnReason">سبب الإرجاع:</label>
+                    <select id="returnReason" class="form-control">
+                        <option value="تالف">تالف</option>
+                        <option value="منتهي الصلاحية">منتهي الصلاحية</option>
+                        <option value="خطأ في الكمية">خطأ في الكمية</option>
+                        <option value="خطأ في الصنف">خطأ في الصنف</option>
+                        <option value="طلب العميل">طلب العميل</option>
+                        <option value="أخرى">أخرى</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="returnPrice">سعر الإرجاع:</label>
+                    <input type="number" id="returnPrice" class="form-control" min="0" step="0.01" placeholder="سيتم تعبئته تلقائياً">
+                </div>
+                
+                <div class="form-group">
+                    <label for="returnRemarks">ملاحظات:</label>
+                    <textarea id="returnRemarks" class="form-control" rows="3" placeholder="ملاحظات إضافية..."></textarea>
+                </div>
+                
+                <button class="btn btn-success" onclick="app.addReturnItem()">إضافة للمرتجع</button>
+            </div>
+        </div>
+
+        <!-- قائمة الأصناف المرتجعة -->
+        <div class="section">
+            <div class="section-title">🛒 الأصناف المرتجعة</div>
+            <div id="returnItemsList" class="items-list">
+                <div class="item-row header">
+                    <div>#</div>
+                    <div>الصنف</div>
+                    <div>الكمية</div>
+                    <div>السعر</div>
+                    <div>الإجمالي</div>
+                    <div>السبب</div>
+                    <div>إجراءات</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- الملخص والإجراءات -->
+        <div class="section">
+            <div class="section-title">📊 ملخص المرتجع</div>
+            
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <div>عدد الأصناف</div>
+                    <div id="totalItems" class="summary-value">0</div>
+                </div>
+                <div class="summary-item">
+                    <div>إجمالي الكمية</div>
+                    <div id="totalQty" class="summary-value">0</div>
+                </div>
+                <div class="summary-item">
+                    <div>إجمالي المبلغ</div>
+                    <div id="totalAmount" class="summary-value">0.00</div>
+                </div>
+                <div class="summary-item">
+                    <div>المستحق للعميل</div>
+                    <div id="customerRefund" class="summary-value">0.00</div>
+                </div>
+            </div>
+            
+            <div class="action-buttons">
+                <button class="btn btn-danger" onclick="app.cancelReturn()">إلغاء المرتجع</button>
+                <button class="btn btn-success" onclick="app.processReturn()">معالجة المرتجع</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script src="salesreturn.js"></script>
+    <script>
+        // تهيئة التطبيق بعد تحميل الصفحة
+        document.addEventListener('DOMContentLoaded', function() {
+            // إضافة event listeners للتبديل بين التبويبات
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    // إزالة النشاط من جميع التبويبات
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    
+                    // تفعيل التبويب المختار
+                    this.classList.add('active');
+                    const tabId = this.getAttribute('data-tab');
+                    document.getElementById(tabId).classList.add('active');
+                    
+                    // تحديث وضع التشغيل
+                    if (window.app) {
+                        window.app.state.currentMode = tabId;
+                        console.log(`🔄 تم التبديل إلى: ${tabId}`);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

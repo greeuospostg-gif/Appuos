@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>دليل الحسابات</title>
+
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* أساسيات التنسيق */
+        :root {
+            --primary-color: #4361ee;
+            --primary-dark: #3a56d4;
+            --secondary-color: #7209b7;
+            --accent-color: #f72585;
+            --success-color: #4cc9f0;
+            --light-color: #f8f9fa;
+            --dark-color: #212529;
+            --gray-color: #6c757d;
+            --light-gray: #e9ecef;
+            --border-radius: 12px;
+            --box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+            --transition: all 0.3s ease;
+            --gradient-primary: linear-gradient(135deg, #4361ee, #3a0ca3);
+            --gradient-secondary: linear-gradient(135deg, #7209b7, #f72585);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f5f7ff;
+            color: var(--dark-color);
+            line-height: 1.6;
+            padding-bottom: 40px;
+            min-height: 100vh;
+        }
+
+        /* الهيدر */
+        header {
+            background: var(--gradient-primary);
+            color: white;
+            padding: 16px 0;
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .dropdown-container {
+            position: relative;
+        }
+
+        .dropbtn {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            backdrop-filter: blur(10px);
+        }
+
+        .dropbtn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-2px);
+        }
+
+        #user-info {
+            font-size: 20px;
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #user-info i {
+            font-size: 22px;
+        }
+
+        /* المحتوى الرئيسي */
+        .container {
+            max-width: 1200px;
+            margin: 25px auto;
+            padding: 0 20px;
+        }
+
+        h2 {
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--primary-color);
+            font-size: 24px;
+            position: relative;
+        }
+
+        h2:after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            right: 0;
+            width: 80px;
+            height: 2px;
+            background: var(--accent-color);
+        }
+
+        .form-section {
+            background: white;
+            padding: 25px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            margin-bottom: 30px;
+            transition: var(--transition);
+        }
+
+        .form-section:hover {
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: var(--dark-color);
+            font-size: 14px;
+        }
+
+        select, input[type="text"] {
+            width: 100%;
+            padding: 10px 12px;
+            margin-bottom: 16px;
+            border: 1.5px solid var(--light-gray);
+            border-radius: 8px;
+            font-size: 14px;
+            transition: var(--transition);
+            background-color: white;
+        }
+
+        select:focus, input[type="text"]:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.15);
+        }
+
+        #saveAccountBtn {
+            background: var(--gradient-secondary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: var(--border-radius);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        #saveAccountBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(114, 9, 183, 0.25);
+        }
+
+        hr {
+            border: none;
+            height: 1px;
+            background: linear-gradient(to right, transparent, var(--primary-color), transparent);
+            margin: 30px 0;
+        }
+
+        /* زر الطباعة */
+        .print-btn-container {
+            display: flex;
+            justify-content: flex-start;
+            margin-bottom: 12px;
+        }
+
+        #printBtn {
+            background: var(--gradient-primary);
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: var(--border-radius);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 3px 10px rgba(67, 97, 238, 0.15);
+        }
+
+        #printBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 12px rgba(67, 97, 238, 0.25);
+        }
+
+        /* الجدول - تم تقليل حجم الحقول هنا */
+        .table-container {
+            overflow-x: auto;
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 3px;
+            margin-top: 12px;
+        }
+
+        #accounts_table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 700px;
+            font-size: 13px;
+        }
+
+        #accounts_table thead {
+            background: var(--gradient-primary);
+            color: white;
+        }
+
+        #accounts_table th {
+            padding: 10px 8px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            position: relative;
+            user-select: none;
+            transition: var(--transition);
+            white-space: nowrap;
+        }
+
+        #accounts_table th.sortable:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        #accounts_table th.sortable::after {
+            content: "↕";
+            margin-right: 5px;
+            font-size: 10px;
+            opacity: 0.7;
+        }
+
+        #accounts_table th.sorted-asc::after {
+            content: "↑";
+            opacity: 1;
+        }
+
+        #accounts_table th.sorted-desc::after {
+            content: "↓";
+            opacity: 1;
+        }
+
+        #accounts_table tbody tr {
+            border-bottom: 1px solid var(--light-gray);
+            transition: var(--transition);
+        }
+
+        #accounts_table tbody tr:nth-child(even) {
+            background-color: rgba(248, 249, 250, 0.5);
+        }
+
+        #accounts_table tbody tr:hover {
+            background-color: rgba(67, 97, 238, 0.05);
+        }
+
+        /* هنا تم تقليل حجم الحقول بشكل كبير */
+        #accounts_table td {
+            padding: 8px 6px;
+            text-align: center;
+            color: var(--dark-color);
+            font-size: 12.5px;
+            line-height: 1.4;
+            word-wrap: break-word;
+            max-width: 200px;
+        }
+
+        /* تحسين عرض الأعمدة */
+        #accounts_table th:nth-child(1), /* كود الحساب الرئيسي */
+        #accounts_table td:nth-child(1) {
+            width: 15%;
+            min-width: 80px;
+        }
+        
+        #accounts_table th:nth-child(2), /* اسم الحساب الرئيسي */
+        #accounts_table td:nth-child(2) {
+            width: 25%;
+            min-width: 120px;
+        }
+        
+        #accounts_table th:nth-child(3), /* كود الحساب الفرعي */
+        #accounts_table td:nth-child(3) {
+            width: 15%;
+            min-width: 80px;
+        }
+        
+        #accounts_table th:nth-child(4), /* اسم الحساب الفرعي */
+        #accounts_table td:nth-child(4) {
+            width: 25%;
+            min-width: 120px;
+        }
+        
+        #accounts_table th:nth-child(5), /* الإجراءات */
+        #accounts_table td:nth-child(5) {
+            width: 20%;
+            min-width: 100px;
+        }
+
+        /* أزرار الإجراءات - تم تصغيرها */
+        .actions {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+        }
+
+        .action-btn {
+            padding: 5px 8px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            font-weight: 500;
+            font-size: 11px;
+            min-width: 60px;
+        }
+
+        .edit-btn {
+            background-color: rgba(76, 201, 240, 0.12);
+            color: #0a9396;
+            border: 1px solid rgba(76, 201, 240, 0.3);
+        }
+
+        .edit-btn:hover {
+            background-color: rgba(76, 201, 240, 0.2);
+        }
+
+        .delete-btn {
+            background-color: rgba(247, 37, 133, 0.12);
+            color: var(--accent-color);
+            border: 1px solid rgba(247, 37, 133, 0.3);
+        }
+
+        .delete-btn:hover {
+            background-color: rgba(247, 37, 133, 0.2);
+        }
+
+        /* أقسام العرض الشرطي */
+        #supplier_section, #customer_section, #manual_section {
+            background-color: rgba(248, 249, 250, 0.8);
+            padding: 15px;
+            border-radius: var(--border-radius);
+            margin-bottom: 15px;
+            border-right: 3px solid var(--primary-color);
+            animation: fadeIn 0.5s ease;
+        }
+
+        /* رسائل التنبيه */
+        .alert {
+            padding: 12px;
+            border-radius: var(--border-radius);
+            margin-bottom: 16px;
+            display: none;
+            animation: fadeIn 0.5s ease;
+            font-size: 13px;
+        }
+
+        .alert-success {
+            background-color: rgba(76, 201, 240, 0.12);
+            color: #0a9396;
+            border-right: 3px solid #4cc9f0;
+        }
+
+        .alert-error {
+            background-color: rgba(247, 37, 133, 0.12);
+            color: var(--accent-color);
+            border-right: 3px solid var(--accent-color);
+        }
+
+        /* الأنيميشن */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* تحسينات الطباعة */
+        @media print {
+            /* إخفاء العناصر غير الضرورية للطباعة */
+            header, .form-section, hr, .print-btn-container, .search-box, .actions, footer {
+                display: none !important;
+            }
+            
+            /* تحسين عرض الجدول للطباعة */
+            .table-container {
+                overflow: visible;
+                box-shadow: none;
+                padding: 0;
+                margin-top: 0;
+            }
+            
+            #accounts_table {
+                min-width: auto;
+                width: 100%;
+                border: 1px solid #ddd;
+                font-size: 11px;
+            }
+            
+            #accounts_table th {
+                background-color: #f5f5f5 !important;
+                color: #000 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                border-bottom: 2px solid #000;
+                padding: 6px 4px;
+                font-size: 11px;
+            }
+            
+            #accounts_table td {
+                border: 1px solid #ddd;
+                padding: 5px 4px;
+                font-size: 10.5px;
+            }
+            
+            h2 {
+                color: #000;
+                border-bottom-color: #000;
+                font-size: 18px;
+                margin-bottom: 15px;
+            }
+            
+            h2:after {
+                background: #000;
+            }
+            
+            /* إضافة عنوان للصفحة المطبوعة */
+            body::before {
+                content: "دليل الحسابات - تقرير مطبوع";
+                display: block;
+                text-align: center;
+                font-size: 20px;
+                font-weight: bold;
+                margin-bottom: 15px;
+                border-bottom: 2px solid #000;
+                padding-bottom: 8px;
+            }
+            
+            /* إضافة تاريخ الطباعة */
+            body::after {
+                content: "تم الطباعة في: " attr(data-print-time);
+                display: block;
+                text-align: center;
+                font-size: 10px;
+                margin-top: 15px;
+                color: #666;
+            }
+        }
+
+        /* التجاوب مع الشاشات المختلفة */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 12px;
+                text-align: center;
+            }
+
+            h2 {
+                font-size: 20px;
+                margin-bottom: 15px;
+            }
+
+            .form-section {
+                padding: 18px;
+            }
+            
+            .table-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+            
+            .print-btn-container {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .search-box {
+                width: 100%;
+                padding: 10px 15px;
+                font-size: 13px;
+            }
+
+            #accounts_table {
+                min-width: 600px;
+                font-size: 12px;
+            }
+
+            #accounts_table th, 
+            #accounts_table td {
+                padding: 7px 5px;
+                font-size: 12px;
+            }
+            
+            #accounts_table td {
+                font-size: 11.5px;
+                line-height: 1.3;
+            }
+
+            .actions {
+                flex-direction: row;
+                gap: 4px;
+            }
+
+            .action-btn {
+                padding: 4px 6px;
+                font-size: 10px;
+                min-width: 55px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            h2 {
+                font-size: 18px;
+            }
+
+            .container {
+                padding: 0 12px;
+            }
+
+            select, input[type="text"] {
+                padding: 8px 10px;
+                font-size: 13px;
+            }
+
+            #saveAccountBtn {
+                padding: 10px 18px;
+                font-size: 14px;
+            }
+            
+            #printBtn {
+                padding: 8px 14px;
+                font-size: 13px;
+                width: 100%;
+                justify-content: center;
+            }
+
+            #accounts_table {
+                min-width: 100%;
+            }
+
+            #accounts_table th, 
+            #accounts_table td {
+                padding: 6px 4px;
+                font-size: 11px;
+            }
+            
+            .action-btn {
+                min-width: 50px;
+                padding: 3px 5px;
+                font-size: 9.5px;
+            }
+        }
+
+        /* تصميم للشاشات الكبيرة */
+        @media (min-width: 1200px) {
+            .container {
+                max-width: 1400px;
+            }
+            
+            .form-grid {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 25px;
+            }
+        }
+
+        /* تحسينات إضافية */
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .search-box {
+            padding: 10px 16px;
+            border: 1.5px solid var(--light-gray);
+            border-radius: var(--border-radius);
+            width: 250px;
+            font-size: 14px;
+            transition: var(--transition);
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        /* تأثيرات التحميل */
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* تذييل الصفحة */
+        footer {
+            text-align: center;
+            padding: 16px;
+            margin-top: 30px;
+            color: var(--gray-color);
+            font-size: 12px;
+            border-top: 1px solid var(--light-gray);
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <div class="header-content">
+        <div class="dropdown-container">
+            <button class="dropbtn">
+                <i class="fas fa-chart-line"></i> الحسابات
+            </button>
+        </div>
+        <div id="user-info">
+            <i class="fas fa-book"></i>
+            <span>دليل الحسابات</span>
+        </div>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="alert" id="alertMessage"></div>
+
+    <h2><i class="fas fa-plus-circle"></i> إضافة حساب جديد</h2>
+
+    <div class="form-section">
+        <div class="form-row">
+            <div class="form-group">
+                <label><i class="fas fa-list-alt"></i> الحساب الرئيسي:</label>
+                <select id="account_type_id">
+                    <option value="">اختر نوع الحساب</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- إذا الموردين -->
+        <div id="supplier_section" style="display:none">
+            <div class="form-row">
+                <div class="form-group">
+                    <label><i class="fas fa-truck"></i> اختر المورد:</label>
+                    <select id="supplier_id"></select>
+                </div>
+            </div>
+        </div>
+
+        <!-- إذا العملاء -->
+        <div id="customer_section" style="display:none">
+            <div class="form-row">
+                <div class="form-group">
+                    <label><i class="fas fa-user-tie"></i> اختر العميل:</label>
+                    <select id="customer_id"></select>
+                </div>
+            </div>
+        </div>
+
+        <!-- الحسابات من 3 فما فوق -->
+        <div id="manual_section" style="display:none">
+            <div class="form-row">
+                <div class="form-group">
+                    <label><i class="fas fa-hashtag"></i> كود الحساب:</label>
+                    <input type="text" id="manual_code" placeholder="مثال: 301">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-font"></i> اسم الحساب:</label>
+                    <input type="text" id="manual_name" placeholder="مثال: بنك مصر">
+                </div>
+            </div>
+        </div>
+
+        <button id="saveAccountBtn">
+            <i class="fas fa-save"></i> حفظ الحساب
+        </button>
+    </div>
+
+    <hr>
+
+    <div class="print-btn-container">
+        <button id="printBtn">
+            <i class="fas fa-print"></i> طباعة قائمة الحسابات
+        </button>
+    </div>
+
+    <div class="table-header">
+        <h2><i class="fas fa-table"></i> قائمة الحسابات</h2>
+        <input type="text" class="search-box" placeholder="بحث في الحسابات...">
+    </div>
+    
+    <div class="table-container">
+        <table id="accounts_table">
+            <thead>
+                <tr>
+                    <th class="sortable" data-sort="main_code">كود الحساب الرئيسي</th>
+                    <th>اسم الحساب الرئيسي</th>
+                    <th>كود الحساب الفرعي</th>
+                    <th>اسم الحساب الفرعي</th>
+                    <th>الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- البيانات ستظهر هنا عبر JavaScript -->
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+<footer>
+    <p>© 2023 دليل الحسابات | نظام إدارة الحسابات المتكامل</p>
+</footer>
+
+<script src="account.js"></script>
+<script>
+    // متغيرات الترتيب
+    let currentSort = {
+        column: 'main_code',
+        direction: 'asc'
+    };
+
+    // دالة لعرض رسائل التنبيه
+    function showAlert(message, type = 'success') {
+        const alertDiv = document.getElementById('alertMessage');
+        alertDiv.textContent = message;
+        alertDiv.className = `alert alert-${type}`;
+        alertDiv.style.display = 'block';
+        
+        // إخفاء الرسالة بعد 5 ثواني
+        setTimeout(() => {
+            alertDiv.style.display = 'none';
+        }, 5000);
+    }
+
+    // دالة الطباعة
+    function setupPrintButton() {
+        const printBtn = document.getElementById('printBtn');
+        if (printBtn) {
+            printBtn.addEventListener('click', function() {
+                // إضافة وقت الطباعة كمعلومة في body
+                const now = new Date();
+                const printTime = now.toLocaleString('ar-EG', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                document.body.setAttribute('data-print-time', printTime);
+                
+                // طباعة الصفحة
+                window.print();
+            });
+        }
+    }
+
+    // دالة البحث في الجدول
+    document.querySelector('.search-box').addEventListener('input', function(e) {
+        const searchTerm = e.target.value.toLowerCase();
+        const rows = document.querySelectorAll('#accounts_table tbody tr');
+        
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            row.style.display = text.includes(searchTerm) ? '' : 'none';
+        });
+    });
+
+    // دالة ترتيب الجدول
+    function sortTable() {
+        const tbody = document.querySelector('#accounts_table tbody');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        
+        if (rows.length === 0) return;
+        
+        // ترتيب الصفوف حسب كود الحساب الرئيسي
+        rows.sort((a, b) => {
+            const aValue = a.cells[0].textContent.trim();
+            const bValue = b.cells[0].textContent.trim();
+            
+            // إذا كانت القيم رقمية، قم بتحويلها إلى أرقام للترتيب
+            const aNum = parseInt(aValue);
+            const bNum = parseInt(bValue);
+            
+            if (!isNaN(aNum) && !isNaN(bNum)) {
+                return currentSort.direction === 'asc' ? aNum - bNum : bNum - aNum;
+            } else {
+                // ترتيب نصي
+                return currentSort.direction === 'asc' 
+                    ? aValue.localeCompare(bValue, 'ar')
+                    : bValue.localeCompare(aValue, 'ar');
+            }
+        });
+        
+        // إعادة ترتيب الصفوف في الجدول
+        rows.forEach(row => tbody.appendChild(row));
+        
+        // تحديث حالة السهم في العنوان
+        updateSortIndicator();
+    }
+
+    // دالة تحديث مؤشر الترتيب
+    function updateSortIndicator() {
+        document.querySelectorAll('#accounts_table th').forEach(th => {
+            th.classList.remove('sorted-asc', 'sorted-desc');
+        });
+        
+        const currentTh = document.querySelector('#accounts_table th[data-sort="main_code"]');
+        if (currentTh) {
+            currentTh.classList.add(currentSort.direction === 'asc' ? 'sorted-asc' : 'sorted-desc');
+        }
+    }
+
+    // دالة الحفظ عند الضغط على Enter في زر الحفظ
+    function handleEnterOnSaveButton(event) {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            // تنفيذ عملية الحفظ الحقيقية من account.js
+            document.getElementById('saveAccountBtn').click();
+        }
+    }
+
+    // إضافة حدث النقر لترتيب الجدول
+    document.addEventListener('DOMContentLoaded', function() {
+        // إعداد زر الطباعة
+        setupPrintButton();
+        
+        // إضافة حدث النقر لترتيب الجدول
+        const sortHeader = document.querySelector('#accounts_table th[data-sort="main_code"]');
+        if (sortHeader) {
+            sortHeader.addEventListener('click', function() {
+                if (currentSort.column === 'main_code') {
+                    currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+                } else {
+                    currentSort.column = 'main_code';
+                    currentSort.direction = 'asc';
+                }
+                
+                sortTable();
+            });
+        }
+
+        // إضافة حدث Enter لزر الحفظ
+        const saveBtn = document.getElementById('saveAccountBtn');
+        if (saveBtn) {
+            saveBtn.addEventListener('keydown', handleEnterOnSaveButton);
+        }
+
+        // إضافة حدث البحث
+        const searchBox = document.querySelector('.search-box');
+        if (searchBox) {
+            searchBox.addEventListener('input', function(e) {
+                const searchTerm = e.target.value.toLowerCase();
+                const rows = document.querySelectorAll('#accounts_table tbody tr');
+                
+                rows.forEach(row => {
+                    const text = row.textContent.toLowerCase();
+                    row.style.display = text.includes(searchTerm) ? '' : 'none';
+                });
+            });
+        }
+
+        // بعد تحميل البيانات، قم بترتيبها تلقائياً
+        // سيتم استدعاء هذه الوظيفة من account.js بعد تحميل البيانات
+        window.applySorting = function() {
+            sortTable();
+        };
+    });
+</script>
+
+</body>
+</html>

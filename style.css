@@ -1,0 +1,217 @@
+body {
+  font-family: "Tahoma", sans-serif;
+  background: #eef3f9;
+  margin: 0;
+  padding: 20px;
+  color: #333;
+}
+
+h2 {
+  text-align: center;
+  color: #0056b3;
+  margin-bottom: 10px;
+}
+
+/* ✅ جعل كل label + input بجانب بعض، وكل صف يحتوي على حقلين */
+form {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  width: 95%;
+  max-width: 1100px;
+  margin: 0 auto;
+
+  display: grid;
+  grid-template-columns: repeat(4, 1fr); /* 🔹 أربعة أعمدة */
+  align-items: center;
+  gap: 10px 15px;
+  direction: rtl; /* للغة العربية */
+}
+
+/* ✅ الحقول والليبلات في نفس السطر */
+label {
+  font-weight: bold;
+  color: #0056b3;
+  text-align: left;
+  white-space: nowrap;
+}
+
+input, select {
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ✅ الأزرار أسفل الحقول */
+button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s;
+  padding: 8px 16px;
+  border-radius: 6px;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
+
+/* ✅ صف الأزرار يمتد على كامل العرض */
+button[type="submit"],
+button[type="reset"],
+button[type="button"] {
+  grid-column: span 4; /* يمتد على كل الأعمدة */
+  text-align: center;
+  margin-top: 10px;
+}
+
+/* ✅ تحسين العرض على الشاشات الصغيرة */
+@media (max-width: 900px) {
+  form {
+    grid-template-columns: repeat(2, 1fr); /* صفين */
+  }
+  button[type="submit"],
+  button[type="reset"],
+  button[type="button"] {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 600px) {
+  form {
+    grid-template-columns: 1fr; /* عمود واحد للموبايل */
+  }
+  button[type="submit"],
+  button[type="reset"],
+  button[type="button"] {
+    grid-column: 1;
+  }
+}
+
+/* ✅ الجدول */
+#itemsTable {
+  margin: 30px auto;
+  width: 90%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+}
+#itemsTable th, #itemsTable td {
+  border: 1px solid #ccc;
+  padding: 8px;
+  text-align: center;
+}
+#itemsTable th {
+  background-color: #007bff;
+  color: white;
+}
+
+.actions button {
+  width: auto;
+  margin: 2px;
+  padding: 4px 8px;
+  font-size: 13px;
+}
+
+/* 🔍 شريط البحث */
+#searchBox {
+  display: block;
+  margin: 20px auto;
+  width: 50%;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #007bff;
+  font-size: 16px;
+}
+
+/* 🔢 أزرار الترقيم */
+#pagination {
+  text-align: center;
+  margin-top: 10px;
+}
+.page-btn {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  margin: 2px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.page-btn:hover {
+  background-color: #0056b3;
+}
+.page-btn.active {
+  background-color: #004085;
+}
+
+/* 🧮 اختيار عدد الصفوف */
+#pageSizeSelector {
+  display: block;
+  margin: 10px auto;
+  width: 150px;
+  padding: 6px;
+  border-radius: 6px;
+  border: 1px solid #007bff;
+}
+/* 🚫 إخفاء زر اختيار الملف */
+input[type="file"] {
+  display: none !important;
+}
+
+/* ✅ رسائل الحالة داخل النموذج */
+#statusMsg {
+  text-align: center;
+  font-weight: bold;
+  margin-bottom: 10px;
+  border-radius: 6px;
+  padding: 8px;
+  transition: 0.3s ease;
+}
+
+.msg-success {
+  color: #155724;
+  background-color: #d4edda;
+  border: 1px solid #c3e6cb;
+}
+
+.msg-error {
+  color: #721c24;
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
+}
+
+ /* ✴️ تأثير وميض أحمر عند وجود الصنف مسبقًا */
+    @keyframes flashRed {
+      0%, 100% { background-color: #fff; }
+      50% { background-color: #ffb3b3; }
+    }
+    .error-flash {
+      animation: flashRed 1s ease;
+      border: 2px solid #dc3545 !important;
+    }
+
+    /* ✅ تأثير وميض أخضر عند كود جديد */
+    @keyframes flashGreen {
+      0%, 100% { background-color: #fff; }
+      50% { background-color: #b3ffb3; }
+    }
+    .success-flash {
+      animation: flashGreen 1s ease;
+      border: 2px solid #28a745 !important;
+    }
+   
+
+
+/* تأثير خطأ و نص تحت الحقل */
+.error-flash { border-color: #dc3545 !important; background-color: #fff5f5 !important; }
+.success-flash { border-color: #28a745 !important; background-color: #f3fff4 !important; }
+.error-msg { color: #dc3545; font-size: 13px; margin-top: 4px; }
+

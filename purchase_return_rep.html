@@ -1,0 +1,1836 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📊 تقرير مرتجع المشتريات</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: #f5f5f5;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+
+        /* ✅ أنماط نظام الصلاحيات */
+        .user-system-bar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .user-info-display {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .user-avatar {
+            background: white;
+            color: #667eea;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .user-details {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .user-name {
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .user-store {
+            font-size: 13px;
+            opacity: 0.9;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .special-user-badge {
+            background: gold;
+            color: black;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: bold;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .logout-btn {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* ✅ تنسيق خاص لحقول المخازن للمستخدمين العاديين */
+        .store-field-disabled {
+            background-color: #f8f9fa !important;
+        }
+
+        .store-field-disabled label {
+            color: #6c757d !important;
+        }
+
+        .store-field-disabled select {
+            background-color: #f8f9fa !important;
+            color: #6c757d !important;
+            cursor: not-allowed !important;
+        }
+
+        .store-display-value {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 1rem;
+            background-color: white;
+            color: #495057;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 46px;
+            box-sizing: border-box;
+        }
+
+        .store-display-value::after {
+            content: "🔒";
+            font-size: 0.9em;
+            opacity: 0.7;
+        }
+
+        /* تحسينات التواريخ */
+        .date-presets {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .date-preset-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            flex: 1;
+            text-align: center;
+        }
+
+        .date-preset-btn:hover {
+            background: #5a6268;
+        }
+
+        .auto-date-btn {
+            background: #17a2b8;
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            margin-top: 5px;
+            width: 100%;
+        }
+
+        .auto-date-btn:hover {
+            background: #138496;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e74c3c;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header .subtitle {
+            color: #7f8c8d;
+            font-size: 16px;
+        }
+
+        .search-filters {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #dee2e6;
+        }
+
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .filter-group label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #2c3e50;
+            font-size: 14px;
+        }
+
+        .filter-group input,
+        .filter-group select {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .filter-group input:focus,
+        .filter-group select:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+        }
+
+        .search-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #219a52;
+        }
+
+        .btn-warning {
+            background: #f39c12;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #d68910;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        .report-summary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .summary-item {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 5px;
+            backdrop-filter: blur(10px);
+        }
+
+        .summary-value {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .summary-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .results-section {
+            margin-top: 30px;
+        }
+
+        .navigation-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #ecf0f1;
+            border-radius: 5px;
+        }
+
+        .nav-info {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .invoice-details {
+            background: #fff;
+            border: 2px solid #3498db;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .invoice-header {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .invoice-field {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .invoice-field label {
+            font-weight: bold;
+            color: #7f8c8d;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+
+        .invoice-field span {
+            font-size: 14px;
+            color: #2c3e50;
+        }
+
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+
+        .items-table th {
+            background: #34495e;
+            color: white;
+            padding: 12px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .items-table td {
+            padding: 10px;
+            text-align: center;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        .items-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .items-table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        .totals-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid #bdc3c7;
+        }
+
+        .total-item {
+            text-align: center;
+            padding: 15px;
+            background: #ecf0f1;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        .total-value {
+            font-size: 18px;
+            color: #e74c3c;
+            margin-top: 5px;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+            font-size: 18px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #3498db;
+            font-size: 16px;
+        }
+
+        .print-only {
+            display: none;
+        }
+
+        .shortcut-hint {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+
+        .focused {
+            box-shadow: 0 0 10px rgba(52, 152, 219, 0.8) !important;
+            border-color: #3498db !important;
+        }
+
+        /* شريط حالة الاتصال */
+        .connection-status {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: #fff;
+            padding: 8px 12px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1000;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .connection-status.supabase {
+            border-left: 4px solid #28a745;
+        }
+        
+        .connection-status.local {
+            border-left: 4px solid #dc3545;
+        }
+        
+        .connection-status .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        
+        .status-dot.connected {
+            background-color: #28a745;
+        }
+        
+        .status-dot.disconnected {
+            background-color: #dc3545;
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* تحسينات للطباعة */
+        @media print {
+            .user-system-bar,
+            .search-filters,
+            .search-buttons,
+            .navigation-controls,
+            .btn,
+            .connection-status {
+                display: none !important;
+            }
+        }
+
+        .debug-info {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 12px;
+            color: #856404;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        /* تنسيقات الموبايل */
+        @media (max-width: 768px) {
+            .user-system-bar {
+                flex-direction: column;
+                gap: 10px;
+                text-align: center;
+            }
+            
+            .search-buttons {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- شريط حالة الاتصال -->
+    <div id="connectionStatus" class="connection-status supabase">
+        <div class="status-dot connected"></div>
+        <span id="statusText">🌐 متصل بـ Supabase</span>
+        <div class="loading-spinner" id="connectionSpinner" style="display: none;"></div>
+    </div>
+
+    <div class="container">
+        <!-- ✅ شريط معلومات المستخدم المحسن -->
+        <div id="userSystemBar" class="user-system-bar" style="display: none;">
+            <div class="user-info-display">
+                <div class="user-avatar" id="userAvatar">👤</div>
+                <div class="user-details">
+                    <div class="user-name" id="userName">جاري التحميل...</div>
+                    <div class="user-store">
+                        <i class="fas fa-store"></i>
+                        <span id="storeName">المخزن: جاري التحميل...</span>
+                        <span id="specialUserBadge" class="special-user-badge" style="display: none;">
+                            <i class="fas fa-crown"></i> مستخدم خاص
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <button onclick="logout()" class="logout-btn">
+                <i class="fas fa-sign-out-alt"></i> تسجيل الخروج
+            </button>
+        </div>
+
+        <div class="print-header">
+            <h2>تقرير مرتجع المشتريات</h2>
+            <div class="print-date" id="printDate"></div>
+        </div>
+
+        <div class="header">
+            <h1>📊 تقرير مرتجع المشتريات</h1>
+            <div class="subtitle">نظام التقارير المتقدم - إدارة مرتجعات المشتريات</div>
+        </div>
+
+        <div class="debug-info" id="debugInfo" style="display: none;">
+            <!-- سيتم عرض معلومات التصحيح هنا -->
+        </div>
+
+        <div class="search-filters">
+            <div class="filter-grid">
+                <div class="filter-group">
+                    <label>📅 من تاريخ:</label>
+                    <input type="date" id="fromDate" class="filter-input">
+                    <button type="button" class="auto-date-btn" onclick="setToday('fromDate')">
+                        <i class="fas fa-calendar-day"></i> اليوم
+                    </button>
+                </div>
+                <div class="filter-group">
+                    <label>📅 إلى تاريخ:</label>
+                    <input type="date" id="toDate" class="filter-input">
+                    <button type="button" class="auto-date-btn" onclick="setToday('toDate')">
+                        <i class="fas fa-calendar-day"></i> اليوم
+                    </button>
+                </div>
+                <div class="filter-group" id="fromStoreGroup">
+                    <label>🏪 من فرع:</label>
+                    <div id="fromStoreContainer"></div>
+                </div>
+                <div class="filter-group" id="toStoreGroup">
+                    <label>🏪 إلى فرع:</label>
+                    <div id="toStoreContainer"></div>
+                </div>
+            </div>
+
+            <!-- ✅ أزرار التواريخ السريعة -->
+            <div class="date-presets">
+                <button class="date-preset-btn" onclick="setDatePreset('today')">اليوم</button>
+                <button class="date-preset-btn" onclick="setDatePreset('yesterday')">أمس</button>
+                <button class="date-preset-btn" onclick="setDatePreset('week')">هذا الأسبوع</button>
+                <button class="date-preset-btn" onclick="setDatePreset('month')">هذا الشهر</button>
+                <button class="date-preset-btn" onclick="setDatePreset('lastMonth')">الشهر الماضي</button>
+                <button class="date-preset-btn" onclick="setDatePreset('year')">هذه السنة</button>
+            </div>
+            
+            <div class="filter-grid">
+                <div class="filter-group">
+                    <label>🧾 من فاتورة:</label>
+                    <input type="number" id="fromInvoice" class="filter-input" placeholder="رقم الفاتورة">
+                </div>
+                <div class="filter-group">
+                    <label>🧾 إلى فاتورة:</label>
+                    <input type="number" id="toInvoice" class="filter-input" placeholder="رقم الفاتورة">
+                </div>
+                <div class="filter-group">
+                    <label>🏪 من مورد:</label>
+                    <select id="fromSupplier" class="filter-input">
+                        <option value="">جميع الموردين</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>🏪 إلى مورد:</label>
+                    <select id="toSupplier" class="filter-input">
+                        <option value="">جميع الموردين</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="filter-grid">
+                <div class="filter-group">
+                    <label>📦 من صنف:</label>
+                    <select id="fromItem" class="filter-input">
+                        <option value="">جميع الأصناف</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>📦 إلى صنف:</label>
+                    <select id="toItem" class="filter-input">
+                        <option value="">جميع الأصناف</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="search-buttons">
+                <button class="btn btn-primary" id="searchBtn">
+                    <i class="fas fa-search"></i> بحث
+                </button>
+                <button class="btn btn-success" id="printBtn">
+                    <i class="fas fa-print"></i> طباعة التقرير
+                </button>
+                <button class="btn btn-warning" id="resetBtn">
+                    <i class="fas fa-redo"></i> إعادة تعيين
+                </button>
+                <button class="btn btn-danger" id="exportBtn">
+                    <i class="fas fa-file-excel"></i> تصدير Excel
+                </button>
+                <button class="btn btn-info" id="debugBtn" style="background: #6c757d;">
+                    <i class="fas fa-bug"></i> تصحيح
+                </button>
+            </div>
+
+            <div class="shortcut-hint">
+                💡 استخدم زر Enter للتنقل بين الحقول، والأسهم للتنقل بين النتائج
+            </div>
+        </div>
+
+        <div class="report-summary" id="reportSummary" style="display: none;">
+            <div class="summary-item">
+                <div class="summary-value" id="totalInvoices">0</div>
+                <div class="summary-label">عدد الفواتير</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-value" id="totalItems">0</div>
+                <div class="summary-label">عدد الأصناف</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-value" id="totalQuantity">0</div>
+                <div class="summary-label">إجمالي الكميات</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-value" id="totalAmount">0.00</div>
+                <div class="summary-label">إجمالي القيمة</div>
+            </div>
+        </div>
+
+        <div class="results-section" id="resultsSection" style="display: none;">
+            <div class="navigation-controls">
+                <div class="nav-info">
+                    فاتورة: <span id="currentInvoice">1</span> من <span id="totalInvoicesCount">0</span>
+                </div>
+                <div class="nav-buttons">
+                    <button class="btn btn-primary" id="prevBtn">
+                        <i class="fas fa-arrow-right"></i> السابقة
+                    </button>
+                    <button class="btn btn-primary" id="nextBtn">
+                        التالية <i class="fas fa-arrow-left"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="invoice-details" id="invoiceDetails">
+                <!-- سيتم ملؤها ديناميكياً -->
+            </div>
+        </div>
+
+        <div class="no-results" id="noResults" style="display: none;">
+            <i class="fas fa-exclamation-triangle"></i> 🚫 لا توجد نتائج تطابق معايير البحث
+        </div>
+
+        <div class="loading" id="loading" style="display: none;">
+            <i class="fas fa-spinner fa-spin"></i> ⏳ جاري تحميل البيانات...
+        </div>
+    </div>
+
+    <script>
+        // ==================== تكوين Supabase ====================
+        const SUPABASE_CONFIG = {
+            url: 'https://rvjacvrrpguehbapvewe.supabase.co',
+            key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2amFjdnJycGd1ZWhiYXB2ZXdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwMjUxNTksImV4cCI6MjA3ODYwMTE1OX0.wSavKzxKOF7-56G-pzDMtbXNrCNAbGs0wvadw-cilBg'
+        };
+
+        // ==================== متغيرات الصلاحيات ====================
+        let currentUser = null;
+        let userStoreId = null;
+        let userName = '';
+        let userStoreName = '';
+        let isSpecialUser = false;
+
+        // ==================== فئة التقرير ====================
+        class PurchaseReturnReport {
+            constructor() {
+                this.supabase = null;
+                this.currentResults = [];
+                this.currentIndex = 0;
+                this.suppliers = [];
+                this.items = [];
+                this.stores = [];
+                this.filterFields = [
+                    'fromDate', 'toDate', 'fromStore', 'toStore', 
+                    'fromInvoice', 'toInvoice', 'fromSupplier', 'toSupplier', 
+                    'fromItem', 'toItem'
+                ];
+            }
+
+            async init() {
+                console.log('🚀 بدء تهيئة نظام تقرير مرتجع المشتريات');
+                
+                try {
+                    // ✅ أولاً: التحقق من بيانات الدخول
+                    if (!this.checkLogin()) {
+                        return;
+                    }
+                    
+                    this.supabase = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.key);
+                    
+                    // ✅ ثانياً: تحميل معلومات المستخدم من نظام الدخول
+                    await this.loadUserInfoFromLogin();
+                    
+                    this.setDefaultDates();
+                    this.setupEventListeners();
+                    await this.loadAllData();
+                    this.setupKeyboardNavigation();
+                    this.setupPrintDate();
+                    await this.updateConnectionStatus();
+                    this.displayUserInfo();
+                    
+                    // ✅ تطبيق الصلاحيات على حقول المخازن
+                    this.applyStorePermissions();
+                    
+                    console.log(`🎯 حالة النظام النهائية: ${userName} - المخزن: ${userStoreId} - خاص: ${isSpecialUser}`);
+                } catch (error) {
+                    console.error('❌ فشل في تهيئة النظام:', error);
+                    this.showError('فشل في تهيئة النظام');
+                }
+            }
+
+            // ✅ التحقق من وجود بيانات الدخول
+            /*checkLogin() {
+                const userId = localStorage.getItem('user_id');
+                const storeId = localStorage.getItem('store_id');
+                const username = localStorage.getItem('username');
+                
+                if (!userId || !storeId || !username) {
+                    console.log('❌ لا توجد بيانات دخول، التوجيه لصفحة الدخول');
+                    setTimeout(() => {
+                        window.location.href = 'index.html'; // اسم صفحة الدخول
+                    }, 1000);
+                    return false;
+                }
+                
+                console.log('✅ بيانات الدخول موجودة:', { userId, storeId, username });
+                return true;
+            } */
+
+            checkLogin() {
+                // ✅ أبسط نسخة: التحقق من المخزن فقط
+                const storeId = localStorage.getItem('store_id');
+                
+                // 1. تأكد من وجود مخزن
+                if (!storeId) {
+                    localStorage.setItem('store_id', '1');
+                    localStorage.setItem('store_name', 'المخزن الرئيسي');
+                }
+                
+                // 2. تحديد نوع المستخدم بناءً على المخزن
+                if (storeId === '9999') {
+                    localStorage.setItem('is_special_user', 'true');
+                } else {
+                    localStorage.setItem('is_special_user', 'false');
+                }
+                
+                // 3. دائمًا نرجع true (لا توجيه لـ index.html)
+                return true;
+            }
+
+            // ✅ تحميل معلومات المستخدم من بيانات الدخول المحفوظة
+            async loadUserInfoFromLogin() {
+                try {
+                    userStoreId = localStorage.getItem('store_id');
+                    userName = localStorage.getItem('username');
+                    userStoreName = localStorage.getItem('store_name') || `مخزن ${userStoreId}`;
+                    
+                    const fullAccess = localStorage.getItem('full_access') === 'true';
+                    const userId = localStorage.getItem('user_id');
+                    
+                    isSpecialUser = fullAccess || userStoreId === '9999' || userId === '9999';
+                    
+                    console.log('📋 معلومات المستخدم من نظام الدخول:', {
+                        userStoreId,
+                        userName,
+                        userStoreName,
+                        isSpecialUser,
+                        fullAccess,
+                        userId
+                    });
+                    
+                    if (isSpecialUser && userStoreId === '9999') {
+                        userStoreName = 'جميع المخازن';
+                        localStorage.setItem('store_name', userStoreName);
+                    }
+                    
+                } catch (error) {
+                    console.error('❌ خطأ في تحميل معلومات المستخدم:', error);
+                    userStoreId = '1';
+                    userName = 'مستخدم عادي';
+                    userStoreName = 'المخزن الرئيسي';
+                    isSpecialUser = false;
+                }
+            }
+
+            // ✅ عرض معلومات المستخدم في الشريط العلوي
+            displayUserInfo() {
+                const userSystemBar = document.getElementById('userSystemBar');
+                if (!userSystemBar) return;
+                
+                userSystemBar.style.display = 'flex';
+                document.getElementById('userName').textContent = `مرحباً: ${userName}`;
+                
+                const storeDisplay = isSpecialUser ? 'مدير النظام' : userStoreName;
+                document.getElementById('storeName').textContent = `المخزن: ${storeDisplay}`;
+                
+                const badge = document.getElementById('specialUserBadge');
+                if (isSpecialUser) {
+                    badge.style.display = 'inline-flex';
+                }
+                
+                const avatar = document.getElementById('userAvatar');
+                if (avatar && userName) {
+                    avatar.textContent = userName.charAt(0);
+                }
+            }
+
+            // ✅ تطبيق الصلاحيات على حقول المخازن
+            applyStorePermissions() {
+                const fromStoreGroup = document.getElementById('fromStoreGroup');
+                const toStoreGroup = document.getElementById('toStoreGroup');
+                const fromStoreContainer = document.getElementById('fromStoreContainer');
+                const toStoreContainer = document.getElementById('toStoreContainer');
+                
+                if (!fromStoreGroup || !toStoreGroup || !fromStoreContainer || !toStoreContainer) return;
+                
+                if (!isSpecialUser && userStoreId) {
+                    console.log(`🔄 تطبيق الصلاحيات للمستخدم العادي (المخزن: ${userStoreId})`);
+                    
+                    // ✅ إنشاء عرض ثابت بدلاً من select
+                    const staticDisplayFrom = document.createElement('div');
+                    staticDisplayFrom.className = 'store-display-value';
+                    staticDisplayFrom.id = 'staticStoreFrom';
+                    staticDisplayFrom.innerHTML = `
+                        <span>${userStoreName || `المخزن ${userStoreId}`}</span>
+                        <span style="opacity: 0.7; font-size: 0.9em;">🔒</span>
+                    `;
+                    
+                    const staticDisplayTo = document.createElement('div');
+                    staticDisplayTo.className = 'store-display-value';
+                    staticDisplayTo.id = 'staticStoreTo';
+                    staticDisplayTo.innerHTML = `
+                        <span>${userStoreName || `المخزن ${userStoreId}`}</span>
+                        <span style="opacity: 0.7; font-size: 0.9em;">🔒</span>
+                    `;
+                    
+                    // ✅ تطبيق الأنماط
+                    fromStoreGroup.classList.add('store-field-disabled');
+                    toStoreGroup.classList.add('store-field-disabled');
+                    
+                    // ✅ تنظيف الحاويات وإضافة العرض الثابت
+                    fromStoreContainer.innerHTML = '';
+                    toStoreContainer.innerHTML = '';
+                    fromStoreContainer.appendChild(staticDisplayFrom);
+                    toStoreContainer.appendChild(staticDisplayTo);
+                    
+                    // ✅ إضافة حقول مخفية للقيم
+                    const hiddenFromStore = document.createElement('input');
+                    hiddenFromStore.type = 'hidden';
+                    hiddenFromStore.id = 'storeFromValue';
+                    hiddenFromStore.name = 'storeFrom';
+                    hiddenFromStore.value = userStoreId;
+                    fromStoreContainer.appendChild(hiddenFromStore);
+                    
+                    const hiddenToStore = document.createElement('input');
+                    hiddenToStore.type = 'hidden';
+                    hiddenToStore.id = 'storeToValue';
+                    hiddenToStore.name = 'storeTo';
+                    hiddenToStore.value = userStoreId;
+                    toStoreContainer.appendChild(hiddenToStore);
+                    
+                    console.log(`✅ تم تطبيق الصلاحيات: المستخدم العادي - المخزن ${userStoreId} (${userStoreName})`);
+                } else {
+                    // ✅ المستخدم الخاص: يعرض جميع المخازن في قائمة اختيار
+                    console.log('🔄 تطبيق الصلاحيات للمستخدم الخاص');
+                    
+                    // ✅ تنظيف الحاويات
+                    fromStoreContainer.innerHTML = '';
+                    toStoreContainer.innerHTML = '';
+                    
+                    // ✅ إزالة الأنماط
+                    fromStoreGroup.classList.remove('store-field-disabled');
+                    toStoreGroup.classList.remove('store-field-disabled');
+                    
+                    // ✅ إنشاء عناصر select
+                    const selectFrom = document.createElement('select');
+                    selectFrom.id = 'fromStore';
+                    selectFrom.className = 'filter-input';
+                    selectFrom.innerHTML = '<option value="">جميع المخازن</option>';
+                    
+                    const selectTo = document.createElement('select');
+                    selectTo.id = 'toStore';
+                    selectTo.className = 'filter-input';
+                    selectTo.innerHTML = '<option value="">جميع المخازن</option>';
+                    
+                    fromStoreContainer.appendChild(selectFrom);
+                    toStoreContainer.appendChild(selectTo);
+                    
+                    // ✅ تعبئة المخازن إذا كانت موجودة
+                    if (this.stores && this.stores.length > 0) {
+                        this.stores.forEach(store => {
+                            const storeId = store.store_id;
+                            const storeName = store.store_name || `فرع ${storeId}`;
+                            
+                            if (storeId) {
+                                const option1 = new Option(storeName, storeId);
+                                const option2 = new Option(storeName, storeId);
+                                
+                                document.getElementById('fromStore').add(option1);
+                                document.getElementById('toStore').add(option2);
+                            }
+                        });
+                    }
+                    
+                    console.log(`✅ تم تطبيق الصلاحيات: المستخدم الخاص - جميع المخازن`);
+                }
+            }
+            
+            // ✅ الحصول على قيمة المخزن مع مراعاة الصلاحيات
+            getStoreValue(fieldId) {
+                if (!isSpecialUser && userStoreId) {
+                    // للمستخدم العادي: استخدام القيمة المخفية
+                    return userStoreId;
+                } else {
+                    // للمستخدم الخاص: استخدام القيمة من الـ select
+                    const element = document.getElementById(fieldId);
+                    return element ? element.value : '';
+                }
+            }
+
+            async updateConnectionStatus() {
+                const statusDiv = document.getElementById('connectionStatus');
+                const statusText = document.getElementById('statusText');
+                
+                const success = await this.testSupabaseConnection();
+                if (success) {
+                    statusDiv.className = 'connection-status supabase';
+                    statusText.textContent = '🌐 متصل بـ Supabase';
+                } else {
+                    statusDiv.className = 'connection-status local';
+                    statusText.textContent = '🔗 اتصال محلي';
+                }
+            }
+
+            async testSupabaseConnection() {
+                try {
+                    const spinner = document.getElementById('connectionSpinner');
+                    spinner.style.display = 'inline-block';
+                    
+                    const { data, error } = await this.supabase
+                        .from('items')
+                        .select('count')
+                        .limit(1);
+                    
+                    spinner.style.display = 'none';
+                    
+                    if (error) {
+                        this.logDebug(`❌ فشل الاتصال بـ Supabase: ${error.message}`);
+                        return false;
+                    }
+                    
+                    this.logDebug('✅ الاتصال بـ Supabase ناجح');
+                    return true;
+                } catch (error) {
+                    this.logDebug(`❌ خطأ في الاتصال بـ Supabase: ${error.message}`);
+                    return false;
+                }
+            }
+
+            setDefaultDates() {
+                const today = new Date();
+                const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+                
+                document.getElementById('fromDate').value = this.formatDate(firstDay);
+                document.getElementById('toDate').value = this.formatDate(today);
+            }
+
+            formatDate(date) {
+                return date.toISOString().split('T')[0];
+            }
+
+            setupEventListeners() {
+                document.getElementById('searchBtn').addEventListener('click', () => this.search());
+                document.getElementById('printBtn').addEventListener('click', () => this.printReport());
+                document.getElementById('resetBtn').addEventListener('click', () => this.resetFilters());
+                document.getElementById('exportBtn').addEventListener('click', () => this.exportToExcel());
+                document.getElementById('debugBtn').addEventListener('click', () => this.toggleDebug());
+                document.getElementById('prevBtn').addEventListener('click', () => this.previousInvoice());
+                document.getElementById('nextBtn').addEventListener('click', () => this.nextInvoice());
+                
+                this.filterFields.forEach(field => {
+                    const element = document.getElementById(field);
+                    if (element) {
+                        element.addEventListener('keypress', (e) => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                this.focusNextField(field);
+                            }
+                        });
+
+                        element.addEventListener('focus', () => {
+                            element.classList.add('focused');
+                        });
+
+                        element.addEventListener('blur', () => {
+                            element.classList.remove('focused');
+                        });
+                    }
+                });
+            }
+
+            async loadAllData() {
+                try {
+                    await Promise.all([
+                        this.loadStores(),
+                        this.loadSuppliers(),
+                        this.loadItems()
+                    ]);
+                    this.logDebug('✅ تم تحميل جميع البيانات بنجاح');
+                } catch (error) {
+                    this.logDebug('❌ فشل في تحميل بعض البيانات: ' + error.message);
+                    this.showError('فشل في تحميل البيانات الأساسية. يرجى تحديث الصفحة.');
+                }
+            }
+
+            async loadStores() {
+                try {
+                    this.logDebug('🔄 جاري تحميل المخازن مع الصلاحيات...');
+                    
+                    // ✅ المستخدم العادي: يحمل مخزنه فقط
+                    if (!isSpecialUser && userStoreId) {
+                        const { data, error } = await this.supabase
+                            .from('stores')
+                            .select('store_id, store_name')
+                            .eq('store_id', userStoreId);
+
+                        if (error) {
+                            console.error('❌ خطأ في تحميل المخزن الخاص:', error);
+                            // استخدام البيانات المحلية كبديل
+                            this.stores = [{
+                                store_id: userStoreId,
+                                store_name: userStoreName || `مخزن ${userStoreId}`
+                            }];
+                        } else {
+                            this.stores = data || [];
+                            if (data && data.length > 0 && data[0].store_name) {
+                                userStoreName = data[0].store_name;
+                                localStorage.setItem('store_name', userStoreName);
+                            }
+                            console.log(`📋 تم تحميل مخزن المستخدم: ${userStoreName} (${userStoreId})`);
+                        }
+                    } else {
+                        // ✅ المستخدم الخاص: يحمل جميع المخازن
+                        const { data, error } = await this.supabase
+                            .from('stores')
+                            .select('store_id, store_name')
+                            .order('store_name');
+
+                        if (error) {
+                            console.error('❌ خطأ في تحميل المخازن:', error);
+                            this.showError('خطأ في تحميل المخازن: ' + error.message);
+                            return;
+                        }
+
+                        this.stores = data || [];
+                        console.log(`📋 تم تحميل ${this.stores.length} مخزن للمستخدم الخاص`);
+                    }
+                    
+                    // ✅ تطبيق الصلاحيات بعد تحميل المخازن
+                    this.applyStorePermissions();
+                    
+                } catch (error) {
+                    console.error('❌ خطأ في تحميل المخازن:', error);
+                    this.stores = [];
+                }
+            }
+
+            async loadSuppliers() {
+                try {
+                    this.logDebug('🔄 جاري تحميل الموردين...');
+                    
+                    const { data, error } = await this.supabase
+                        .from('suppliers')
+                        .select('*');
+                    
+                    if (error) {
+                        throw new Error(`Supabase Error: ${error.message}`);
+                    }
+                    
+                    this.suppliers = data || [];
+                    this.populateSuppliers();
+                    this.logDebug(`✅ تم تحميل ${this.suppliers.length} مورد`);
+                    
+                } catch (error) {
+                    this.logDebug(`❌ فشل تحميل الموردين: ${error.message}`);
+                    this.suppliers = [];
+                    this.populateSuppliers();
+                }
+            }
+
+            populateSuppliers() {
+                const fromSelect = document.getElementById('fromSupplier');
+                const toSelect = document.getElementById('toSupplier');
+
+                if (!fromSelect || !toSelect) return;
+
+                // حفظ القيم المحددة حالياً
+                const currentFromValue = fromSelect.value;
+                const currentToValue = toSelect.value;
+
+                fromSelect.innerHTML = '<option value="">جميع الموردين</option>';
+                toSelect.innerHTML = '<option value="">جميع الموردين</option>';
+
+                let addedCount = 0;
+                this.suppliers.forEach(supplier => {
+                    const supplierId = supplier.supplier_id || supplier.id;
+                    const supplierName = supplier.supplier_nm || supplier.name || `مورد ${supplierId}`;
+                    
+                    if (supplierId) {
+                        const option1 = new Option(supplierName, supplierId);
+                        const option2 = new Option(supplierName, supplierId);
+                        
+                        fromSelect.add(option1);
+                        toSelect.add(option2);
+                        addedCount++;
+                    }
+                });
+
+                // استعادة القيم المحددة إذا كانت لا تزال موجودة
+                if (currentFromValue && fromSelect.querySelector(`option[value="${currentFromValue}"]`)) {
+                    fromSelect.value = currentFromValue;
+                }
+                if (currentToValue && toSelect.querySelector(`option[value="${currentToValue}"]`)) {
+                    toSelect.value = currentToValue;
+                }
+
+                this.logDebug(`📋 تم تعبئة ${addedCount} مورد في القوائم`);
+            }
+
+            async loadItems() {
+                try {
+                    this.logDebug('🔄 جاري تحميل الأصناف...');
+                    
+                    const { data, error } = await this.supabase
+                        .from('items')
+                        .select('*');
+                    
+                    if (error) {
+                        throw new Error(`Supabase Error: ${error.message}`);
+                    }
+                    
+                    this.items = data || [];
+                    this.populateItems();
+                    this.logDebug(`✅ تم تحميل ${this.items.length} صنف`);
+                    
+                } catch (error) {
+                    this.logDebug(`❌ فشل تحميل الأصناف: ${error.message}`);
+                    this.items = [];
+                    this.populateItems();
+                }
+            }
+
+            populateItems() {
+                const fromSelect = document.getElementById('fromItem');
+                const toSelect = document.getElementById('toItem');
+
+                if (!fromSelect || !toSelect) return;
+
+                // حفظ القيم المحددة حالياً
+                const currentFromValue = fromSelect.value;
+                const currentToValue = toSelect.value;
+
+                fromSelect.innerHTML = '<option value="">جميع الأصناف</option>';
+                toSelect.innerHTML = '<option value="">جميع الأصناف</option>';
+
+                let addedCount = 0;
+                this.items.forEach(item => {
+                    const itemId = item.item_id || item.id;
+                    const itemName = item.item_nm || item.name || `صنف ${itemId}`;
+                    
+                    if (itemId) {
+                        const option1 = new Option(itemName, itemId);
+                        const option2 = new Option(itemName, itemId);
+                        
+                        fromSelect.add(option1);
+                        toSelect.add(option2);
+                        addedCount++;
+                    }
+                });
+
+                // استعادة القيم المحددة إذا كانت لا تزال موجودة
+                if (currentFromValue && fromSelect.querySelector(`option[value="${currentFromValue}"]`)) {
+                    fromSelect.value = currentFromValue;
+                }
+                if (currentToValue && toSelect.querySelector(`option[value="${currentToValue}"]`)) {
+                    toSelect.value = currentToValue;
+                }
+
+                this.logDebug(`📋 تم تعبئة ${addedCount} صنف في القوائم`);
+            }
+
+            setupKeyboardNavigation() {
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'ArrowLeft') {
+                        e.preventDefault();
+                        this.previousInvoice();
+                    } else if (e.key === 'ArrowRight') {
+                        e.preventDefault();
+                        this.nextInvoice();
+                    }
+                });
+            }
+
+            setupPrintDate() {
+                const now = new Date();
+                const printDate = document.getElementById('printDate');
+                if (printDate) {
+                    printDate.textContent = `تاريخ الطباعة: ${now.toLocaleDateString('ar-EG')} ${now.toLocaleTimeString('ar-EG')}`;
+                }
+            }
+
+            focusNextField(currentField) {
+                const currentIndex = this.filterFields.indexOf(currentField);
+                if (currentIndex < this.filterFields.length - 1) {
+                    const nextField = document.getElementById(this.filterFields[currentIndex + 1]);
+                    if (nextField) {
+                        nextField.focus();
+                        nextField.classList.add('focused');
+                    }
+                } else {
+                    const searchBtn = document.getElementById('searchBtn');
+                    if (searchBtn) searchBtn.focus();
+                }
+            }
+
+            async search() {
+                // ✅ التحقق من الصلاحيات أولاً
+                if (!isSpecialUser && userStoreId) {
+                    const fromStore = this.getStoreValue('fromStore');
+                    const toStore = this.getStoreValue('toStore');
+                    
+                    // ✅ إذا كان المستخدم عادي، التأكد من أنه يبحث في مخزنه فقط
+                    if (fromStore && fromStore != userStoreId) {
+                        this.showError('❌ غير مصرح لك بالبحث في هذا المخزن');
+                        return;
+                    }
+                    if (toStore && toStore != userStoreId) {
+                        this.showError('❌ غير مصرح لك بالبحث في هذا المخزن');
+                        return;
+                    }
+                }
+                
+                const filters = this.getFilters();
+                
+                if (filters.fromDate && filters.toDate && filters.fromDate > filters.toDate) {
+                    alert('❌ تاريخ البداية يجب أن يكون قبل تاريخ النهاية');
+                    return;
+                }
+
+                this.showLoading();
+                this.logDebug('🔍 بدء البحث في مرتجعات المشتريات...');
+
+                try {
+                    // ✅ بناء استعلام Supabase مع تطبيق الصلاحيات
+                    let query = this.supabase
+                        .from('purchases_return')
+                        .select('*');
+                    
+                    // ✅ تطبيق الصلاحيات على مستوى المخزن
+                    if (!isSpecialUser && userStoreId) {
+                        query = query.eq('store_id', parseInt(userStoreId));
+                    }
+
+                    // تطبيق الفلاتر
+                    if (filters.fromDate) {
+                        query = query.gte('tran_date', filters.fromDate + 'T00:00:00');
+                    }
+                    if (filters.toDate) {
+                        query = query.lte('tran_date', filters.toDate + 'T23:59:59');
+                    }
+                    if (filters.fromStore && isSpecialUser) {
+                        query = query.eq('store_id', parseInt(filters.fromStore));
+                    }
+                    if (filters.toStore && isSpecialUser) {
+                        query = query.eq('store_id', parseInt(filters.toStore));
+                    }
+                    if (filters.fromInvoice) {
+                        query = query.gte('invoice_id', parseInt(filters.fromInvoice));
+                    }
+                    if (filters.toInvoice) {
+                        query = query.lte('invoice_id', parseInt(filters.toInvoice));
+                    }
+                    if (filters.fromSupplier) {
+                        query = query.eq('supplierid', filters.fromSupplier);
+                    }
+                    if (filters.toSupplier) {
+                        query = query.eq('supplierid', filters.toSupplier);
+                    }
+                    if (filters.fromItem) {
+                        query = query.eq('item_id', filters.fromItem);
+                    }
+                    if (filters.toItem) {
+                        query = query.eq('item_id', filters.toItem);
+                    }
+
+                    const { data, error } = await query;
+
+                    if (error) {
+                        throw new Error(`Supabase Error: ${error.message}`);
+                    }
+                    
+                    this.logDebug(`📊 تم جلب ${Array.isArray(data) ? data.length : 0} صف من مرتجعات المشتريات`);
+                    
+                    // تجميع البيانات حسب الفاتورة
+                    this.currentResults = this.groupInvoicesByTransaction(data);
+                    this.currentIndex = 0;
+                    
+                    if (this.currentResults.length > 0) {
+                        this.displayResults();
+                        this.displaySummary();
+                        this.logDebug(`✅ تم العثور على ${this.currentResults.length} فاتورة مرتجع مشتريات`);
+                    } else {
+                        this.showNoResults();
+                        this.logDebug('❌ لم يتم العثور على نتائج');
+                    }
+                } catch (error) {
+                    console.error('Error searching:', error);
+                    this.logDebug(`❌ خطأ في البحث: ${error.message}`);
+                    this.showError('فشل في جلب البيانات من Supabase');
+                } finally {
+                    this.hideLoading();
+                }
+            }
+
+            groupInvoicesByTransaction(data) {
+                if (!Array.isArray(data)) return [];
+                
+                const grouped = {};
+                
+                data.forEach(row => {
+                    const key = `${row.tran_date}_${row.store_id}_${row.invoice_id}`;
+                    
+                    if (!grouped[key]) {
+                        grouped[key] = {
+                            tran_date: row.tran_date,
+                            store_id: row.store_id,
+                            invoice_id: row.invoice_id,
+                            supplierid: row.supplierid,
+                            supplier_name: row.supplier_name,
+                            original_invoice_id: row.original_invoice_id,
+                            return_reason: row.return_reason,
+                            return_notes: row.return_notes,
+                            user_id: row.user_id,
+                            user_stamp: row.user_stamp,
+                            payment_method: row.payment_method,
+                            due_date: row.due_date,
+                            items: []
+                        };
+                    }
+                    
+                    // إضافة الصنف إلى الفاتورة
+                    grouped[key].items.push({
+                        ser_no: row.ser_no,
+                        item_id: row.item_id,
+                        item_nm: row.item_nm,
+                        item_qty: row.item_qty,
+                        buy_price: row.buy_price,
+                        total_price: row.total_price,
+                        net_buy_price: row.net_buy_price,
+                        total_net_buy_price: row.total_net_buy_price,
+                        return_reason: row.return_reason,
+                        batch_no: row.batch_no,
+                        expiry_date: row.expiry_date,
+                        unit_type: row.unit_type,
+                        units_per_package: row.units_per_package,
+                        sale_unit: row.sale_unit,
+                        conversion_factor: row.conversion_factor,
+                        converted_qty: row.converted_qty,
+                        rate: row.rate,
+                        unit: row.unit,
+                        discount_type: row.discount_type,
+                        discount_value: row.discount_value,
+                        mndop: row.mndop,
+                        sale_price1: row.sale_price1,
+                        previously_returned_qty: row.previously_returned_qty
+                    });
+                });
+                
+                return Object.values(grouped);
+            }
+
+            getFilters() {
+                return {
+                    fromDate: document.getElementById('fromDate').value,
+                    toDate: document.getElementById('toDate').value,
+                    fromStore: this.getStoreValue('fromStore'),
+                    toStore: this.getStoreValue('toStore'),
+                    fromInvoice: document.getElementById('fromInvoice').value,
+                    toInvoice: document.getElementById('toInvoice').value,
+                    fromSupplier: document.getElementById('fromSupplier').value,
+                    toSupplier: document.getElementById('toSupplier').value,
+                    fromItem: document.getElementById('fromItem').value,
+                    toItem: document.getElementById('toItem').value
+                };
+            }
+
+            getStoreName(storeId) {
+                const store = this.stores.find(s => 
+                    (s.store_id || s.id) == storeId
+                );
+                return store ? (store.store_name || store.store_nm || store.name || `فرع ${storeId}`) : storeId;
+            }
+
+            getSupplierName(supplierId) {
+                const supplier = this.suppliers.find(s => 
+                    (s.supplier_id || s.id) == supplierId
+                );
+                return supplier ? (supplier.supplier_nm || supplier.name || `مورد ${supplierId}`) : `مورد ${supplierId}`;
+            }
+
+            getItemName(itemId) {
+                const item = this.items.find(i => 
+                    (i.item_id || i.id) == itemId
+                );
+                return item ? (item.item_nm || item.name || `صنف ${itemId}`) : `صنف ${itemId}`;
+            }
+
+            displayResults() {
+                this.hideAllSections();
+                document.getElementById('resultsSection').style.display = 'block';
+                this.displayCurrentInvoice();
+            }
+
+            displayCurrentInvoice() {
+                if (this.currentResults.length === 0) return;
+
+                const invoice = this.currentResults[this.currentIndex];
+                const detailsDiv = document.getElementById('invoiceDetails');
+                
+                document.getElementById('currentInvoice').textContent = this.currentIndex + 1;
+                document.getElementById('totalInvoicesCount').textContent = this.currentResults.length;
+
+                const storeName = this.getStoreName(invoice.store_id);
+                const supplierName = invoice.supplier_name || this.getSupplierName(invoice.supplierid);
+
+                // تنسيق التاريخ
+                const tranDate = new Date(invoice.tran_date);
+                const formattedDate = tranDate.toLocaleDateString('ar-EG');
+
+                detailsDiv.innerHTML = `
+                    <div class="invoice-header">
+                        <div class="invoice-field">
+                            <label><i class="fas fa-calendar"></i> تاريخ المعاملة:</label>
+                            <span>${formattedDate}</span>
+                        </div>
+                        <div class="invoice-field">
+                            <label><i class="fas fa-receipt"></i> رقم فاتورة المرتجع:</label>
+                            <span>${invoice.invoice_id || 'غير محدد'}</span>
+                        </div>
+                        <div class="invoice-field">
+                            <label><i class="fas fa-file-invoice"></i> رقم الفاتورة الأصلية:</label>
+                            <span>${invoice.original_invoice_id || 'غير محدد'}</span>
+                        </div>
+                        <div class="invoice-field">
+                            <label><i class="fas fa-store"></i> الفرع:</label>
+                            <span>${storeName}</span>
+                        </div>
+                        <div class="invoice-field">
+                            <label><i class="fas fa-truck"></i> المورد:</label>
+                            <span>${supplierName}</span>
+                        </div>
+                        <div class="invoice-field">
+                            <label><i class="fas fa-money-bill-wave"></i> طريقة الدفع:</label>
+                            <span>${invoice.payment_method || 'نقدي'}</span>
+                        </div>
+                    </div>
+
+                    ${invoice.return_reason ? `
+                        <div style="margin: 10px 0; padding: 10px; background: #fff3cd; border-radius: 5px;">
+                            <strong><i class="fas fa-exclamation-circle"></i> سبب المرتجع:</strong> ${invoice.return_reason}
+                        </div>
+                    ` : ''}
+
+                    <table class="items-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>كود الصنف</th>
+                                <th>اسم الصنف</th>
+                                <th>الكمية</th>
+                                <th>سعر الشراء</th>
+                                <th>الإجمالي</th>
+                                <th>الدفعة</th>
+                                <th>الصلاحية</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${invoice.items.map((item, index) => `
+                                <tr>
+                                    <td>${index + 1}</td>
+                                    <td>${item.item_id || 'غير محدد'}</td>
+                                    <td>${item.item_nm || this.getItemName(item.item_id)}</td>
+                                    <td>${(parseFloat(item.item_qty) || 0).toFixed(2)} ${item.unit_type || 'قطعة'}</td>
+                                    <td>${(parseFloat(item.buy_price) || 0).toFixed(2)}</td>
+                                    <td>${(parseFloat(item.total_price) || 0).toFixed(2)}</td>
+                                    <td>${item.batch_no || '-'}</td>
+                                    <td>${item.expiry_date || '-'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+
+                    <div class="totals-section">
+                        <div class="total-item">
+                            <div>عدد الأصناف</div>
+                            <div class="total-value">${invoice.items.length}</div>
+                        </div>
+                        <div class="total-item">
+                            <div>إجمالي الكميات</div>
+                            <div class="total-value">${invoice.items.reduce((sum, item) => sum + (parseFloat(item.item_qty) || 0), 0).toFixed(2)}</div>
+                        </div>
+                        <div class="total-item">
+                            <div>إجمالي القيمة</div>
+                            <div class="total-value">${invoice.items.reduce((sum, item) => sum + (parseFloat(item.total_price) || 0), 0).toFixed(2)}</div>
+                        </div>
+                        <div class="total-item">
+                            <div>الصافي الإجمالي</div>
+                            <div class="total-value">${invoice.items.reduce((sum, item) => sum + (parseFloat(item.total_net_buy_price) || 0), 0).toFixed(2)}</div>
+                        </div>
+                    </div>
+
+                    ${invoice.return_notes ? `
+                        <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+                            <strong><i class="fas fa-sticky-note"></i> ملاحظات:</strong> ${invoice.return_notes}
+                        </div>
+                    ` : ''}
+                `;
+            }
+
+            displaySummary() {
+                const totalInvoices = this.currentResults.length;
+                const totalItems = this.currentResults.reduce((sum, inv) => sum + inv.items.length, 0);
+                const totalQuantity = this.currentResults.reduce((sum, inv) => 
+                    sum + inv.items.reduce((itemSum, item) => itemSum + (parseFloat(item.item_qty) || 0), 0), 0);
+                const totalAmount = this.currentResults.reduce((sum, inv) => 
+                    sum + inv.items.reduce((itemSum, item) => itemSum + (parseFloat(item.total_price) || 0), 0), 0);
+                const totalNetAmount = this.currentResults.reduce((sum, inv) => 
+                    sum + inv.items.reduce((itemSum, item) => itemSum + (parseFloat(item.total_net_buy_price) || 0), 0), 0);
+
+                document.getElementById('totalInvoices').textContent = totalInvoices;
+                document.getElementById('totalItems').textContent = totalItems;
+                document.getElementById('totalQuantity').textContent = totalQuantity.toFixed(2);
+                document.getElementById('totalAmount').textContent = totalAmount.toFixed(2);
+
+                document.getElementById('reportSummary').style.display = 'grid';
+            }
+
+            previousInvoice() {
+                if (this.currentIndex > 0) {
+                    this.currentIndex--;
+                    this.displayCurrentInvoice();
+                }
+            }
+
+            nextInvoice() {
+                if (this.currentIndex < this.currentResults.length - 1) {
+                    this.currentIndex++;
+                    this.displayCurrentInvoice();
+                }
+            }
+
+            showLoading() {
+                this.hideAllSections();
+                document.getElementById('loading').style.display = 'block';
+            }
+
+            hideLoading() {
+                document.getElementById('loading').style.display = 'none';
+            }
+
+            showNoResults() {
+                this.hideAllSections();
+                document.getElementById('noResults').style.display = 'block';
+            }
+
+            showError(message) {
+                alert(`❌ ${message}`);
+            }
+
+            hideAllSections() {
+                document.getElementById('resultsSection').style.display = 'none';
+                document.getElementById('noResults').style.display = 'none';
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('reportSummary').style.display = 'none';
+            }
+
+            resetFilters() {
+                this.filterFields.forEach(field => {
+                    const element = document.getElementById(field);
+                    if (element) {
+                        if (element.tagName === 'SELECT') {
+                            element.value = '';
+                        } else {
+                            element.value = '';
+                        }
+                    }
+                });
+                
+                // ✅ إذا كان المستخدم عادي، إعادة تعيين لمخزنه
+                if (!isSpecialUser && userStoreId) {
+                    // في حالة المستخدم العادي، الحقول ثابتة لا تغيير
+                }
+                
+                this.setDefaultDates();
+                this.hideAllSections();
+                
+                const fromDateField = document.getElementById('fromDate');
+                if (fromDateField) fromDateField.focus();
+            }
+
+            printReport() {
+                window.print();
+            }
+
+            exportToExcel() {
+                if (this.currentResults.length === 0) {
+                    alert('لا توجد بيانات لتصديرها');
+                    return;
+                }
+                
+                alert(`سيتم تصدير ${this.currentResults.length} فاتورة إلى ملف Excel`);
+                // يمكن إضافة مكتبة SheetJS لتصدير Excel حقيقي
+            }
+
+            logDebug(message, data = null) {
+                const debugInfo = document.getElementById('debugInfo');
+                if (!debugInfo) return;
+                
+                const timestamp = new Date().toLocaleTimeString();
+                let logMessage = `<div>[${timestamp}] ${message}</div>`;
+                
+                if (data) {
+                    logMessage += `<div style="margin-left: 10px; color: #666; font-size: 10px;">${JSON.stringify(data, null, 2)}</div>`;
+                }
+                
+                debugInfo.innerHTML += logMessage;
+                debugInfo.scrollTop = debugInfo.scrollHeight;
+                console.log(message, data || '');
+            }
+
+            toggleDebug() {
+                const debugInfo = document.getElementById('debugInfo');
+                if (debugInfo) {
+                    debugInfo.style.display = debugInfo.style.display === 'none' ? 'block' : 'none';
+                }
+            }
+        }
+
+        // ==================== وظائف مساعدة للتواريخ ====================
+        function setToday(dateFieldId) {
+            const today = new Date();
+            const formattedDate = today.toISOString().split('T')[0];
+            document.getElementById(dateFieldId).value = formattedDate;
+        }
+
+        function setDatePreset(preset) {
+            const today = new Date();
+            let fromDate, toDate;
+
+            switch(preset) {
+                case 'today':
+                    fromDate = new Date(today);
+                    toDate = new Date(today);
+                    break;
+                    
+                case 'yesterday':
+                    const yesterday = new Date(today);
+                    yesterday.setDate(today.getDate() - 1);
+                    fromDate = yesterday;
+                    toDate = yesterday;
+                    break;
+                    
+                case 'week':
+                    fromDate = new Date(today);
+                    fromDate.setDate(today.getDate() - today.getDay());
+                    toDate = new Date(today);
+                    break;
+                    
+                case 'month':
+                    fromDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                    toDate = new Date(today);
+                    break;
+                    
+                case 'lastMonth':
+                    fromDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                    toDate = new Date(today.getFullYear(), today.getMonth(), 0);
+                    break;
+                    
+                case 'year':
+                    fromDate = new Date(today.getFullYear(), 0, 1);
+                    toDate = new Date(today);
+                    break;
+                    
+                default:
+                    return;
+            }
+
+            document.getElementById('fromDate').value = fromDate.toISOString().split('T')[0];
+            document.getElementById('toDate').value = toDate.toISOString().split('T')[0];
+        }
+
+        // ==================== وظيفة تسجيل الخروج ====================
+        async function logout() {
+            if (confirm('هل تريد تسجيل الخروج؟')) {
+                try {
+                    if (window.purchaseReturnReport && window.purchaseReturnReport.supabase) {
+                        await window.purchaseReturnReport.supabase.auth.signOut();
+                    }
+                    localStorage.clear();
+                    window.location.href = 'index.html';
+                } catch (error) {
+                    console.error('Logout error:', error);
+                    localStorage.clear();
+                    window.location.href = 'index.html';
+                }
+            }
+        }
+
+        // ==================== تهيئة النظام ====================
+        document.addEventListener('DOMContentLoaded', async function() {
+            window.purchaseReturnReport = new PurchaseReturnReport();
+            await window.purchaseReturnReport.init();
+        });
+    </script>
+</body>
+</html>

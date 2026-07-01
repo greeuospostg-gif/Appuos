@@ -1,0 +1,1650 @@
+[file name]: main.html
+[file content begin]
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام جسر القائمة الرئيسية</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --primary: #4361ee;
+            --secondary: #3a0ca3;
+            --accent: #4cc9f0;
+            --success: #4ade80;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #1e293b;
+            --light: #f8fafc;
+            --gray: #64748b;
+            --gradient: linear-gradient(135deg, #4361ee, #3a0ca3);
+            --gradient-light: linear-gradient(135deg, #4cc9f0, #4361ee);
+            --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Tajawal', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+            color: var(--dark);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ✅ معلومات المستخدم في الأعلى - مصغرة */
+        .user-header {
+            position: fixed;
+            top: 0;
+            right: 0;
+            left: 0;
+            background: var(--gradient);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 1000;
+            padding: 6px 15px;
+            height: 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            box-shadow: var(--shadow);
+        }
+
+        .user-info-container {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .user-info-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: white;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 4px 10px;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .user-info-item:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-1px);
+        }
+
+        .user-info-item i {
+            color: var(--accent);
+            font-size: 12px;
+        }
+
+        .user-info-value {
+            font-weight: 500;
+            color: white;
+            font-size: 11px;
+        }
+
+        /* ✅ أزرار التحكم - مصغرة */
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header-btn {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            border: none;
+            padding: 5px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            white-space: nowrap;
+        }
+
+        .header-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-1px);
+        }
+
+        .grant-btn {
+            background: rgba(16, 185, 129, 0.7);
+        }
+
+        .grant-btn:hover {
+            background: rgba(16, 185, 129, 0.9);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .logout-btn {
+            background: rgba(239, 68, 68, 0.7);
+        }
+
+        .logout-btn:hover {
+            background: rgba(239, 68, 68, 0.9);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+
+        /* ✅ تصميم الهيدر الرئيسي للقوائم */
+        .main-header {
+            position: fixed;
+            top: 40px;
+            right: 0;
+            left: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            z-index: 999;
+            padding: 8px 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        /* ✅ تصميم القوائم المنسدلة - مطابق للملف السابق */
+        .dropdown-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropbtn {
+            background: var(--gradient-light);
+            color: white;
+            padding: 8px 15px;
+            font-size: 15px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 500;
+            box-shadow: var(--shadow);
+        }
+
+        .dropbtn:hover {
+            background: var(--gradient);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .dropbtn i {
+            font-size: 13px;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background: hsl(0, 19%, 85%);
+            min-width: 240px;
+            max-width: 280px;
+            box-shadow: var(--shadow-lg);
+            border-radius: 12px;
+            z-index: 1100;
+            overflow: hidden;
+            margin-top: 5px;
+            animation: fadeIn 0.2s ease-out;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        /* ✅ تأثير الماوس على القوائم */
+        .dropdown:hover .dropbtn {
+            background: var(--gradient);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .dropdown:hover .dropdown-content {
+            display: block;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        /* ✅ تعديل أحداث النقر لتعمل مع الماوس */
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background: solid lab(86.56% -12.46 -16.38 / 0.849);
+            min-width: 240px;
+            max-width: 280px;
+            box-shadow: var(--shadow-lg);
+            border-radius: 12px;
+            z-index: 1100;
+            overflow: hidden;
+            margin-top: 5px;
+            animation: fadeIn 0.2s ease-out;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .dropdown-content a {
+            color: var(--dark);
+            padding: 10px 16px;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.2s ease;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 14px;
+        }
+
+        .dropdown-content a:last-child {
+            border-bottom: none;
+        }
+
+        .dropdown-content a:hover {
+            background: #f8fafc;
+            padding-right: 20px;
+            color: var(--primary);
+        }
+
+        .dropdown-content a i {
+            width: 18px;
+            text-align: center;
+            color: var(--gray);
+            font-size: 14px;
+        }
+
+        .dropdown-content a:hover i {
+            color: var(--primary);
+        }
+
+        /* روابط معطلة */
+        .disabled-link {
+            opacity: 0.5;
+            pointer-events: none;
+            background: #f1f5f9 !important;
+            color: #94a3b8 !important;
+        }
+
+        .disabled-link i {
+            color: #94a3b8 !important;
+        }
+
+        /* مؤشر الصلاحيات */
+        .permission-indicator {
+            font-size: 9px;
+            margin-right: 6px;
+            color: var(--success);
+            background: rgba(74, 222, 128, 0.15);
+            padding: 1px 5px;
+            border-radius: 4px;
+            border: 1px solid rgba(74, 222, 128, 0.3);
+        }
+
+        /* ✅ المحتوى الرئيسي */
+        .main-content {
+            margin-top: 100px;
+            padding: 20px;
+            max-width: 1400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* ✅ بطاقات الترحيب والإحصائيات */
+        .welcome-section {
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .welcome-card {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .welcome-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100%;
+            height: 6px;
+            background: var(--gradient);
+        }
+
+        .welcome-card h1 {
+            color: var(--dark);
+            margin-bottom: 12px;
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .welcome-card p {
+            color: var(--gray);
+            font-size: 14px;
+            max-width: 600px;
+            margin: 0 auto 20px;
+            line-height: 1.5;
+        }
+
+        /* إحصائيات سريعة */
+        .stats-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.3s ease;
+            border-left: 4px solid var(--primary);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: white;
+        }
+
+        .stat-1 .stat-icon { background: var(--primary); }
+        .stat-2 .stat-icon { background: var(--success); }
+        .stat-3 .stat-icon { background: var(--accent); }
+        .stat-4 .stat-icon { background: var(--warning); }
+
+        .stat-info h3 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            color: var(--dark);
+        }
+
+        .stat-info p {
+            color: var(--gray);
+            font-size: 12px;
+        }
+
+        /* ✅ تأثيرات الخلفية */
+        .background-effects {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .floating-circle {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(67, 97, 238, 0.05);
+            animation: float 15s infinite ease-in-out;
+        }
+
+        .circle-1 {
+            width: 200px;
+            height: 200px;
+            top: 10%;
+            left: 5%;
+            animation-delay: 0s;
+        }
+
+        .circle-2 {
+            width: 150px;
+            height: 150px;
+            top: 60%;
+            right: 10%;
+            animation-delay: 5s;
+        }
+
+        .circle-3 {
+            width: 100px;
+            height: 100px;
+            bottom: 20%;
+            left: 15%;
+            animation-delay: 10s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-15px) rotate(5deg); }
+        }
+
+        /* ✅ أزرار التحكم الإضافية */
+        .control-buttons {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            box-shadow: var(--shadow);
+            min-width: 140px;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .refresh-btn {
+            background: var(--primary);
+        }
+
+        .refresh-btn:hover {
+            background: var(--secondary);
+        }
+
+        .fix-btn {
+            background: var(--success);
+        }
+
+        .fix-btn:hover {
+            background: #16a34a;
+        }
+
+        .create-btn {
+            background: var(--accent);
+        }
+
+        .create-btn:hover {
+            background: #3aa8d0;
+        }
+
+        /* ✅ التجاوب */
+        @media (max-width: 768px) {
+            .user-header {
+                padding: 5px 10px;
+                height: 35px;
+                gap: 5px;
+            }
+
+            .user-info-item {
+                font-size: 10px;
+                padding: 3px 8px;
+                gap: 4px;
+            }
+
+            .user-info-value {
+                font-size: 10px;
+            }
+
+            .user-info-item i {
+                font-size: 10px;
+            }
+
+            .header-btn {
+                padding: 4px 8px;
+                font-size: 10px;
+                gap: 4px;
+            }
+
+            .main-header {
+                top: 35px;
+                padding: 5px 10px;
+            }
+
+            .dropdown-container {
+                gap: 5px;
+                justify-content: flex-start;
+                overflow-x: auto;
+                padding: 5px 0;
+            }
+
+            .dropbtn {
+                padding: 6px 12px;
+                font-size: 11px;
+                gap: 5px;
+            }
+
+            .dropbtn i {
+                font-size: 11px;
+            }
+
+            .dropdown-content {
+                min-width: 220px;
+                max-width: 260px;
+            }
+
+            .dropdown-content a {
+                padding: 8px 14px;
+                font-size: 12px;
+            }
+
+            .main-content {
+                margin-top: 90px;
+                padding: 15px;
+            }
+
+            .welcome-card {
+                padding: 20px;
+            }
+
+            .welcome-card h1 {
+                font-size: 20px;
+            }
+
+            .welcome-card p {
+                font-size: 13px;
+            }
+
+            .stats-section {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .stat-card {
+                padding: 15px;
+            }
+
+            .control-buttons {
+                bottom: 10px;
+                left: 10px;
+                gap: 8px;
+            }
+
+            .control-btn {
+                padding: 6px 12px;
+                font-size: 10px;
+                min-width: 120px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .user-header {
+                flex-direction: column;
+                height: auto;
+                padding: 8px;
+                gap: 8px;
+            }
+            
+            .user-info-container {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .user-info-item {
+                flex: 1;
+                min-width: 45%;
+                max-width: 48%;
+                text-align: center;
+                justify-content: center;
+                font-size: 10px;
+                padding: 4px 6px;
+            }
+            
+            .header-controls {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            .header-btn {
+                flex: 1;
+                min-width: 48%;
+                font-size: 10px;
+                padding: 5px 8px;
+            }
+            
+            .dropdown-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .dropdown {
+                width: 100%;
+            }
+            
+            .dropbtn {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            .dropdown-content {
+                width: 100%;
+                max-width: 100%;
+            }
+            
+            .main-content {
+                margin-top: 120px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .user-info-item {
+                font-size: 9px;
+                padding: 3px 5px;
+            }
+            
+            .header-btn {
+                font-size: 9px;
+                padding: 4px 6px;
+            }
+            
+            .dropbtn {
+                font-size: 10px;
+                padding: 5px 10px;
+            }
+            
+            .dropdown-content a {
+                font-size: 11px;
+                padding: 6px 12px;
+            }
+            
+            .permission-indicator {
+                font-size: 8px;
+                padding: 1px 3px;
+                margin-right: 4px;
+            }
+            
+            .welcome-card h1 {
+                font-size: 18px;
+            }
+            
+            .stat-icon {
+                width: 40px;
+                height: 40px;
+                font-size: 16px;
+            }
+            
+            .stat-info h3 {
+                font-size: 18px;
+            }
+            
+            .control-buttons {
+                display: none; /* إخفاء على الشاشات الصغيرة جداً */
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- تأثيرات الخلفية -->
+    <div class="background-effects">
+        <div class="floating-circle circle-1"></div>
+        <div class="floating-circle circle-2"></div>
+        <div class="floating-circle circle-3"></div>
+    </div>
+
+    <!-- ✅ معلومات المستخدم في الأعلى - مصغرة -->
+    <div class="user-header">
+        <div class="user-info-container">
+            <div class="user-info-item">
+                <i class="fas fa-user"></i>
+                <span class="user-info-value" id="username-value">جاري التحميل...</span>
+            </div>
+            <div class="user-info-item">
+                <i class="fas fa-store"></i>
+                <span class="user-info-value" id="store-name-value">جاري التحميل...</span>
+            </div>
+            <div class="user-info-item">
+                <i class="fas fa-calendar"></i>
+                <span class="user-info-value" id="current-date-value">جاري التحميل...</span>
+            </div>
+        </div>
+        
+        <div class="header-controls">
+            <button class="header-btn grant-btn" id="grantPermissionsBtn">
+                <i class="fas fa-user-shield"></i>
+                <span>منح جميع الصلاحيات</span>
+            </button>
+            
+            <button class="header-btn logout-btn" id="logoutBtn">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>خروج</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ✅ الهيدر الرئيسي للقوائم -->
+    <div class="main-header">
+        <div class="dropdown-container" id="dropdownContainer">
+            <!-- سيتم إضافة القوائم ديناميكياً -->
+        </div>
+    </div>
+
+    <!-- ✅ المحتوى الرئيسي -->
+    <div class="main-content">
+        <!-- قسم الترحيب -->
+        <section class="welcome-section">
+            <div class="welcome-card">
+                <h1>نظام إدارة الشركة</h1>
+                <p>نظام متكامل لإدارة كافة عمليات الشركة من مبيعات ومشتريات ومخازن وحسابات وموارد بشرية</p>
+                <div class="stats-section">
+                    <div class="stat-card stat-1">
+                        <div class="stat-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="sales-count">0</h3>
+                            <p>المبيعات</p>
+                        </div>
+                    </div>
+                    <div class="stat-card stat-2">
+                        <div class="stat-icon">
+                            <i class="fas fa-shopping-cart"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="purchases-count">0</h3>
+                            <p>المشتريات</p>
+                        </div>
+                    </div>
+                    <div class="stat-card stat-3">
+                        <div class="stat-icon">
+                            <i class="fas fa-boxes"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="inventory-count">0</h3>
+                            <p>المنتجات في الفرع</p>
+                        </div>
+                    </div>
+                    <div class="stat-card stat-4">
+                        <div class="stat-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="employees-count">0</h3>
+                            <p>الموظفين</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- ✅ أزرار التحكم الإضافية -->
+    <div class="control-buttons">
+        <button class="control-btn refresh-btn" id="refreshPermissionsBtn">
+            <i class="fas fa-sync-alt"></i>
+            تحديث الصلاحيات
+        </button>
+        
+        <button class="control-btn fix-btn" id="fixPermissionsBtn">
+            <i class="fas fa-wrench"></i>
+            إصلاح الصلاحيات
+        </button>
+        
+        <button class="control-btn create-btn" id="createDefaultPrivilegesBtn">
+            <i class="fas fa-plus-circle"></i>
+            إنشاء صلاحيات افتراضية
+        </button>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://rvjacvrrpguehbapvewe.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2amFjdnJycGd1ZWhiYXB2ZXdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwMjUxNTksImV4cCI6MjA3ODYwMTE1OX0.wSavKzxKOF7-56G-pzDMtbXNrCNAbGs0wvadw-cilBg';
+        
+        // ✅ نظام النوافذ المفتوحة - مطابق للملف السابق
+        const openWindows = [];
+        
+        class MainMenuManager {
+            constructor() {
+                this.supabase = null;
+                this.userId = null;
+                this.userName = '';
+                this.storeName = '';
+                this.screenPermissions = {};
+                this.activeDropdown = null;
+                this.init();
+            }
+            
+            async init() {
+                try {
+                    // ✅ تهيئة Supabase
+                    this.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                    
+                    // ✅ التحقق من تسجيل الدخول
+                    await this.checkAuthentication();
+                    if (!this.userId) return;
+                    
+                    // ✅ تحميل معلومات المستخدم
+                    await this.loadUserInfo();
+                    
+                    // ✅ تحميل الصلاحيات
+                    await this.loadPermissions();
+                    
+                    // ✅ إنشاء القوائم
+                    this.createMenus();
+                    
+                    // ✅ تهيئة الإحصائيات
+                    this.initializeStats();
+                    
+                    // ✅ إعداد مستمعي الأحداث
+                    this.setupEventListeners();
+                    
+                    console.log('✅ تم تحميل النظام بنجاح');
+                    
+                } catch (error) {
+                    console.error('❌ خطأ في تهيئة النظام:', error);
+                    this.showDefaultUserInfo();
+                }
+            }
+            
+            // ✅ التحقق من تسجيل الدخول
+            async checkAuthentication() {
+                this.userId = localStorage.getItem('user_id') || sessionStorage.getItem('user_id');
+                if (!this.userId) {
+                    alert('❌ يرجى تسجيل الدخول أولاً');
+                    window.location.href = './index.html';
+                    return false;
+                }
+                return true;
+            }
+            
+            // ✅ تحميل معلومات المستخدم
+            async loadUserInfo() {
+                try {
+                    // محاولة جلب من Supabase
+                    const { data: userData, error } = await this.supabase
+                        .from('users')
+                        .select('username, store_id')
+                        .eq('user_id', this.userId)
+                        .single();
+                    
+                    if (!error && userData) {
+                        this.userName = userData.username || 'مستخدم النظام';
+                        
+                        // جلب اسم المتجر
+                        if (userData.store_id) {
+                            const { data: storeData } = await this.supabase
+                                .from('stores')
+                                .select('store_name')
+                                .eq('store_id', userData.store_id)
+                                .single();
+                            
+                            this.storeName = storeData?.store_name || 'الفرع الرئيسي';
+                        } else {
+                            this.storeName = 'الفرع الرئيسي';
+                        }
+                        
+                        // حفظ في localStorage
+                        localStorage.setItem('username', this.userName);
+                        localStorage.setItem('store_name', this.storeName);
+                        
+                    } else {
+                        // استخدام البيانات المحفوظة
+                        this.loadFromLocalStorage();
+                    }
+                    
+                    this.updateUserInfoUI();
+                    
+                } catch (error) {
+                    console.error('❌ خطأ في تحميل معلومات المستخدم:', error);
+                    this.loadFromLocalStorage();
+                }
+            }
+            
+            // ✅ تحميل من localStorage
+            loadFromLocalStorage() {
+                this.userName = localStorage.getItem('username') || 'مستخدم النظام';
+                this.storeName = localStorage.getItem('store_name') || 'الفرع الرئيسي';
+                this.updateUserInfoUI();
+            }
+            
+            // ✅ تحديث واجهة معلومات المستخدم
+            updateUserInfoUI() {
+                document.getElementById('username-value').textContent = this.userName;
+                document.getElementById('store-name-value').textContent = this.storeName;
+                this.updateDate();
+            }
+            
+            // ✅ تحديث التاريخ
+            updateDate() {
+                const currentDate = new Date().toLocaleDateString('ar-EG', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+                document.getElementById('current-date-value').textContent = currentDate;
+            }
+            
+            // ✅ تحميل الصلاحيات
+            async loadPermissions() {
+                try {
+                    const { data, error } = await this.supabase
+                        .from('privileges')
+                        .select('*')
+                        .eq('user_id', this.userId);
+                    
+                    if (error) {
+                        console.error('❌ خطأ في جلب الصلاحيات:', error);
+                        this.setDefaultPermissions();
+                        return;
+                    }
+                    
+                    if (!data || data.length === 0) {
+                        console.log('⚠️ لا توجد صلاحيات للمستخدم');
+                        this.setDefaultPermissions();
+                        return;
+                    }
+                    
+                    this.organizePermissions(data);
+                    
+                } catch (error) {
+                    console.error('❌ خطأ في تحميل الصلاحيات:', error);
+                    this.setDefaultPermissions();
+                }
+            }
+            
+            // ✅ تنظيم الصلاحيات
+            organizePermissions(privileges) {
+                this.screenPermissions = {};
+                privileges.forEach(priv => {
+                    if (priv.priv_name) {
+                        this.screenPermissions[priv.priv_name] = {
+                            can_view: this.parseBoolean(priv.can_view),
+                            can_add: this.parseBoolean(priv.can_add),
+                            can_edit: this.parseBoolean(priv.can_edit),
+                            can_delete: this.parseBoolean(priv.can_delete)
+                        };
+                    }
+                });
+                console.log('✅ تم تنظيم الصلاحيات:', this.screenPermissions);
+            }
+            
+            // ✅ تحويل القيم إلى boolean
+            parseBoolean(value) {
+                if (value === null || value === undefined) return false;
+                if (typeof value === 'boolean') return value;
+                if (typeof value === 'string') {
+                    return value.toLowerCase() === 'true' || value === '1';
+                }
+                if (typeof value === 'number') {
+                    return value === 1;
+                }
+                return Boolean(value);
+            }
+            
+            // ✅ الصلاحيات الافتراضية
+            setDefaultPermissions() {
+                console.log('🛡️ استخدام الصلاحيات الافتراضية');
+                
+                const defaultScreens = [
+                    'ادخال الاقسام', 'ادخال الموظفين', 'ادخال المرتبات', 'ادخال حضور وانصراف',
+                    'بيانات المنشأة', 'اكواد الفروع', 'أكواد الوحدات', 'أكواد الشركات', 'أكواد الموردين',
+                    'أكواد عملاء', 'أكواد الاصناف', 'بيانات الأصناف بالفروع', 'تحويل بين الفروع',
+                    'استلام التحويل', 'عروض الاسعار', 'إدخال المشتريات', 'مرتجع المشتريات',
+                    'إدخال المبيعات', 'مرتجع المبيعات', 'تقرير المشتريات', 'تقرير مرتجع مشتريات',
+                    'تقرير المبيعات', 'تقرير مرتجع مبيعات', 'تقرير حركة الفروع', 'تقرير تحويل بين الفروع',
+                    'تقرير استلام التحويل', 'تقرير جرود الفروع', 'تقرير الكاشير', 'اكواد الحسابات',
+                    'شجرة الحسابات', 'حركة الحسابات', 'التقارير المالية', 'بحث بالكود او بالاسم',
+                    'العروض المتاحه', 'ادخال مستخدم جديد للنظام', 'صلاحيات المستخدمين', 'تقرير بتعاملات النظام'
+                ];
+                
+                this.screenPermissions = {};
+                defaultScreens.forEach(screen => {
+                    this.screenPermissions[screen] = {
+                        can_view: true,
+                        can_add: screen.includes('ادخال') || screen.includes('إدخال'),
+                        can_edit: screen.includes('ادخال') || screen.includes('إدخال'),
+                        can_delete: false
+                    };
+                });
+            }
+            
+            // ✅ إنشاء القوائم - معدلة للعمل مع تأثير الماوس
+            createMenus() {
+                const dropdownContainer = document.getElementById('dropdownContainer');
+                if (!dropdownContainer) return;
+                
+                dropdownContainer.innerHTML = '';
+                
+                // ✅ بيانات القوائم - صحيحة بدون علامات غير صحيحة
+                const menuData = [
+                    {
+                        id: 'employees',
+                        title: 'ادخال شئون الموظفين',
+                        icon: 'fas fa-users',
+                        items: [
+                            { id: 'dept', title: 'ادخال الاقسام', url: './dept.html', icon: 'fas fa-sitemap', screen: 'ادخال الاقسام' },
+                            { id: 'empl', title: 'ادخال الموظفين', url: './empl.html', icon: 'fas fa-user-tie', screen: 'ادخال الموظفين' },
+                            { id: 'payroll', title: 'ادخال المرتبات', url: './payroll.html', icon: 'fas fa-money-bill-wave', screen: 'ادخال المرتبات' },
+                            { id: 'attend', title: 'ادخال حضور وانصراف', url: './attend.html', icon: 'fas fa-user-clock', screen: 'ادخال حضور وانصراف' }
+                        ]
+                    },       
+                    {
+                        id: 'basic-data',
+                        title: 'ادخال البيانات الاساسيه',
+                        icon: 'fas fa-database',
+                        items: [
+                            { id: 'company', title: 'بيانات المنشأة', url: './company.html', icon: 'fas fa-building', screen: 'بيانات المنشأة' },
+                            { id: 'stores', title: 'اكواد الفروع', url: './stores.html', icon: 'fas fa-code-branch', screen: 'اكواد الفروع' },
+                            { id: 'unit', title: 'أكواد الوحدات', url: './unit.html', icon: 'fas fa-ruler-combined', screen: 'أكواد الوحدات' },
+                            { id: 'factory', title: 'أكواد الشركات', url: './factory.html', icon: 'fas fa-ruler-combined', screen: 'أكواد الشركات' },
+                            { id: 'suppliers', title: 'أكواد الموردين', url: './suppliers.html', icon: 'fas fa-truck-loading', screen: 'أكواد الموردين' },
+                            { id: 'customer', title: 'أكواد عملاء', url: './customer.html', icon: 'fas fa-users', screen: 'أكواد عملاء' },
+                            { id: 'items', title: 'أكواد الاصناف', url: './items.html', icon: 'fas fa-boxes', screen: 'أكواد الاصناف' },
+                            { id: 'master', title: 'بيانات الأصناف بالفروع', url: './master.html', icon: 'fas fa-warehouse', screen: 'بيانات الأصناف بالفروع' },
+                            { id: 'transferItem', title: 'تحويل بين الفروع', url: './transferItem.html', icon: 'fas fa-exchange-alt', screen: 'تحويل بين الفروع' },
+                            { id: 'acceptTransfer', title: 'استلام التحويل', url: './acceptTransfer.html', icon: 'fas fa-dolly', screen: 'استلام التحويل' },
+                            { id: 'offers', title: 'عروض الاسعار', url: './offers.html', icon: 'fas fa-tags', screen: 'عروض الاسعار' }
+                        ]
+                    },
+                    {
+                        id: 'purchases',
+                        title: 'المشتريات',
+                        icon: 'fas fa-shopping-cart',
+                        items: [
+                            { id: 'purchases', title: 'إدخال المشتريات', url: './purchases.html', icon: 'fas fa-cart-plus', screen: 'إدخال المشتريات' },
+                            { id: 'purchases_ret', title: 'مرتجع المشتريات', url: './purchases_ret.html', icon: 'fas fa-undo', screen: 'مرتجع المشتريات' }
+                        ]
+                    },
+                    {
+                        id: 'sales',
+                        title: 'المبيعات',
+                        icon: 'fas fa-cash-register',
+                        items: [
+                            { id: 'sales', title: 'إدخال المبيعات', url: './sales.html', icon: 'fas fa-receipt', screen: 'إدخال المبيعات' },
+                            { id: 'salesreturn', title: 'مرتجع المبيعات', url: './salesreturn.html', icon: 'fas fa-undo-alt', screen: 'مرتجع المبيعات' }
+                        ]
+                    },
+                    {
+                        id: 'reports',
+                        title: 'تقارير الفروع',
+                        icon: 'fas fa-chart-bar',
+                        items: [
+                            { id: 'purchases_rep', title: 'تقرير المشتريات', url: './purchases_rep.html', icon: 'fas fa-file-invoice', screen: 'تقرير المشتريات' },
+                            { id: 'purchase_return_rep', title: 'تقرير مرتجع مشتريات', url: './purchase_return_rep.html', icon: 'fas fa-file-excel', screen: 'تقرير مرتجع مشتريات' },
+                            { id: 'sales_report', title: 'تقرير المبيعات', url: './sales_report.html', icon: 'fas fa-chart-line', screen: 'تقرير المبيعات' },
+                            { id: 'salesreturn_rep', title: 'تقرير مرتجع مبيعات', url: './salesreturn_rep.html', icon: 'fas fa-file-export', screen: 'تقرير مرتجع مبيعات' },
+                            { id: 'masterrep', title: 'تقرير حركة الفروع', url: './masterrep.html', icon: 'fas fa-chart-area', screen: 'تقرير حركة الفروع' },
+                            { id: 'transferReport', title: 'تقرير تحويل بين الفروع', url: './transferReport.html', icon: 'fas fa-exchange-alt', screen: 'تقرير تحويل بين الفروع' },
+                            { id: 'accptRep', title: 'تقرير استلام التحويل', url: './accptRep.html', icon: 'fas fa-clipboard-check', screen: 'تقرير استلام التحويل' },
+                            { id: 'inventoryrep', title: 'تقرير جرود الفروع', url: './inventoryrep.html', icon: 'fas fa-clipboard-list', screen: 'تقرير جرود الفروع' },
+                            { id: 'dailyCashier', title: 'تقرير الكاشير', url: './dailyCashier.html', icon: 'fas fa-clipboard-list', screen: 'تقرير الكاشير' },
+                            { id: 'allstoresinf', title: 'تقرير تحليلى شامل الفروع', url: './allstoresinf.html', icon: 'fas fa-clipboard-list', screen: 'تقرير تحليلى شامل الفروع' }
+
+                            
+                        ]
+                    },
+                    {
+                        id: 'accounts',
+                        title: 'الحسابات الماليه',
+                        icon: 'fas fa-file-invoice-dollar',
+                        items: [
+                            { id: 'acc_type', title: 'اكواد الحسابات', url: './acc_type.html', icon: 'fas fa-file-invoice', screen: 'اكواد الحسابات' },
+                            { id: 'account', title: 'شجرة الحسابات', url: './account.html', icon: 'fas fa-sitemap', screen: 'شجرة الحسابات' },
+                            { id: 'acc_transaction', title: 'حركة الحسابات', url: './acc_transaction.html', icon: 'fas fa-exchange-alt', screen: 'حركة الحسابات' },
+                            { id: 'account_report', title: 'التقارير المالية', url: './account_report.html', icon: 'fas fa-chart-pie', screen: 'التقارير المالية' },
+                            { id: 'acc_rep_dashboard', title: 'تقرير تحليلى حسابات', url: './acc_rep_dashboard.html', icon: 'fas fa-chart-pie', screen: 'تقرير تحليلى حسابات' }
+                            
+                        ]
+                    },
+                    {
+                        id: 'search',
+                        title: 'البحث',
+                        icon: 'fas fa-search',
+                        items: [
+                            { id: 'search', title: 'بحث بالكود او بالاسم', url: './search.html', icon: 'fas fa-search', screen: 'بحث بالكود او بالاسم' },
+                            { id: 'offershow', title: 'العروض المتاحه', url: './offershow.html', icon: 'fas fa-percentage', screen: 'العروض المتاحه' }
+                        ]
+                    },
+                    {
+                        id: 'settings',
+                        title: 'إعدادات البرنامج',
+                        icon: 'fas fa-cogs',
+                        items: [
+                            { id: 'info', title: 'ادخال مستخدم جديد للنظام', url: './info.html', icon: 'fas fa-user-plus', screen: 'ادخال مستخدم جديد للنظام' },
+                            { id: 'info', title: 'صلاحيات المستخدمين', url: './info.html', icon: 'fas fa-user-shield', screen: 'صلاحيات المستخدمين' },
+                            { id: 'info', title: 'تقرير بتعاملات النظام', url: './info.html', icon: 'fas fa-user-check', screen: 'تقرير بتعاملات النظام' }
+                        ]
+                    },
+                    {
+                        id: 'about',
+                        title: 'حول',
+                        icon: 'fas fa-info-circle',
+                        items: [
+                            { id: 'about', title: 'معلومات', url: './about.html', icon: 'fas fa-info', screen: 'معلومات' },
+                            { id: 'info', title: 'تواصل', url: './info.html', icon: 'fas fa-phone', screen: 'تواصل' }
+                        ]
+                    }
+                ];
+                
+                menuData.forEach(menu => {
+                    // التحقق إذا كان هناك أي عنصر مفعل في القائمة
+                    const hasVisibleItems = menu.items.some(item => {
+                        const permissions = this.screenPermissions[item.screen];
+                        return permissions && permissions.can_view;
+                    });
+                    
+                    if (!hasVisibleItems) return;
+                    
+                    const dropdown = document.createElement('div');
+                    dropdown.className = 'dropdown';
+                    
+                    const button = document.createElement('button');
+                    button.className = 'dropbtn';
+                    button.innerHTML = `
+                        <i class="${menu.icon}"></i>
+                        ${menu.title}
+                    `;
+                    
+                    const content = document.createElement('div');
+                    content.className = 'dropdown-content';
+                    
+                    menu.items.forEach(item => {
+                        const permissions = this.screenPermissions[item.screen];
+                        const hasPermission = permissions && permissions.can_view;
+                        
+                        const link = document.createElement('a');
+                        link.id = `${item.id}-link`;
+                        link.href = '#';
+                        link.dataset.url = item.url;
+                        link.dataset.title = item.title;
+                        link.dataset.screen = item.screen;
+                        
+                        if (!hasPermission) {
+                            link.classList.add('disabled-link');
+                            link.title = '🚫 لا تملك صلاحية الوصول إلى هذه الشاشة';
+                        } else {
+                            link.title = `✅ مسموح - ${this.getPermissionText(permissions)}`;
+                            
+                            // إضافة مؤشرات الصلاحيات
+                            let indicators = '';
+                            if (permissions.can_add) indicators += '+';
+                            if (permissions.can_edit) indicators += '✏️';
+                            if (permissions.can_delete) indicators += '🗑️';
+                            
+                            if (indicators) {
+                                link.innerHTML = `<span class="permission-indicator">[${indicators}]</span> <i class="${item.icon}"></i> ${item.title}`;
+                            } else {
+                                link.innerHTML = `<i class="${item.icon}"></i> ${item.title}`;
+                            }
+                            
+                            // إضافة حدث النقر لفتح النافذة
+                            link.addEventListener('click', (e) => {
+                                e.preventDefault();
+                                this.openNewWindow(item.url, item.title);
+                                // إخفاء القائمة بعد النقر
+                                content.style.display = 'none';
+                            });
+                        }
+                        
+                        if (!hasPermission) {
+                            link.innerHTML = `<i class="${item.icon}"></i> ${item.title}`;
+                            // تعطيل النقر على الروابط المعطلة
+                            link.addEventListener('click', (e) => {
+                                e.preventDefault();
+                                alert('🚫 لا تملك صلاحية الوصول إلى هذه الشاشة');
+                            });
+                        }
+                        
+                        content.appendChild(link);
+                    });
+                    
+                    // ✅ إضافة متغيرات لتتبع الوقت
+                    let hoverTimeout;
+                    let isMouseOver = false;
+                    
+                    // ✅ إظهار القائمة عند التحوم
+                    dropdown.addEventListener('mouseenter', () => {
+                        clearTimeout(hoverTimeout);
+                        isMouseOver = true;
+                        
+                        // إغلاق كل القوائم الأخرى
+                        document.querySelectorAll('.dropdown-content').forEach(otherContent => {
+                            if (otherContent !== content) {
+                                otherContent.style.display = 'none';
+                            }
+                        });
+                        
+                        // إظهار القائمة الحالية
+                        content.style.display = 'block';
+                    });
+                    
+                    // ✅ إخفاء القائمة عند إبعاد الماوس
+                    dropdown.addEventListener('mouseleave', () => {
+                        isMouseOver = false;
+                        
+                        // تأخير إخفاء القائمة
+                        hoverTimeout = setTimeout(() => {
+                            if (!isMouseOver) {
+                                content.style.display = 'none';
+                            }
+                        }, 300);
+                    });
+                    
+                    // ✅ إبقاء القائمة مفتوحة عند التحوم عليها
+                    content.addEventListener('mouseenter', () => {
+                        clearTimeout(hoverTimeout);
+                        isMouseOver = true;
+                    });
+                    
+                    content.addEventListener('mouseleave', () => {
+                        isMouseOver = false;
+                        hoverTimeout = setTimeout(() => {
+                            if (!isMouseOver) {
+                                content.style.display = 'none';
+                            }
+                        }, 300);
+                    });
+                    
+                    // ✅ احتفظ بأحداث النقر للجوال (خيار إضافي)
+                    button.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        
+                        // تحقق إذا كان الجهاز موبايل (شاشة صغيرة)
+                        if (window.innerWidth <= 768) {
+                            // إغلاق كل القوائم الأخرى
+                            document.querySelectorAll('.dropdown-content').forEach(otherContent => {
+                                if (otherContent !== content) {
+                                    otherContent.style.display = 'none';
+                                }
+                            });
+                            
+                            // فتح/إغلاق القائمة الحالية
+                            if (content.style.display === 'block') {
+                                content.style.display = 'none';
+                            } else {
+                                content.style.display = 'block';
+                            }
+                        }
+                    });
+                    
+                    dropdown.appendChild(button);
+                    dropdown.appendChild(content);
+                    dropdownContainer.appendChild(dropdown);
+                });
+                
+                // ✅ إغلاق القوائم عند النقر خارجها (للجوال)
+                document.addEventListener('click', (e) => {
+                    // تحقق إذا كان النقر خارج أي dropdown
+                    if (!e.target.closest('.dropdown')) {
+                        document.querySelectorAll('.dropdown-content').forEach(content => {
+                            content.style.display = 'none';
+                        });
+                    }
+                });
+                
+                // ✅ إغلاق القوائم عند تغيير حجم النافذة
+                window.addEventListener('resize', () => {
+                    document.querySelectorAll('.dropdown-content').forEach(content => {
+                        content.style.display = 'none';
+                    });
+                });
+            }
+            // ✅ الحصول على نص الصلاحيات
+            getPermissionText(permissions) {
+                const parts = [];
+                if (permissions.can_view) parts.push('عرض');
+                if (permissions.can_add) parts.push('إضافة');
+                if (permissions.can_edit) parts.push('تعديل');
+                if (permissions.can_delete) parts.push('حذف');
+                return parts.length > 0 ? parts.join('، ') : 'عرض فقط';
+            }
+            
+            // ✅ إغلاق جميع القوائم المنسدلة
+            closeAllDropdowns() {
+                document.querySelectorAll('.dropdown-content').forEach(dropdown => {
+                    dropdown.style.display = 'none';
+                });
+                this.activeDropdown = null;
+            }
+            
+            // ✅ فتح نوافذ جديدة - مطابق للملف السابق
+            openNewWindow(url, title) {
+                // تحقق إذا كانت النافذة مفتوحة بالفعل
+                const existingWindow = openWindows.find(w => w.url === url && !w.window.closed);
+                
+                if (existingWindow) {
+                    alert("⚠️ هذه الشاشة مفتوحة بالفعل!");
+                    existingWindow.window.focus();
+                    return;
+                }
+                
+                // إذا كانت النوافذ أكثر من 4 أغلق الأقدم
+                while (openWindows.length >= 4) {
+                    const oldWindow = openWindows.shift();
+                    if (oldWindow && !oldWindow.window.closed) {
+                        oldWindow.window.close();
+                    }
+                }
+                
+                // فتح نافذة جديدة
+                const newWindow = window.open(url, '_blank');
+                
+                if (newWindow) {
+                    openWindows.push({ url: url, window: newWindow });
+                    console.log('🪟 نوافذ مفتوحة:', openWindows.length);
+                }
+            }
+            
+            // ✅ تهيئة الإحصائيات
+            initializeStats() {
+                const salesCount = Math.floor(Math.random() * 50) + 10;
+                const purchasesCount = Math.floor(Math.random() * 30) + 5;
+                const inventoryCount = Math.floor(Math.random() * 500) + 100;
+                const employeesCount = Math.floor(Math.random() * 50) + 20;
+                
+                this.animateValue('sales-count', 0, salesCount, 1500);
+                this.animateValue('purchases-count', 0, purchasesCount, 1500);
+                this.animateValue('inventory-count', 0, inventoryCount, 1500);
+                this.animateValue('employees-count', 0, employeesCount, 1500);
+            }
+            
+            // تأثير العد المتحرك
+            animateValue(id, start, end, duration) {
+                const obj = document.getElementById(id);
+                let startTimestamp = null;
+                const step = (timestamp) => {
+                    if (!startTimestamp) startTimestamp = timestamp;
+                    const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                    const value = Math.floor(progress * (end - start) + start);
+                    obj.innerHTML = value.toLocaleString();
+                    if (progress < 1) {
+                        window.requestAnimationFrame(step);
+                    }
+                };
+                window.requestAnimationFrame(step);
+            }
+            
+            // ✅ إعداد مستمعي الأحداث
+            setupEventListeners() {
+                // زر منح جميع الصلاحيات
+                document.getElementById('grantPermissionsBtn').addEventListener('click', () => {
+                    this.grantAllPermissions();
+                });
+                
+                // زر تحديث الصلاحيات
+                document.getElementById('refreshPermissionsBtn').addEventListener('click', () => {
+                    this.refreshPermissions();
+                });
+                
+                // زر إصلاح الصلاحيات
+                document.getElementById('fixPermissionsBtn').addEventListener('click', () => {
+                    this.fixMissingPermissions();
+                });
+                
+                // زر إنشاء صلاحيات افتراضية
+                document.getElementById('createDefaultPrivilegesBtn').addEventListener('click', () => {
+                    this.createDefaultPrivileges();
+                });
+                
+                // زر الخروج
+                document.getElementById('logoutBtn').addEventListener('click', () => {
+                    this.logout();
+                });
+            }
+            
+            // ✅ منح جميع الصلاحيات
+            async grantAllPermissions() {
+                const confirmed = confirm(`هل تريد منح جميع الصلاحيات للمستخدم ${this.userName}؟`);
+                if (!confirmed) return;
+                
+                try {
+                    const allScreens = [
+                        'ادخال الاقسام', 'ادخال الموظفين', 'ادخال المرتبات', 'ادخال حضور وانصراف',
+                        'بيانات المنشأة', 'اكواد الفروع', 'أكواد الوحدات', 'أكواد الشركات','أكواد الموردين',
+                        'أكواد عملاء', 'أكواد الاصناف', 'بيانات الأصناف بالفروع', 'تحويل بين الفروع',
+                        'استلام التحويل', 'عروض الاسعار', 'إدخال المشتريات', 'مرتجع المشتريات',
+                        'إدخال المبيعات', 'مرتجع المبيعات', 'تقرير المشتريات', 'تقرير مرتجع مشتريات',
+                        'تقرير المبيعات', 'تقرير مرتجع مبيعات', 'تقرير حركة الفروع', 'تقرير تحويل بين الفروع',
+                        'تقرير استلام التحويل', 'تقرير جرود الفروع', 'تقرير الكاشير', 'تقرير تحليلى شامل الفروع', 'اكواد الحسابات',
+                        'شجرة الحسابات', 'حركة الحسابات', 'التقارير المالية', 'تقرير تحليلى حسابات', 'بحث بالكود او بالاسم',
+                        'العروض المتاحه', 'ادخال مستخدم جديد للنظام', 'صلاحيات المستخدمين', 'تقرير بتعاملات النظام'
+                    ];
+                    
+                    const privilegesToInsert = allScreens.map(screenName => ({
+                        user_id: parseInt(this.userId),
+                        priv_name: screenName,
+                        description: `صلاحية كاملة لـ ${screenName}`,
+                        can_view: true,
+                        can_add: true,
+                        can_edit: true,
+                        can_delete: true,
+                        user_stamp: new Date().toISOString()
+                    }));
+                    
+                    // حذف الصلاحيات القديمة
+                    await this.supabase
+                        .from('privileges')
+                        .delete()
+                        .eq('user_id', this.userId);
+                    
+                    // إدراج الصلاحيات الجديدة
+                    const { error } = await this.supabase
+                        .from('privileges')
+                        .insert(privilegesToInsert);
+                    
+                    if (error) throw error;
+                    
+                    alert('✅ تم منح جميع الصلاحيات بنجاح!');
+                    await this.loadPermissions();
+                    this.createMenus();
+                    
+                } catch (error) {
+                    console.error('❌ فشل في منح الصلاحيات:', error);
+                    alert('❌ فشل في منح الصلاحيات: ' + error.message);
+                }
+            }
+            
+            // ✅ تحديث الصلاحيات
+            async refreshPermissions() {
+                console.log('🔄 جاري تحديث الصلاحيات...');
+                await this.loadPermissions();
+                this.createMenus();
+                alert('✅ تم تحديث الصلاحيات بنجاح!');
+            }
+            
+            // ✅ إصلاح الصلاحيات المفقودة
+            async fixMissingPermissions() {
+                try {
+                    console.log('🔧 جاري إصلاح الصلاحيات المفقودة...');
+                    
+                    const allScreens = [
+                        'ادخال الاقسام', 'ادخال الموظفين', 'ادخال المرتبات', 'ادخال حضور وانصراف',
+                        'بيانات المنشأة', 'اكواد الفروع', 'أكواد الوحدات', 'أكواد الشركات', 'أكواد الموردين',
+                        'أكواد عملاء', 'أكواد الاصناف', 'بيانات الأصناف بالفروع', 'تحويل بين الفروع',
+                        'استلام التحويل', 'عروض الاسعار', 'إدخال المشتريات', 'مرتجع المشتريات',
+                        'إدخال المبيعات', 'مرتجع المبيعات', 'تقرير المشتريات', 'تقرير مرتجع مشتريات',
+                        'تقرير المبيعات', 'تقرير مرتجع مبيعات', 'تقرير حركة الفروع', 'تقرير تحويل بين الفروع',
+                        'تقرير استلام التحويل', 'تقرير جرود الفروع', 'تقرير الكاشير', 'تقرير تحليلى شامل الفروع', 'اكواد الحسابات',
+                        'شجرة الحسابات', 'حركة الحسابات', 'التقارير المالية', 'تقرير تحليلى حسابات', 'بحث بالكود او بالاسم',
+                        'العروض المتاحه', 'ادخال مستخدم جديد للنظام', 'صلاحيات المستخدمين', 'تقرير بتعاملات النظام'
+                    ];
+                    
+                    let fixedCount = 0;
+                    
+                    for (const screenName of allScreens) {
+                        if (!this.screenPermissions[screenName]) {
+                            const { error } = await this.supabase
+                                .from('privileges')
+                                .insert([{
+                                    user_id: parseInt(this.userId),
+                                    priv_name: screenName,
+                                    description: `شاشة ${screenName}`,
+                                    can_view: true,
+                                    can_add: true,
+                                    can_edit: true,
+                                    can_delete: false
+                                }]);
+                            
+                            if (!error) {
+                                fixedCount++;
+                            }
+                        }
+                    }
+                    
+                    if (fixedCount > 0) {
+                        alert(`✅ تم إصلاح ${fixedCount} صلاحية مفقودة`);
+                        await this.loadPermissions();
+                        this.createMenus();
+                    } else {
+                        alert('✅ لا توجد صلاحيات مفقودة');
+                    }
+                    
+                } catch (error) {
+                    console.error('❌ خطأ في إصلاح الصلاحيات:', error);
+                    alert('❌ فشل في إصلاح الصلاحيات');
+                }
+            }
+            
+            // ✅ إنشاء صلاحيات افتراضية
+            async createDefaultPrivileges() {
+                const confirmed = confirm('هل تريد إنشاء صلاحيات افتراضية جديدة؟');
+                if (!confirmed) return;
+                
+                try {
+                    const defaultScreens = [
+                        'ادخال الاقسام', 'ادخال الموظفين', 'ادخال المرتبات', 'ادخال حضور وانصراف',
+                        'بيانات المنشأة', 'اكواد الفروع', 'أكواد الوحدات', 'أكواد الشركات', 'أكواد الموردين',
+                        'أكواد عملاء', 'أكواد الاصناف', 'بيانات الأصناف بالفروع', 'تحويل بين الفروع',
+                        'استلام التحويل', 'عروض الاسعار', 'إدخال المشتريات', 'مرتجع المشتريات',
+                        'إدخال المبيعات', 'مرتجع المبيعات', 'تقرير المشتريات', 'تقرير مرتجع مشتريات',
+                        'تقرير المبيعات', 'تقرير مرتجع مبيعات', 'تقرير حركة الفروع', 'تقرير تحويل بين الفروع',
+                        'تقرير استلام التحويل', 'تقرير جرود الفروع', 'تقرير الكاشير', 'تقرير تحليلى شامل الفروع', 'اكواد الحسابات',
+                        'شجرة الحسابات', 'حركة الحسابات', 'التقارير المالية', 'تقرير تحليلى حسابات', 'بحث بالكود او بالاسم',
+                        'العروض المتاحه', 'ادخال مستخدم جديد للنظام', 'صلاحيات المستخدمين', 'تقرير بتعاملات النظام'
+                    ];
+                    
+                    const privilegesToInsert = defaultScreens.map(screenName => ({
+                        user_id: parseInt(this.userId),
+                        priv_name: screenName,
+                        description: `شاشة ${screenName}`,
+                        can_view: true,
+                        can_add: screenName.includes('ادخال') || screenName.includes('إدخال'),
+                        can_edit: screenName.includes('ادخال') || screenName.includes('إدخال'),
+                        can_delete: false
+                    }));
+                    
+                    // حذف الصلاحيات القديمة
+                    await this.supabase
+                        .from('privileges')
+                        .delete()
+                        .eq('user_id', this.userId);
+                    
+                    // إدراج الصلاحيات الجديدة
+                    const { error } = await this.supabase
+                        .from('privileges')
+                        .insert(privilegesToInsert);
+                    
+                    if (error) throw error;
+                    
+                    alert('✅ تم إنشاء الصلاحيات الافتراضية بنجاح!');
+                    await this.loadPermissions();
+                    this.createMenus();
+                    
+                } catch (error) {
+                    console.error('❌ خطأ في إنشاء الصلاحيات الافتراضية:', error);
+                    alert('❌ فشل في إنشاء الصلاحيات الافتراضية');
+                }
+            }
+            
+            // ✅ الخروج
+            logout() {
+                const confirmed = confirm('هل أنت متأكد من الخروج؟');
+                if (!confirmed) return;
+                
+                // إغلاق جميع النوافذ المفتوحة
+                openWindows.forEach(w => {
+                    if (w.window && !w.window.closed) {
+                        w.window.close();
+                    }
+                });
+                
+                // مسح التخزين
+                localStorage.clear();
+                sessionStorage.clear();
+                
+                // الانتقال لصفحة تسجيل الدخول
+                setTimeout(() => {
+                    window.location.href = './index.html';
+                }, 500);
+            }
+            
+            // ✅ عرض معلومات المستخدم الافتراضية
+            showDefaultUserInfo() {
+                document.getElementById('username-value').textContent = 'مستخدم النظام';
+                document.getElementById('store-name-value').textContent = 'الفرع الرئيسي';
+                this.updateDate();
+            }
+        }
+        
+        // ✅ تهيئة النظام بعد تحميل الصفحة
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 بدء تحميل النظام...');
+            window.mainMenuManager = new MainMenuManager();
+            
+            // تحديث التاريخ كل دقيقة
+            setInterval(() => {
+                if (window.mainMenuManager) {
+                    window.mainMenuManager.updateDate();
+                }
+            }, 60000);
+        });
+        
+        // ✅ تحديث الصلاحيات عند التغيير في نوافذ أخرى
+        window.addEventListener('storage', (event) => {
+            if (event.key === 'privileges_updated') {
+                if (window.mainMenuManager) {
+                    window.mainMenuManager.refreshPermissions();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

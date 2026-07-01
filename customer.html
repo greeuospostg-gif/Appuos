@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>👥 إدارة العملاء</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    /* تصميم متجاوب للشاشات المختلفة */
+    .container {
+        max-width: 100%;
+        padding: 15px;
+    }
+    
+    .header {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    
+    .card {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .form-group {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .form-group label {
+        margin-bottom: 5px;
+        font-weight: bold;
+        color: #333;
+    }
+    
+    .form-group input {
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+    
+    .form-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: flex-start;
+    }
+    
+    .controls-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 15px;
+        margin-bottom: 20px;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+    
+    .search-box {
+        flex: 1;
+        min-width: 200px;
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+    
+    .export-select {
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background: white;
+    }
+    
+    .table-container {
+        overflow-x: auto;
+        margin-bottom: 20px;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+    }
+    
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 800px;
+    }
+    
+    th, td {
+        padding: 12px 15px;
+        text-align: right;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    th {
+        background-color: #f8f9fa;
+        font-weight: bold;
+        color: #333;
+    }
+    
+    tr:hover {
+        background-color: #f5f5f5;
+    }
+    
+    .actions {
+        display: flex;
+        gap: 5px;
+    }
+    
+    .actions button {
+        padding: 5px 10px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+    }
+    
+    .pagination {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 5px;
+        margin: 20px 0;
+    }
+    
+    #customerCount {
+        text-align: center;
+        color: #666;
+        margin-bottom: 20px;
+    }
+    
+    .connection-status {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        background: #fff;
+        padding: 8px 12px;
+        border-radius: 5px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        z-index: 1000;
+        font-size: 12px;
+        border-left: 4px solid #28a745;
+    }
+    
+    .loading-spinner {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid #fff;
+        border-radius: 50%;
+        border-top-color: transparent;
+        animation: spin 1s linear infinite;
+        margin-left: 8px;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    
+    .search-box {
+        max-width: 300px;
+    }
+    
+    .page-btn {
+        margin: 0 2px;
+        padding: 5px 10px;
+        border: 1px solid #ddd;
+        background: white;
+        cursor: pointer;
+    }
+    
+    .page-btn.active {
+        background: #007bff;
+        color: white;
+        border-color: #007bff;
+    }
+    
+    /* تصميم متجاوب للشاشات الصغيرة */
+    @media (max-width: 768px) {
+        .container {
+            padding: 10px;
+        }
+        
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .controls-row {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .search-box {
+            min-width: 100%;
+        }
+        
+        .form-actions {
+            justify-content: center;
+        }
+        
+        .form-actions .btn {
+            flex: 1;
+            min-width: 120px;
+        }
+        
+        .connection-status {
+            position: relative;
+            top: auto;
+            left: auto;
+            margin-bottom: 15px;
+        }
+        
+        th, td {
+            padding: 8px 10px;
+            font-size: 0.9rem;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .header h2 {
+            font-size: 1.5rem;
+        }
+        
+        .card {
+            padding: 15px;
+        }
+        
+        .form-group input {
+            font-size: 0.9rem;
+        }
+        
+        th, td {
+            padding: 6px 8px;
+            font-size: 0.85rem;
+        }
+        
+        .actions {
+            flex-direction: column;
+        }
+        
+        .actions button {
+            width: 100%;
+        }
+    }
+    
+    /* تنسيق الأزرار */
+    .btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-primary {
+        background-color: #007bff;
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background-color: #0056b3;
+    }
+    
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+    
+    .btn-secondary:hover {
+        background-color: #545b62;
+    }
+    
+    .btn-outline {
+        background-color: transparent;
+        border: 1px solid #007bff;
+        color: #007bff;
+    }
+    
+    .btn-outline:hover {
+        background-color: #007bff;
+        color: white;
+    }
+  </style>
+</head>
+<body>
+  <!-- شريط حالة الاتصال -->
+  <div id="connectionStatus" class="connection-status">
+    <span id="connectionText">جاري الاتصال...</span>
+  </div>
+
+  <div class="container">
+    <div class="header">
+      <h2>👥 إدارة العملاء</h2>
+    </div>
+
+    <div class="card">
+      <form id="customerForm">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="customer_id">كود العميل:</label>
+            <input type="number" id="customer_id" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="customer_name">اسم العميل:</label>
+            <input type="text" id="customer_name" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="phone">رقم الهاتف:</label>
+            <input type="text" id="phone">
+          </div>
+          
+          <div class="form-group">
+            <label for="address">العنوان:</label>
+            <input type="text" id="address">
+          </div>
+          
+          <div class="form-group">
+            <label for="email">البريد الإلكتروني:</label>
+            <input type="email" id="email">
+          </div>
+          
+          <div class="form-group">
+            <label for="user_id">رقم المستخدم:</label>
+            <input type="number" id="user_id">
+          </div>
+        </div>
+        
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">💾 حفظ</button>
+          <button type="button" id="clearBtn" class="btn btn-outline">🧹 مسح النموذج</button>
+          <button type="button" id="refreshBtn" class="btn btn-secondary">🔄 تحديث</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="controls-row">
+      <input type="text" id="searchBox" class="search-box" placeholder="🔎 ابحث عن عميل بالاسم أو الكود...">
+      
+      <div style="display: flex; gap: 8px;">
+        <select id="pageSizeSelector" class="export-select">
+          <option value="10">عرض 10</option>
+          <option value="20" selected>عرض 20</option>
+          <option value="50">عرض 50</option>
+          <option value="all">عرض الكل</option>
+        </select>
+        
+        <select id="exportSelect" class="export-select">
+          <option value="">📤 تصدير...</option>
+          <option value="csv">🧾 CSV</option>
+          <option value="xls">📘 XLS</option>
+          <option value="xlsx">📗 XLSX</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <table id="customersTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>كود العميل</th>
+            <th>الاسم</th>
+            <th>الهاتف</th>
+            <th>العنوان</th>
+            <th>البريد الإلكتروني</th>
+            <th>رقم المستخدم</th>
+            <th>تاريخ التسجيل</th>
+            <th>الإجراءات</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div id="pagination" class="pagination"></div>
+    <div id="customerCount"></div>
+  </div>
+
+  <script>
+    // ======================== 🔧 إعدادات Supabase ========================
+    const SUPABASE_CONFIG = {
+      URL: 'https://rvjacvrrpguehbapvewe.supabase.co',
+      KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2amFjdnJycGd1ZWhiYXB2ZXdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwMjUxNTksImV4cCI6MjA3ODYwMTE1OX0.wSavKzxKOF7-56G-pzDMtbXNrCNAbGs0wvadw-cilBg'
+    };
+
+    // ======================== 📋 عناصر DOM ========================
+    const form = document.getElementById("customerForm");
+    const searchBox = document.getElementById("searchBox");
+    const exportSelect = document.getElementById("exportSelect");
+    const pageSizeSelector = document.getElementById("pageSizeSelector");
+    const clearBtn = document.getElementById("clearBtn");
+    const refreshBtn = document.getElementById("refreshBtn");
+    const tbody = document.querySelector("#customersTable tbody");
+    const pagination = document.getElementById("pagination");
+    const customerCount = document.getElementById("customerCount");
+    const connectionStatus = document.getElementById("connectionStatus");
+    const connectionText = document.getElementById("connectionText");
+
+    // ======================== 📊 بيانات التطبيق ========================
+    let allCustomers = [];
+    let currentPage = 1;
+    let itemsPerPage = 20;
+    let isEditing = false;
+    let supabaseClient = null;
+    let isConnected = false;
+
+    // ======================== 🚀 تهيئة التطبيق ========================
+    document.addEventListener("DOMContentLoaded", async () => {
+      await initializeSupabase();
+      setupEventListeners();
+      await loadCustomers();
+      focusCustomerId();
+    });
+
+    // ======================== 🔌 تهيئة Supabase ========================
+    async function initializeSupabase() {
+      try {
+        updateConnectionStatus('🔄 جاري الاتصال بـ Supabase...', 'warning');
+        
+        // تحقق إذا كانت مكتبة Supabase محملة من النافذة الرئيسية
+        if (typeof window.supabase !== 'undefined') {
+          supabaseClient = window.supabase.createClient(SUPABASE_CONFIG.URL, SUPABASE_CONFIG.KEY);
+        } else {
+          // إذا لم تكن محملة، حاول تحميلها ديناميكياً
+          await loadSupabaseScript();
+          supabaseClient = window.supabase.createClient(SUPABASE_CONFIG.URL, SUPABASE_CONFIG.KEY);
+        }
+        
+        // اختبار الاتصال
+        const { data, error } = await supabaseClient
+          .from('customers')
+          .select('count')
+          .limit(1);
+        
+        if (error) throw error;
+        
+        isConnected = true;
+        updateConnectionStatus('✅ متصل بـ Supabase', 'success');
+        console.log('✅ الاتصال بـ Supabase ناجح');
+        
+      } catch (error) {
+        console.error('❌ فشل في الاتصال بـ Supabase:', error);
+        isConnected = false;
+        updateConnectionStatus('❌ غير متصل - فشل الاتصال', 'danger');
+        alert('⚠️ فشل في الاتصال بقاعدة البيانات. سيتم استخدام بيانات تجريبية.');
+        loadSampleCustomers();
+      }
+    }
+
+    // ======================== 📥 تحميل Supabase ديناميكياً ========================
+    async function loadSupabaseScript() {
+      return new Promise((resolve, reject) => {
+        if (typeof window.supabase !== 'undefined') {
+          resolve();
+          return;
+        }
+        
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+    }
+
+    // ======================== 🔄 تحديث حالة الاتصال ========================
+    function updateConnectionStatus(text, type = 'info') {
+      connectionText.textContent = text;
+      
+      const colors = {
+        success: '#28a745',
+        warning: '#ffc107',
+        danger: '#dc3545',
+        info: '#17a2b8'
+      };
+      
+      connectionStatus.style.borderLeftColor = colors[type] || colors.info;
+    }
+
+    // ======================== 🎯 إعداد مستمعي الأحداث ========================
+    function setupEventListeners() {
+      // منع Enter من الحفظ التلقائي، فقط انتقال بين الحقول
+      form.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          const inputs = [...form.querySelectorAll("input, select")];
+          const idx = inputs.indexOf(e.target);
+          if (idx > -1 && idx < inputs.length - 1) {
+            inputs[idx + 1].focus();
+          } else {
+            document.querySelector('button[type="submit"]').focus();
+          }
+        }
+      });
+
+      // حدث البحث
+      searchBox.addEventListener("input", () => {
+        currentPage = 1;
+        renderTable();
+      });
+
+      // حدث التصدير
+      exportSelect.addEventListener("change", () => {
+        const fmt = exportSelect.value;
+        if (!fmt) return;
+        exportCustomers(fmt);
+        exportSelect.value = "";
+      });
+
+      // حدث تغيير عدد الصفوف
+      pageSizeSelector.addEventListener("change", () => {
+        const val = pageSizeSelector.value;
+        itemsPerPage = val === "all" ? "all" : parseInt(val, 10);
+        currentPage = 1;
+        renderTable();
+      });
+
+      // حدث مسح النموذج
+      clearBtn.addEventListener("click", clearForm);
+
+      // حدث تحديث البيانات
+      refreshBtn.addEventListener("click", async () => {
+        await loadCustomers();
+      });
+
+      // حدث حفظ العميل
+      form.addEventListener("submit", handleSubmit);
+    }
+
+    // ======================== 👁️ التركيز على حقل الكود ========================
+    function focusCustomerId() {
+      const input = document.getElementById("customer_id");
+      if (input && !isEditing) {
+        input.focus();
+        input.select();
+      }
+    }
+
+    // ======================== 🧾 تحميل العملاء ========================
+    async function loadCustomers() {
+      try {
+        updateConnectionStatus('🔄 جاري تحميل العملاء...', 'warning');
+        
+        if (!isConnected || !supabaseClient) {
+          throw new Error('لا يوجد اتصال بـ Supabase');
+        }
+
+        const { data, error } = await supabaseClient
+          .from('customers')
+          .select('*')
+          .order('customer_id', { ascending: true });
+        
+        if (error) throw error;
+        
+        allCustomers = data || [];
+        console.log('✅ تم تحميل العملاء من Supabase:', allCustomers.length);
+        updateConnectionStatus(`✅ متصل - ${allCustomers.length} عميل`, 'success');
+        
+      } catch (error) {
+        console.error("⚠️ خطأ في تحميل العملاء:", error);
+        updateConnectionStatus('❌ فشل في تحميل البيانات', 'danger');
+        allCustomers = [];
+        alert("⚠️ فشل في تحميل البيانات. يتم استخدام بيانات تجريبية.");
+        loadSampleCustomers();
+      }
+      renderTable();
+    }
+
+    
+    // ======================== 🔍 فلترة العملاء ========================
+    function filteredCustomers() {
+      const q = searchBox.value.trim().toLowerCase();
+      if (!q) return allCustomers;
+      return allCustomers.filter(c =>
+        String(c.customer_id || "").toLowerCase().includes(q) ||
+        (c.customer_name && c.customer_name.toLowerCase().includes(q)) ||
+        (c.phone && c.phone.toLowerCase().includes(q)) ||
+        (c.email && c.email.toLowerCase().includes(q))
+      );
+    }
+
+    // ======================== 💾 معالجة الحفظ ========================
+    async function handleSubmit(e) {
+      e.preventDefault();
+
+      const data = {
+        customer_id: parseInt(document.getElementById("customer_id").value.trim()),
+        customer_name: document.getElementById("customer_name").value.trim(),
+        phone: document.getElementById("phone").value.trim(),
+        address: document.getElementById("address").value.trim(),
+        email: document.getElementById("email").value.trim(),
+        user_id: document.getElementById("user_id").value.trim() ? parseInt(document.getElementById("user_id").value.trim()) : null,
+        user_stamp: new Date().toISOString()
+      };
+
+      // التحقق من البيانات
+      if (!data.customer_id || isNaN(data.customer_id)) {
+        alert("⚠️ كود العميل يجب أن يكون رقمًا صحيحًا");
+        document.getElementById("customer_id").focus();
+        return;
+      }
+      
+      if (!data.customer_name) {
+        alert("⚠️ اسم العميل مطلوب");
+        document.getElementById("customer_name").focus();
+        return;
+      }
+
+      try {
+        if (!isConnected || !supabaseClient) {
+          throw new Error('لا يوجد اتصال بقاعدة البيانات');
+        }
+
+        // التحقق من وجود العميل
+        const { data: existingCustomer, error: checkError } = await supabaseClient
+          .from('customers')
+          .select('customer_id')
+          .eq('customer_id', data.customer_id)
+          .single();
+
+        if (isEditing) {
+          // التحديث
+          const { error } = await supabaseClient
+            .from('customers')
+            .update(data)
+            .eq('customer_id', data.customer_id);
+          
+          if (error) throw error;
+          console.log('✅ تم تحديث العميل:', data.customer_id);
+        } else {
+          // الإضافة
+          if (existingCustomer) {
+            alert("❌ هذا الكود مسجل مسبقًا");
+            document.getElementById("customer_id").focus();
+            document.getElementById("customer_id").select();
+            return;
+          }
+          
+          const { error } = await supabaseClient
+            .from('customers')
+            .insert([data]);
+          
+          if (error) throw error;
+          console.log('✅ تم إضافة العميل:', data.customer_id);
+        }
+
+        // إعادة تعيين النموذج
+        clearForm();
+        
+        // إعادة تحميل البيانات
+        await loadCustomers();
+        
+        // رسالة النجاح
+        alert("✅ تم حفظ بيانات العميل بنجاح");
+        
+      } catch (error) {
+        console.error("❌ خطأ أثناء الحفظ:", error);
+        alert("❌ حدث خطأ أثناء الحفظ: " + error.message);
+      }
+    }
+
+    // ======================== ✏️ تعديل عميل ========================
+    async function editCustomer(id) {
+      try {
+        if (!isConnected || !supabaseClient) {
+          throw new Error('لا يوجد اتصال بقاعدة البيانات');
+        }
+
+        const { data, error } = await supabaseClient
+          .from('customers')
+          .select('*')
+          .eq('customer_id', id)
+          .single();
+        
+        if (error) throw error;
+
+        if (data) {
+          document.getElementById("customer_id").value = data.customer_id;
+          document.getElementById("customer_name").value = data.customer_name;
+          document.getElementById("phone").value = data.phone || "";
+          document.getElementById("address").value = data.address || "";
+          document.getElementById("email").value = data.email || "";
+          document.getElementById("user_id").value = data.user_id || "";
+          isEditing = true;
+          focusCustomerId();
+        }
+      } catch (error) {
+        console.error("❌ خطأ في التعديل:", error);
+        alert("❌ حدث خطأ أثناء تحميل البيانات");
+      }
+    }
+
+    // ======================== 🗑️ حذف عميل ========================
+    async function deleteCustomer(id) {
+      if (!confirm("هل تريد حذف هذا العميل؟")) return;
+      
+      try {
+        if (!isConnected || !supabaseClient) {
+          throw new Error('لا يوجد اتصال بقاعدة البيانات');
+        }
+
+        const { error } = await supabaseClient
+          .from('customers')
+          .delete()
+          .eq('customer_id', id);
+        
+        if (error) throw error;
+        
+        console.log('✅ تم حذف العميل:', id);
+        await loadCustomers();
+        alert("✅ تم حذف العميل بنجاح");
+        
+      } catch (error) {
+        console.error("❌ خطأ في الحذف:", error);
+        alert("❌ حدث خطأ أثناء الحذف: " + error.message);
+      }
+    }
+
+    // ======================== 🧹 مسح النموذج ========================
+    function clearForm() {
+      form.reset();
+      isEditing = false;
+      focusCustomerId();
+    }
+
+    // ======================== 📄 عرض الجدول ========================
+    function renderTable() {
+      const customers = filteredCustomers();
+      const totalPages = Math.ceil(customers.length / (itemsPerPage === "all" ? customers.length : itemsPerPage));
+      const start = itemsPerPage === "all" ? 0 : (currentPage - 1) * itemsPerPage;
+      const end = itemsPerPage === "all" ? customers.length : start + itemsPerPage;
+      const pageCustomers = customers.slice(start, end);
+
+      tbody.innerHTML = "";
+      
+      if (customers.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="9" style="text-align: center; padding: 40px; color: #666;">
+              <i>لا توجد عملاء مسجلين</i>
+            </td>
+          </tr>
+        `;
+      } else {
+        pageCustomers.forEach((c, i) => {
+          const serial = (itemsPerPage === "all") ? (i + 1) : (start + i + 1);
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${serial}</td>
+            <td><strong>${c.customer_id}</strong></td>
+            <td>${c.customer_name}</td>
+            <td>${c.phone || ""}</td>
+            <td>${c.address || ""}</td>
+            <td>${c.email || ""}</td>
+            <td>${c.user_id || ""}</td>
+            <td>${c.user_stamp ? new Date(c.user_stamp).toLocaleString("ar-EG") : ""}</td>
+            <td class="actions">
+              <button class="btn btn-outline btn-sm" onclick="editCustomer(${c.customer_id})" title="تعديل">
+                ✏️ تعديل
+              </button>
+              <button class="btn btn-outline btn-sm" onclick="deleteCustomer(${c.customer_id})" title="حذف">
+                🗑️ حذف
+              </button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      renderPagination(totalPages);
+      customerCount.textContent = `عدد العملاء المسجلين: ${customers.length}`;
+    }
+
+    // ======================== 📄 عرض الترقيم ========================
+    function renderPagination(totalPages) {
+      pagination.innerHTML = "";
+      if (itemsPerPage === "all" || totalPages <= 1) return;
+      
+      // زر السابق
+      const prevBtn = document.createElement("button");
+      prevBtn.textContent = "السابق";
+      prevBtn.className = "page-btn";
+      prevBtn.onclick = () => {
+        if (currentPage > 1) {
+          currentPage--;
+          renderTable();
+        }
+      };
+      if (currentPage === 1) prevBtn.disabled = true;
+      pagination.appendChild(prevBtn);
+      
+      // أرقام الصفحات
+      const startPage = Math.max(1, currentPage - 2);
+      const endPage = Math.min(totalPages, currentPage + 2);
+      
+      for (let i = startPage; i <= endPage; i++) {
+        const btn = document.createElement("button");
+        btn.textContent = i;
+        btn.className = "page-btn" + (i === currentPage ? " active" : "");
+        btn.onclick = () => { 
+          currentPage = i; 
+          renderTable(); 
+        };
+        pagination.appendChild(btn);
+      }
+      
+      // زر التالي
+      const nextBtn = document.createElement("button");
+      nextBtn.textContent = "التالي";
+      nextBtn.className = "page-btn";
+      nextBtn.onclick = () => {
+        if (currentPage < totalPages) {
+          currentPage++;
+          renderTable();
+        }
+      };
+      if (currentPage === totalPages) nextBtn.disabled = true;
+      pagination.appendChild(nextBtn);
+    }
+
+    // ======================== 📤 تصدير البيانات ========================
+    function exportCustomers(format) {
+      const customers = filteredCustomers();
+      const start = itemsPerPage === "all" ? 0 : (currentPage - 1) * itemsPerPage;
+      const end = itemsPerPage === "all" ? customers.length : start + itemsPerPage;
+      const pageCustomers = customers.slice(start, end);
+
+      if (!pageCustomers.length) {
+        alert("لا توجد بيانات للتصدير");
+        return;
+      }
+
+      const headers = ["#", "كود العميل", "الاسم", "الهاتف", "العنوان", "البريد", "المستخدم", "تاريخ التسجيل"];
+      const rows = pageCustomers.map((c, i) => [
+        (itemsPerPage === "all" ? (i + 1) : (start + i + 1)),
+        c.customer_id, 
+        c.customer_name, 
+        c.phone || "", 
+        c.address || "", 
+        c.email || "", 
+        c.user_id || "", 
+        c.user_stamp ? new Date(c.user_stamp).toLocaleString("ar-EG") : ""
+      ]);
+
+      const csv = [headers, ...rows].map(r => r.map(cell => {
+        const s = cell === null || cell === undefined ? "" : String(cell);
+        if (/[,"\n]/.test(s)) return `"${s.replace(/"/g,'""')}"`;
+        return s;
+      }).join(",")).join("\n");
+
+      const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `customers_${new Date().toISOString().slice(0,19).replace(/[-:T]/g,"")}.${format}`;
+      link.click();
+    }
+
+    // ======================== 🌍 جعل الدوال متاحة عالمياً ========================
+    window.editCustomer = editCustomer;
+    window.deleteCustomer = deleteCustomer;
+  </script>
+</body>
+</html>

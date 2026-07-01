@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📊 تقرير المبيعات</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary: #3498db; --secondary: #2c3e50; --accent: #1abc9c;
+            --light: #f5f7fa; --dark: #34495e; --success: #2ecc71;
+            --warning: #f39c12; --danger: #e74c3c; --radius: 16px;
+            --shadow: 0 8px 25px rgba(0,0,0,0.1); --transition: all 0.3s ease;
+            --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-secondary: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            --gradient-success: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+            --gradient-warning: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+            --gradient-danger: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Cairo', sans-serif; }
+        body { background: var(--gradient-primary); min-height: 100vh; padding: 15px; }
+        
+        /* شريط حالة الاتصال */
+        .connection-status { 
+            position: fixed; top: 15px; left: 15px; background: white; padding: 10px 15px; 
+            border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); z-index: 1000; 
+            font-size: 13px; display: flex; align-items: center; gap: 8px; border-left: 4px solid #28a745; 
+            transition: var(--transition); 
+        }
+        .connection-status.connected { border-left-color: #28a745; }
+        .connection-status.connecting { border-left-color: #ffc107; }
+        .connection-status.disconnected { border-left-color: #dc3545; }
+        
+        /* شريط الصلاحيات */
+        .permission-status {
+            position: fixed; top: 15px; right: 15px; background: white; padding: 10px 15px;
+            border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); z-index: 1000;
+            font-size: 13px; display: flex; align-items: center; gap: 8px; border-left: 4px solid #3498db;
+            transition: var(--transition);
+        }
+        .permission-status.special { border-left-color: #9b59b6; }
+        .permission-status.normal { border-left-color: #2ecc71; }
+        
+        /* مؤشر التحميل */
+        .loading-spinner { 
+            display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+            z-index: 9999; background: rgba(255,255,255,0.95); padding: 30px; border-radius: var(--radius); 
+            box-shadow: var(--shadow); text-align: center; 
+        }
+        .spinner-border { 
+            width: 3rem; height: 3rem; border: 0.3em solid currentColor; border-right-color: transparent; 
+            border-radius: 50%; animation: spinner-border 0.75s linear infinite; 
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 70px auto 20px;
+            background: white;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            min-height: 95vh;
+        }
+
+        /* الهيدر */
+        .header {
+            background: var(--gradient-secondary);
+            color: white;
+            padding: 25px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gradient-primary);
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .user-info {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            padding: 15px;
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        .user-info div {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 8px;
+        }
+
+        /* الفلاتر */
+        .filters-section {
+            padding: 25px;
+            background: rgba(255,255,255,0.95);
+            border-bottom: 1px solid #e8ecef;
+        }
+
+        .section-title {
+            background: var(--gradient-primary);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 12px;
+            margin: -25px -25px 20px -25px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--secondary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 14px;
+            border: 2px solid #e8ecef;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: var(--transition);
+            background: white;
+            font-family: inherit;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(52,152,219,0.1);
+            transform: translateY(-2px);
+        }
+
+        .form-control:disabled {
+            background-color: #f8f9fa;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        /* الأزرار */
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .btn-primary { background: var(--gradient-primary); color: white; }
+        .btn-success { background: var(--gradient-success); color: white; }
+        .btn-warning { background: var(--gradient-warning); color: white; }
+        .btn:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        /* الجدول */
+        .table-section {
+            padding: 25px;
+            background: white;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            min-width: 1200px;
+        }
+
+        th {
+            background: var(--gradient-secondary);
+            color: white;
+            padding: 15px 12px;
+            text-align: center;
+            font-weight: 700;
+            position: sticky;
+            top: 0;
+        }
+
+        td {
+            padding: 12px 10px;
+            border-bottom: 1px solid #f1f2f6;
+            text-align: center;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        /* الملخص */
+        .summary {
+            background: var(--gradient-success);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 16px;
+            margin: 20px 0;
+            box-shadow: var(--shadow);
+        }
+
+        /* التنبيهات */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--success);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            z-index: 10000;
+            display: none;
+            font-weight: 600;
+            animation: slideInRight 0.3s ease;
+        }
+
+        /* الطباعة */
+        @media print {
+            body * {
+                visibility: hidden;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            
+            .container, .container * {
+                visibility: visible;
+            }
+            
+            .container {
+                position: fixed;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 20px;
+                box-shadow: none;
+                background: white;
+            }
+            
+            .filters-section, .action-buttons, .connection-status, .loading-spinner, .permission-status {
+                display: none !important;
+            }
+            
+            .header {
+                background: #2c3e50 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            
+            table {
+                font-size: 12px;
+            }
+            
+            th {
+                background: #34495e !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+
+        /* الأنيميشن */
+        @keyframes spinner-border { to { transform: rotate(360deg); } }
+        @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .filters-section, .table-section {
+            animation: fadeInUp 0.5s ease;
+        }
+
+        /* التجاوب للجوال */
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .container { min-height: 98vh; border-radius: 12px; margin-top: 60px; }
+            .header { padding: 20px 15px; }
+            .header h1 { font-size: 22px; flex-direction: column; gap: 8px; }
+            .user-info { flex-direction: column; gap: 10px; padding: 12px; }
+            .user-info div { justify-content: center; width: 100%; }
+            .filters-section { padding: 20px 15px; }
+            .section-title { margin: -20px -15px 15px -15px; padding: 12px 15px; font-size: 16px; }
+            .filters-grid { grid-template-columns: 1fr; gap: 10px; }
+            .form-control { padding: 10px 12px; font-size: 13px; }
+            .btn { padding: 12px 20px; font-size: 14px; }
+            .table-section { padding: 15px; }
+            th, td { padding: 10px 8px; font-size: 12px; }
+            .action-buttons { flex-direction: column; gap: 10px; }
+            .connection-status, .permission-status { 
+                top: 10px; left: 10px; right: 10px; 
+                font-size: 12px; padding: 8px 12px; 
+            }
+            .connection-status { top: 10px; left: 10px; right: auto; }
+            .permission-status { top: 10px; right: 10px; left: auto; }
+        }
+
+        @media (max-width: 480px) {
+            .header h1 { font-size: 20px; }
+            .user-info { font-size: 12px; }
+            .summary { font-size: 14px; padding: 15px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- شريط حالة الاتصال -->
+    <div class="connection-status no-print connecting">
+        <span id="connectionStatus">
+            <i class="fas fa-spinner fa-spin"></i> جاري الاتصال...
+        </span>
+    </div>
+
+    <!-- شريط حالة الصلاحيات -->
+    <div class="permission-status no-print" id="permissionStatus">
+        <span id="permissionText">
+            <i class="fas fa-user-shield"></i> جاري تحديد الصلاحيات...
+        </span>
+    </div>
+
+    <!-- مؤشر التحميل -->
+    <div id="loadingSpinner" class="loading-spinner no-print">
+        <div class="spinner-border text-primary"></div>
+        <div class="mt-3">جاري التحميل...</div>
+    </div>
+
+    <div class="container">
+        <!-- الهيدر -->
+        <div class="header">
+            <h1><i class="fas fa-chart-line"></i> تقرير المبيعات</h1>
+            <p>نظام متكامل لتقارير المبيعات والتحليلات</p>
+            
+            <div class="user-info">
+                <div>
+                    <i class="fas fa-user"></i>
+                    <span id="currentUser">المستخدم: --</span>
+                </div>
+                <div>
+                    <i class="fas fa-store"></i>
+                    <span id="currentStore">الفرع: --</span>
+                </div>
+                <div>
+                    <i class="fas fa-user-shield"></i>
+                    <span id="userRole">الصلاحية: --</span>
+                </div>
+                <div>
+                    <i class="fas fa-clock"></i>
+                    <span id="currentTime">--</span>
+                </div>
+                <div>
+                    <button class="btn btn-primary" onclick="window.location.href='main.html'">
+                        <i class="fas fa-home"></i> الرئيسية
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- قسم الفلاتر -->
+        <div class="filters-section">
+            <div class="section-title">
+                <i class="fas fa-filter"></i> فلاتر التقرير
+            </div>
+
+            <div class="filters-grid">
+                <div class="form-group">
+                    <label for="fromDate"><i class="fas fa-calendar-day"></i> من تاريخ:</label>
+                    <input type="date" id="fromDate" class="form-control">
+                </div>
+                
+                <div class="form-group">
+                    <label for="toDate"><i class="fas fa-calendar-day"></i> إلى تاريخ:</label>
+                    <input type="date" id="toDate" class="form-control">
+                </div>
+                
+                <div class="form-group">
+                    <label for="fromStore"><i class="fas fa-warehouse"></i> من فرع:</label>
+                    <select id="fromStore" class="form-control">
+                        <option value="">الكل</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="toStore"><i class="fas fa-warehouse"></i> إلى فرع:</label>
+                    <select id="toStore" class="form-control">
+                        <option value="">الكل</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="fromCustomer"><i class="fas fa-users"></i> من عميل:</label>
+                    <select id="fromCustomer" class="form-control">
+                        <option value="">الكل</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="toCustomer"><i class="fas fa-users"></i> إلى عميل:</label>
+                    <select id="toCustomer" class="form-control">
+                        <option value="">الكل</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="fromItem"><i class="fas fa-barcode"></i> من صنف:</label>
+                    <select id="fromItem" class="form-control">
+                        <option value="">الكل</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="toItem"><i class="fas fa-barcode"></i> إلى صنف:</label>
+                    <select id="toItem" class="form-control">
+                        <option value="">الكل</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn btn-success" id="btnSearch">
+                    <i class="fas fa-search"></i> بحث
+                </button>
+                <button class="btn btn-warning" id="btnExport">
+                    <i class="fas fa-file-excel"></i> تصدير Excel
+                </button>
+                <button class="btn btn-primary" id="btnPrint">
+                    <i class="fas fa-print"></i> طباعة
+                </button>
+            </div>
+        </div>
+
+        <!-- قسم النتائج -->
+        <div class="table-section">
+            <div class="section-title">
+                <i class="fas fa-table"></i> نتائج التقرير
+            </div>
+
+            <div class="table-container">
+                <table id="reportTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>التاريخ</th>
+                            <th>رقم الفاتورة</th>
+                            <th>الفرع</th>
+                            <th>العميل</th>
+                            <th>كود الصنف</th>
+                            <th>اسم الصنف</th>
+                            <th>الكمية</th>
+                            <th>السعر</th>
+                            <th>الخصم</th>
+                            <th>الإجمالي</th>
+                            <th>نوع البيع</th>
+                            <th>رقم الدفعة</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reportTableBody">
+                        <!-- سيتم تعبئة البيانات هنا -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="summary" id="summary">
+                📦 إجمالي الكمية: 0 | 💰 إجمالي المبيعات: 0.00 | 💸 إجمالي الخصم: 0.00
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+        class SalesReport {
+            constructor() {
+                // 🎯 قاعدة الصلاحيات الذهبية
+                this.userStoreId = localStorage.getItem('store_id') || sessionStorage.getItem('store_id') || '0';
+                this.userName = localStorage.getItem('username') || sessionStorage.getItem('username') || 'مستخدم';
+                this.isSpecialUser = this.userStoreId === '9999'; // الشرط الأساسي
+                
+                this.SUPABASE_URL = 'https://rvjacvrrpguehbapvewe.supabase.co';
+                this.SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2amFjdnJycGd1ZWhiYXB2ZXdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwMjUxNTksImV4cCI6MjA3ODYwMTE1OX0.wSavKzxKOF7-56G-pzDMtbXNrCNAbGs0wvadw-cilBg';
+                this.supabase = null;
+                this.isOnline = false;
+                
+                this.init();
+            }
+
+            async init() {
+                this.dom = this._initDOM();
+                this._bindEvents();
+                this.setDefaultDates();
+                this.loadUserInfo();
+                this.updatePermissionStatus();
+                
+                const connected = await this.initSupabase();
+                if (connected) {
+                    await this.loadFilters();
+                    this.showWelcomeMessage();
+                    this.showMessage('✅ جاهز للبحث، اختر الفلاتر وانقر على بحث');
+                } else {
+                    this.showError('فشل في الاتصال بقاعدة البيانات. يرجى التحقق من الاتصال بالإنترنت.');
+                }
+            }
+
+            _initDOM() {
+                const dom = {};
+                const ids = [
+                    'connectionStatus', 'permissionStatus', 'permissionText', 'loadingSpinner', 
+                    'fromDate', 'toDate', 'fromStore', 'toStore', 'fromCustomer', 'toCustomer',
+                    'fromItem', 'toItem', 'btnSearch', 'btnExport', 'btnPrint',
+                    'reportTableBody', 'summary', 'toast', 'currentUser',
+                    'currentStore', 'currentTime', 'userRole'
+                ];
+                
+                ids.forEach(id => {
+                    dom[id] = document.getElementById(id);
+                });
+                
+                return dom;
+            }
+
+            async initSupabase() {
+                try {
+                    this.showLoading(true);
+                    this.updateConnectionStatus('connecting', '<i class="fas fa-spinner fa-spin"></i> جاري الاتصال...');
+                    
+                    console.log('🔄 جاري تهيئة Supabase...');
+                    console.log(`🔑 صلاحيات المستخدم: ${this.isSpecialUser ? 'مدير النظام (9999)' : 'مخزن ' + this.userStoreId}`);
+                    
+                    this.supabase = supabase.createClient(this.SUPABASE_URL, this.SUPABASE_KEY);
+                    
+                    // اختبار الاتصال بجداول مختلفة
+                    const { data: salesTest, error: salesError } = await this.supabase
+                        .from('sales')
+                        .select('invoice_id')
+                        .limit(1);
+                    
+                    if (salesError) {
+                        console.error('❌ خطأ في الاتصال بجدول المبيعات:', salesError);
+                        // نجرب جدول آخر
+                        const { data: storesTest, error: storesError } = await this.supabase
+                            .from('stores')
+                            .select('store_id')
+                            .limit(1);
+                        
+                        if (storesError) throw storesError;
+                    }
+
+                    this.isOnline = true;
+                    this.updateConnectionStatus('connected', '<i class="fas fa-cloud-check"></i> متصل بالسحابة');
+                    console.log('✅ Supabase متصل بنجاح');
+                    return true;
+                    
+                } catch (error) {
+                    console.error('❌ فشل في الاتصال بـ Supabase:', error);
+                    this.isOnline = false;
+                    this.updateConnectionStatus('disconnected', '<i class="fas fa-cloud-slash"></i> غير متصل');
+                    this.showError('خطأ في الاتصال: ' + error.message);
+                    return false;
+                } finally {
+                    this.showLoading(false);
+                }
+            }
+
+            updateConnectionStatus(type, message) {
+                const statusElement = document.querySelector('.connection-status');
+                if (!statusElement) return;
+                
+                statusElement.className = `connection-status no-print ${type}`;
+                this.dom.connectionStatus.innerHTML = message;
+            }
+
+            updatePermissionStatus() {
+                const statusElement = document.querySelector('.permission-status');
+                if (!statusElement) return;
+                
+                if (this.isSpecialUser) {
+                    statusElement.className = `permission-status no-print special`;
+                    this.dom.permissionText.innerHTML = '<i class="fas fa-crown"></i> مدير النظام - صلاحيات كاملة';
+                } else {
+                    statusElement.className = `permission-status no-print normal`;
+                    this.dom.permissionText.innerHTML = `<i class="fas fa-store"></i> مخزن ${this.userStoreId} - صلاحيات محدودة`;
+                }
+            }
+
+            showLoading(show) {
+                if (this.dom.loadingSpinner) {
+                    this.dom.loadingSpinner.style.display = show ? 'block' : 'none';
+                }
+            }
+
+            loadUserInfo() {
+                const username = localStorage.getItem("username") || sessionStorage.getItem("username") || "مستخدم";
+                const storeName = localStorage.getItem("store_name") || sessionStorage.getItem("store_name") || "غير محدد";
+                const userType = this.isSpecialUser ? "مدير النظام" : "مستخدم عادي";
+                
+                this.dom.currentUser.textContent = `المستخدم: ${username}`;
+                this.dom.currentStore.textContent = `الفرع: ${storeName}`;
+                this.dom.userRole.textContent = `الصلاحية: ${userType}`;
+                this.dom.currentTime.textContent = new Date().toLocaleString('ar-EG');
+            }
+
+            setDefaultDates() {
+                const now = new Date();
+                const yyyy = now.getFullYear();
+                const mm = String(now.getMonth() + 1).padStart(2, "0");
+                const dd = String(now.getDate()).padStart(2, "0");
+
+                // نبدأ من أول الشهر الحالي
+                const firstDay = `${yyyy}-${mm}-01`;
+                const today = `${yyyy}-${mm}-${dd}`;
+
+                this.dom.fromDate.value = firstDay;
+                this.dom.toDate.value = today;
+            }
+
+            async loadFilters() {
+                try {
+                    if (!this.supabase) {
+                        this.showError('غير متصل بقاعدة البيانات');
+                        return;
+                    }
+
+                    console.log('🔄 جاري تحميل الفلاتر...');
+                    console.log(`🔑 صلاحيات المستخدم: ${this.isSpecialUser ? 'مدير النظام (9999)' : 'مخزن ' + this.userStoreId}`);
+
+                    // تحميل المخازن مع تطبيق الصلاحيات
+                    let storesQuery = this.supabase
+                        .from('stores')
+                        .select('store_id, store_name')
+                        .order('store_name');
+
+                    // 🔒 إذا لم يكن مستخدم خاص، يرى فقط مخزنه
+                    if (!this.isSpecialUser && this.userStoreId) {
+                        storesQuery = storesQuery.eq('store_id', this.userStoreId);
+                    }
+
+                    const { data: stores, error: storesError } = await storesQuery;
+
+                    if (storesError) {
+                        console.error('❌ خطأ في تحميل المخازن:', storesError);
+                        this.showError('خطأ في تحميل قائمة المخازن');
+                    } else {
+                        this._fillSelect(this.dom.fromStore, stores, 'store_id', 'store_name');
+                        this._fillSelect(this.dom.toStore, stores, 'store_id', 'store_name');
+                        
+                        // 🔒 إذا لم يكن مستخدم خاص، قفل خيار "الكل" وتعيين المخزن تلقائياً
+                        if (!this.isSpecialUser && stores && stores.length > 0) {
+                            this.dom.fromStore.value = this.userStoreId;
+                            this.dom.toStore.value = this.userStoreId;
+                            this.dom.fromStore.disabled = true;
+                            this.dom.toStore.disabled = true;
+                            console.log(`🔒 تم قفل خيار المخزن للمستخدم العادي: ${this.userStoreId}`);
+                        }
+                        
+                        console.log(`✅ تم تحميل ${stores?.length || 0} مخزن (بعد تطبيق الصلاحيات)`);
+                    }
+
+                    // تحميل العملاء مع تطبيق الصلاحيات
+                    let customersQuery = this.supabase
+                        .from('customers')
+                        .select('customer_id, customer_name')
+                        .order('customer_name');
+
+                    // 🔒 إذا لم يكن مستخدم خاص، نضيف فلتر بحسب صلاحيات المخزن
+                    if (!this.isSpecialUser && this.userStoreId) {
+                        // نفترض أن هناك علاقة بين العملاء والمخازن
+                        // يمكن تعديل هذا الجزء حسب هيكل قاعدة البيانات لديك
+                        customersQuery = customersQuery.eq('store_id', this.userStoreId);
+                    }
+
+                    const { data: customers, error: customersError } = await customersQuery;
+
+                    if (customersError) {
+                        console.error('❌ خطأ في تحميل العملاء:', customersError);
+                    } else {
+                        this._fillSelect(this.dom.fromCustomer, customers, 'customer_id', 'customer_name');
+                        this._fillSelect(this.dom.toCustomer, customers, 'customer_id', 'customer_name');
+                        console.log(`✅ تم تحميل ${customers?.length || 0} عميل (بعد تطبيق الصلاحيات)`);
+                    }
+
+                    // تحميل الأصناف مع تطبيق الصلاحيات
+                    let itemsQuery = this.supabase
+                        .from('items')
+                        .select('item_id, item_nm')
+                        .order('item_nm');
+
+                    // 🔒 إذا لم يكن مستخدم خاص، نضيف فلتر بحسب صلاحيات المخزن
+                    if (!this.isSpecialUser && this.userStoreId) {
+                        // نفترض أن هناك علاقة بين الأصناف والمخازن
+                        itemsQuery = itemsQuery.eq('store_id', this.userStoreId);
+                    }
+
+                    const { data: items, error: itemsError } = await itemsQuery;
+
+                    if (itemsError) {
+                        console.error('❌ خطأ في تحميل الأصناف:', itemsError);
+                    } else {
+                        this._fillSelect(this.dom.fromItem, items, 'item_id', 'item_nm');
+                        this._fillSelect(this.dom.toItem, items, 'item_id', 'item_nm');
+                        console.log(`✅ تم تحميل ${items?.length || 0} صنف (بعد تطبيق الصلاحيات)`);
+                    }
+
+                    console.log('✅ تم تحميل الفلاتر بنجاح مع تطبيق الصلاحيات');
+
+                } catch (error) {
+                    console.error('❌ خطأ في تحميل الفلاتر:', error);
+                    this.showError('حدث خطأ أثناء تحميل الفلاتر: ' + error.message);
+                }
+            }
+
+            _fillSelect(selectElement, data, valueKey, textKey) {
+                if (!data || data.length === 0) {
+                    selectElement.innerHTML = '<option value="">لا توجد بيانات</option>';
+                    return;
+                }
+                
+                selectElement.innerHTML = '<option value="">الكل</option>';
+                data.forEach(item => {
+                    const option = document.createElement('option');
+                    option.value = item[valueKey];
+                    option.textContent = item[textKey] || item[valueKey];
+                    selectElement.appendChild(option);
+                });
+            }
+
+            _bindEvents() {
+                this.dom.btnSearch.addEventListener('click', () => this.fetchReport());
+                this.dom.btnExport.addEventListener('click', () => this.exportToExcel());
+                this.dom.btnPrint.addEventListener('click', () => this.printReport());
+                
+                window.addEventListener('online', () => {
+                    this.isOnline = true;
+                    this.updateConnectionStatus('connected', '<i class="fas fa-cloud-check"></i> متصل بالسحابة');
+                    this.showMessage('✅ تم استعادة الاتصال بالإنترنت');
+                });
+
+                window.addEventListener('offline', () => {
+                    this.isOnline = false;
+                    this.updateConnectionStatus('disconnected', '<i class="fas fa-cloud-slash"></i> غير متصل');
+                    this.showError('⚠️ فقدان الاتصال بالإنترنت');
+                });
+            }
+
+            async fetchReport() {
+                try {
+                    this.showLoading(true);
+
+                    if (!this.supabase) {
+                        this.showError('غير متصل بقاعدة البيانات');
+                        return;
+                    }
+
+                    const fromDate = this.dom.fromDate.value;
+                    const toDate = this.dom.toDate.value;
+
+                    if (!fromDate || !toDate) {
+                        this.showError('⚠️ يرجى اختيار تاريخ البداية والنهاية');
+                        return;
+                    }
+
+                    // 🔒 الحماية: التحقق من صلاحيات المخزن المحدد
+                    const selectedStore = this.dom.fromStore.value;
+                    
+                    if (!this.isSpecialUser && selectedStore && selectedStore !== this.userStoreId) {
+                        this.showError('❌ غير مصرح لك بالوصول إلى بيانات هذا المخزن');
+                        this.showLoading(false);
+                        return;
+                    }
+
+                    console.log('🔍 جاري جلب بيانات التقرير...');
+                    console.log('📅 الفترة:', fromDate, 'إلى', toDate);
+                    console.log('🏪 المخزن المحدد:', selectedStore);
+                    console.log('👤 صلاحيات المستخدم:', this.isSpecialUser ? 'مدير كامل' : `مخزن ${this.userStoreId}`);
+
+                    // نبدأ باستعلام بسيط أولاً
+                    let query = this.supabase
+                        .from('sales')
+                        .select('*')
+                        .gte('tran_date', fromDate + 'T00:00:00')
+                        .lte('tran_date', toDate + 'T23:59:59');
+
+                    // 🔒 تطبيق فلتر المخزن تلقائياً بناءً على الصلاحيات
+                    if (!this.isSpecialUser) {
+                        query = query.eq('store_id', this.userStoreId);
+                        console.log('🔒 تطبيق فلتر المخزن الآلي:', this.userStoreId);
+                    } else if (this.dom.fromStore.value) {
+                        // المستخدم الخاص يختار المخزن يدوياً
+                        query = query.eq('store_id', this.dom.fromStore.value);
+                    }
+
+                    // تطبيق الفلاتر الأخرى
+                    if (this.dom.fromCustomer.value) {
+                        query = query.eq('customer_id', this.dom.fromCustomer.value);
+                    }
+
+                    if (this.dom.fromItem.value) {
+                        query = query.eq('item_id', this.dom.fromItem.value);
+                    }
+
+                    // تنفيذ الاستعلام
+                    const { data: salesData, error } = await query;
+
+                    if (error) {
+                        console.error('❌ خطأ في الاستعلام:', error);
+                        throw new Error('فشل في جلب البيانات: ' + error.message);
+                    }
+
+                    console.log(`✅ تم جلب ${salesData?.length || 0} سجل من المبيعات (بعد تطبيق الصلاحيات)`);
+
+                    if (!salesData || salesData.length === 0) {
+                        this.renderReport([]);
+                        this.showMessage('ℹ️ لا توجد بيانات للفترة المحددة', 'warning');
+                        return;
+                    }
+
+                    // جلب البيانات الإضافية مع تطبيق الصلاحيات
+                    await this.enrichSalesData(salesData);
+
+                } catch (error) {
+                    console.error('❌ خطأ في جلب التقرير:', error);
+                    this.showError('❌ ' + error.message);
+                } finally {
+                    this.showLoading(false);
+                }
+            }
+
+            async enrichSalesData(salesData) {
+                try {
+                    console.log('🔄 جاري تحميل البيانات الإضافية...');
+
+                    // جلب أسماء المخازن
+                    const storeIds = [...new Set(salesData.map(item => item.store_id))];
+                    const { data: stores } = await this.supabase
+                        .from('stores')
+                        .select('store_id, store_name')
+                        .in('store_id', storeIds);
+
+                    // جلب أسماء العملاء
+                    const customerIds = [...new Set(salesData.map(item => item.customer_id).filter(id => id))];
+                    let customers = [];
+                    if (customerIds.length > 0) {
+                        const { data: custData } = await this.supabase
+                            .from('customers')
+                            .select('customer_id, customer_name')
+                            .in('customer_id', customerIds);
+                        customers = custData || [];
+                    }
+
+                    // جلب أسماء الأصناف
+                    const itemIds = [...new Set(salesData.map(item => item.item_id))];
+                    const { data: items } = await this.supabase
+                        .from('items')
+                        .select('item_id, item_nm')
+                        .in('item_id', itemIds);
+
+                    // دمج البيانات
+                    const enrichedData = salesData.map(sale => {
+                        const store = stores?.find(s => s.store_id === sale.store_id);
+                        const customer = customers?.find(c => c.customer_id === sale.customer_id);
+                        const item = items?.find(i => i.item_id === sale.item_id);
+
+                        return {
+                            ...sale,
+                            store_name: store?.store_name || `مخزن ${sale.store_id}`,
+                            customer_name: customer?.customer_name || `عميل ${sale.customer_id}`,
+                            item_nm: item?.item_nm || `صنف ${sale.item_id}`
+                        };
+                    });
+
+                    this.renderReport(enrichedData);
+
+                } catch (error) {
+                    console.error('❌ خطأ في تحميل البيانات الإضافية:', error);
+                    // نعرض البيانات الأساسية بدون المعلومات الإضافية
+                    const basicData = salesData.map(sale => ({
+                        ...sale,
+                        store_name: `مخزن ${sale.store_id}`,
+                        customer_name: sale.customer_id ? `عميل ${sale.customer_id}` : 'غير محدد',
+                        item_nm: `صنف ${sale.item_id}`
+                    }));
+                    this.renderReport(basicData);
+                    this.showMessage('⚠️ تم تحميل البيانات الأساسية فقط', 'warning');
+                }
+            }
+
+            renderReport(rows) {
+                const tbody = this.dom.reportTableBody;
+                tbody.innerHTML = '';
+
+                if (!rows || rows.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="13" style="text-align: center; color: #666; padding: 40px;">
+                                <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 10px; display: block;"></i>
+                                لا توجد بيانات متاحة للعرض
+                                <br><small style="font-size: 12px; margin-top: 10px; display: block;">
+                                    تأكد من صحة الفلاتر المحددة وتوفر البيانات في الفترة المحددة
+                                </small>
+                            </td>
+                        </tr>
+                    `;
+                    this.dom.summary.textContent = '📦 إجمالي الكمية: 0 | 💰 إجمالي المبيعات: 0.00 | 💸 إجمالي الخصم: 0.00';
+                    return;
+                }
+
+                let totalQty = 0, totalAmount = 0, totalDiscount = 0;
+
+                rows.forEach((row, index) => {
+                    const tr = document.createElement('tr');
+                    
+                    const qty = parseFloat(row.item_qty) || 0;
+                    const amount = parseFloat(row.total_price) || 0;
+                    const discount = parseFloat(row.discount) || 0;
+
+                    totalQty += qty;
+                    totalAmount += amount;
+                    totalDiscount += discount;
+
+                    tr.innerHTML = `
+                        <td>${index + 1}</td>
+                        <td>${this.formatDate(row.tran_date)}</td>
+                        <td><strong>${row.invoice_id || '-'}</strong></td>
+                        <td>${row.store_name || '-'}</td>
+                        <td>${row.customer_name || '-'}</td>
+                        <td><strong>${row.item_id || '-'}</strong></td>
+                        <td>${row.item_nm || '-'}</td>
+                        <td style="text-align: right;">${qty.toFixed(2)}</td>
+                        <td style="text-align: right;">${(parseFloat(row.sale_price) || 0).toFixed(2)}</td>
+                        <td style="text-align: right;">${discount.toFixed(2)}</td>
+                        <td style="text-align: right; font-weight: bold;">${amount.toFixed(2)}</td>
+                        <td>${row.sale_type || '-'}</td>
+                        <td>${row.batch_no || '-'}</td>
+                    `;
+                    
+                    tbody.appendChild(tr);
+                });
+
+                this.dom.summary.textContent = 
+                    `📦 إجمالي الكمية: ${totalQty.toFixed(2)} | ` +
+                    `💰 إجمالي المبيعات: ${totalAmount.toFixed(2)} | ` +
+                    `💸 إجمالي الخصم: ${totalDiscount.toFixed(2)}`;
+
+                this.showMessage(`✅ تم تحميل ${rows.length} سجل بنجاح`);
+            }
+
+            formatDate(dateString) {
+                if (!dateString) return '-';
+                try {
+                    const date = new Date(dateString);
+                    if (isNaN(date.getTime())) return dateString;
+                    return date.toLocaleDateString('ar-EG');
+                } catch (e) {
+                    return dateString;
+                }
+            }
+
+            exportToExcel() {
+                try {
+                    // 🔒 التحقق من وجود بيانات أولاً
+                    const table = document.getElementById('reportTable');
+                    if (!table) {
+                        this.showError('❌ لا توجد بيانات للتصدير');
+                        return;
+                    }
+
+                    // 🔒 التحقق من أن المستخدم العادي لا يقوم بتصدير بيانات غير مخزنه
+                    if (!this.isSpecialUser) {
+                        const selectedStore = this.dom.fromStore.value;
+                        if (selectedStore && selectedStore !== this.userStoreId) {
+                            this.showError('❌ غير مصرح لك بتصدير بيانات هذا المخزن');
+                            return;
+                        }
+                    }
+
+                    const wb = XLSX.utils.table_to_book(table, { sheet: "تقرير المبيعات" });
+                    
+                    // إضافة معلومات الصلاحيات في اسم الملف
+                    const storeInfo = this.isSpecialUser ? 'جميع-المخازن' : `مخزن-${this.userStoreId}`;
+                    const fileName = `تقرير_المبيعات_${storeInfo}_${new Date().toISOString().slice(0,10)}.xlsx`;
+                    
+                    XLSX.writeFile(wb, fileName);
+                    
+                    this.showMessage('✅ تم تصدير البيانات إلى Excel بنجاح');
+                } catch (error) {
+                    console.error('❌ خطأ في التصدير:', error);
+                    this.showError('❌ فشل في تصدير البيانات إلى Excel');
+                }
+            }
+
+            printReport() {
+                const table = document.getElementById('reportTable');
+                if (!table || table.rows.length <= 1) {
+                    this.showError('❌ لا توجد بيانات للطباعة');
+                    return;
+                }
+                
+                // 🔒 التحقق من أن المستخدم العادي لا يطبع بيانات غير مخزنه
+                if (!this.isSpecialUser) {
+                    const selectedStore = this.dom.fromStore.value;
+                    if (selectedStore && selectedStore !== this.userStoreId) {
+                        this.showError('❌ غير مصرح لك بطباعة بيانات هذا المخزن');
+                        return;
+                    }
+                }
+                
+                window.print();
+            }
+
+            showWelcomeMessage() {
+                setTimeout(() => {
+                    if (this.isSpecialUser) {
+                        this.showMessage('👑 مرحباً بمدير النظام! لديك صلاحيات كاملة على جميع المخازن', 'success');
+                    } else {
+                        this.showMessage(`🔐 مرحباً! يمكنك عرض بيانات مخزنك فقط (المخزن: ${this.userStoreId})`, 'info');
+                    }
+                }, 1000);
+            }
+
+            showMessage(message, type = 'success') {
+                const toast = this.dom.toast;
+                toast.textContent = message;
+                toast.style.display = 'block';
+                toast.style.background = 
+                    type === 'success' ? 'var(--success)' :
+                    type === 'error' ? 'var(--danger)' :
+                    type === 'warning' ? 'var(--warning)' : 'var(--primary)';
+
+                setTimeout(() => {
+                    toast.style.display = 'none';
+                }, 4000);
+            }
+
+            showError(message) {
+                this.showMessage(message, 'error');
+            }
+        }
+
+        // تهيئة التطبيق
+        document.addEventListener('DOMContentLoaded', () => {
+            window.salesReport = new SalesReport();
+        });
+    </script>
+</body>
+</html>

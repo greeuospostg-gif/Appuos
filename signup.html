@@ -1,0 +1,1311 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تجربة نظام جسر - تسجيل سريع</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- إضافة Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', 'Cairo', 'Tajawal', sans-serif;
+    }
+    
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 15px;
+    }
+    
+    .signup-container {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      width: 100%;
+      max-width: 420px;
+      padding: 25px;
+      animation: fadeIn 0.8s ease;
+      margin: 10px auto;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    
+    .logo {
+      font-size: 36px;
+      color: #667eea;
+      margin-bottom: 10px;
+      animation: bounce 2s infinite;
+    }
+    
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+    
+    .header h1 {
+      color: #333;
+      font-size: 22px;
+      margin-bottom: 8px;
+      line-height: 1.3;
+    }
+    
+    .header p {
+      color: #666;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+    
+    .features {
+      background: #f8f9ff;
+      border-radius: 12px;
+      padding: 15px;
+      margin-bottom: 20px;
+      border-left: 4px solid #667eea;
+    }
+    
+    .features h3 {
+      color: #333;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 16px;
+    }
+    
+    .features ul {
+      list-style: none;
+      padding-right: 8px;
+    }
+    
+    .features li {
+      margin-bottom: 6px;
+      color: #555;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+    }
+    
+    .features i {
+      color: #28a745;
+      font-size: 12px;
+    }
+    
+    .form-group {
+      margin-bottom: 15px;
+      position: relative;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      color: #333;
+      font-weight: 600;
+      font-size: 14px;
+    }
+    
+    .form-group input {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-size: 15px;
+      transition: all 0.3s;
+    }
+    
+    .form-group input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .form-group input.error {
+      border-color: #dc3545;
+      background-color: #fff5f5;
+    }
+    
+    .form-group input.success {
+      border-color: #28a745;
+      background-color: #f8fff8;
+    }
+    
+    .validation-message {
+      font-size: 11px;
+      margin-top: 4px;
+      display: none;
+      padding: 4px;
+      border-radius: 4px;
+    }
+    
+    .validation-message.error {
+      color: #dc3545;
+      background-color: #f8d7da;
+      display: block;
+    }
+    
+    .validation-message.success {
+      color: #28a745;
+      background-color: #d4edda;
+      display: block;
+    }
+    
+    .btn-signup {
+      width: 100%;
+      padding: 13px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    
+    .btn-signup:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 15px rgba(102, 126, 234, 0.3);
+    }
+    
+    .btn-signup:active {
+      transform: translateY(0);
+    }
+    
+    .btn-signup:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+    
+    .login-link {
+      text-align: center;
+      margin-top: 20px;
+      color: #666;
+      padding-top: 15px;
+      border-top: 1px solid #eee;
+      font-size: 14px;
+    }
+    
+    .login-link a {
+      color: #667eea;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    
+    .login-link a:hover {
+      text-decoration: underline;
+    }
+    
+    .alert {
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      display: none;
+      animation: slideDown 0.5s ease;
+      font-size: 13px;
+    }
+    
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-15px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .alert.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    
+    .alert.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    
+    .loading {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .auto-info {
+      background: #fff3cd;
+      border: 1px solid #ffeaa7;
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 12px;
+      color: #856404;
+      font-size: 13px;
+    }
+    
+    .auto-info i {
+      margin-left: 4px;
+    }
+    
+    /* 🔧 شريط حالة الاتصال */
+    .connection-status {
+      position: fixed;
+      top: 8px;
+      left: 8px;
+      background: #28a745;
+      color: white;
+      padding: 6px 10px;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      z-index: 1000;
+      font-size: 11px;
+      border-left: 4px solid #1e7e34;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .status-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #1e7e34;
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0% { opacity: 0.8; }
+      50% { opacity: 0.4; }
+      100% { opacity: 0.8; }
+    }
+    
+    .connection-status.disconnected {
+      background: #dc3545;
+      border-left-color: #c0392b;
+    }
+    
+    .connection-status.disconnected .status-indicator {
+      background: #c0392b;
+      animation: none;
+      opacity: 0.6;
+    }
+    
+    /* توقيت التجربة */
+    .trial-timer {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 8px 12px;
+      border-radius: 8px;
+      margin-top: 12px;
+      text-align: center;
+      font-size: 13px;
+      display: none;
+    }
+    
+    .trial-timer i {
+      margin-left: 4px;
+    }
+    
+    .password-requirements {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 6px;
+      padding: 10px;
+      margin-top: 8px;
+      font-size: 11px;
+      color: #6c757d;
+    }
+    
+    .password-requirements ul {
+      list-style: none;
+      padding-right: 12px;
+      margin: 4px 0;
+    }
+    
+    .password-requirements li {
+      margin-bottom: 3px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .password-requirements .requirement-met {
+      color: #28a745;
+    }
+    
+    .password-requirements .requirement-not-met {
+      color: #dc3545;
+    }
+    
+    /* خيارات التسجيل */
+    .registration-options {
+      display: flex;
+      margin-bottom: 12px;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid #ddd;
+    }
+    
+    .registration-option {
+      flex: 1;
+      text-align: center;
+      padding: 10px;
+      background: #f8f9ff;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-weight: 500;
+      font-size: 14px;
+      border-right: 1px solid #ddd;
+    }
+    
+    .registration-option:last-child {
+      border-right: none;
+    }
+    
+    .registration-option.active {
+      background: #667eea;
+      color: white;
+    }
+    
+    .registration-option:hover:not(.active) {
+      background: #e9ecef;
+    }
+    
+    .registration-option i {
+      margin-left: 4px;
+      font-size: 13px;
+    }
+    
+    /* إخفاء العناصر */
+    .hidden {
+      display: none !important;
+    }
+    
+    /* تحسينات للشاشات الصغيرة (الموبايل) */
+    @media (max-width: 480px) {
+      body {
+        padding: 10px;
+        align-items: center;
+      }
+      
+      .signup-container {
+        padding: 20px;
+        border-radius: 14px;
+        max-width: 100%;
+        margin: 5px auto;
+      }
+      
+      .header h1 {
+        font-size: 20px;
+      }
+      
+      .header p {
+        font-size: 13px;
+      }
+      
+      .logo {
+        font-size: 32px;
+      }
+      
+      .features {
+        padding: 12px;
+        margin-bottom: 15px;
+      }
+      
+      .features h3 {
+        font-size: 15px;
+      }
+      
+      .features li {
+        font-size: 12px;
+      }
+      
+      .form-group {
+        margin-bottom: 12px;
+      }
+      
+      .form-group input {
+        padding: 10px;
+        font-size: 14px;
+      }
+      
+      .btn-signup {
+        padding: 12px;
+        font-size: 15px;
+      }
+      
+      .connection-status {
+        top: 5px;
+        left: 5px;
+        font-size: 10px;
+        padding: 5px 8px;
+      }
+      
+      .registration-option {
+        padding: 8px 5px;
+        font-size: 13px;
+      }
+    }
+    
+    /* تحسينات للشاشات المتوسطة */
+    @media (min-width: 481px) and (max-width: 768px) {
+      .signup-container {
+        max-width: 400px;
+        padding: 25px;
+      }
+      
+      .header h1 {
+        font-size: 21px;
+      }
+      
+      .btn-signup {
+        padding: 12px;
+      }
+    }
+    
+    /* تحسينات للشاشات الكبيرة */
+    @media (min-width: 769px) {
+      .signup-container {
+        max-width: 420px;
+      }
+      
+      body {
+        padding: 20px;
+        align-items: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- شريط حالة الاتصال -->
+  <div id="connectionStatus" class="connection-status">
+    <div class="status-indicator"></div>
+    <span id="statusText">🌐 جاري الاتصال...</span>
+  </div>
+
+  <div class="signup-container">
+    <div class="header">
+      <div class="logo">🚀</div>
+      <h1>تجربة نظام جسر للشركات</h1>
+      <p>سجل حساب تجريبي مجاني لتجربة جميع مميزات النظام</p>
+    </div>
+    
+    <!-- إخفاء رسالة الـ 7 أيام -->
+    <div class="trial-timer" id="trialTimer">
+      <i class="fas fa-clock"></i>
+      <!--<span>فترة التجربة: 7 أيام فقط - تبدأ من اليوم!</span>-->
+    </div>
+    
+    <!--<div class="features">
+      <h3><i class="fas fa-star"></i> مميزات النظام</h3>
+      <ul>
+        <li><i class="fas fa-check"></i> إدارة المبيعات والمخزون</li>
+        <li><i class="fas fa-check"></i> تقارير متقدمة وتحليلات</li>
+        <li><i class="fas fa-check"></i> دعم فني على مدار الساعة</li>
+      </ul>
+    </div>-->
+    
+    <div id="message" class="alert"></div>
+    
+    <form id="quickSignupForm" autocomplete="off">
+      <!-- خيارات التسجيل -->
+      <div class="registration-options">
+        <div class="registration-option active" id="emailOption" onclick="switchRegistrationType('email')">
+          <i class="fas fa-envelope"></i> التسجيل بالبريد الإلكتروني
+        </div>
+        <div class="registration-option" id="phoneOption" onclick="switchRegistrationType('phone')">
+          <i class="fas fa-phone"></i> التسجيل برقم الهاتف
+        </div>
+      </div>
+      
+      <div class="form-group">
+          <label for="username"><i class="fas fa-id-card"></i> اسم المستخدم</label>
+          <input type="text" 
+                id="username" 
+                name="username"
+                required 
+                placeholder="اختر اسم مستخدم فريد"
+                autocomplete="off"
+                autocapitalize="off"
+                autocorrect="off"
+                spellcheck="false"
+                data-lpignore="true">
+          <div class="validation-message" id="usernameValidation"></div>
+      </div>
+      
+      <!-- حقل البريد الإلكتروني -->
+      <div class="form-group" id="emailField">
+          <label for="email"><i class="fas fa-envelope"></i> البريد الإلكتروني</label>
+          <input type="email" 
+                id="email" 
+                name="email"
+                required 
+                placeholder="example@email.com"
+                autocomplete="off"
+                autocapitalize="off"
+                autocorrect="off"
+                spellcheck="false"
+                data-lpignore="true">
+          <div class="validation-message" id="emailValidation"></div>
+      </div>
+      
+      <!-- حقل رقم الهاتف -->
+      <div class="form-group hidden" id="phoneField">
+          <label for="phone"><i class="fas fa-phone"></i> رقم الهاتف</label>
+          <input type="tel" 
+                id="phone" 
+                name="phone"
+                placeholder="مثال: 01XXXXXXXX"
+                autocomplete="off"
+                autocapitalize="off"
+                autocorrect="off"
+                spellcheck="false"
+                data-lpignore="true">
+          <div class="validation-message" id="phoneValidation"></div>
+      </div>
+      
+      <div class="form-group">
+          <label for="password"><i class="fas fa-lock"></i> كلمة المرور (أرقام فقط)</label>
+          <input type="password" 
+                id="password" 
+                name="password"
+                required 
+                placeholder="أدخل كلمة مرور رقمية (6 أرقام على الأقل)" 
+                pattern="[0-9]*" 
+                inputmode="numeric" 
+                maxlength="10"
+                autocomplete="new-password"
+                autocapitalize="off"
+                autocorrect="off"
+                spellcheck="false"
+                data-lpignore="true">
+          <div class="validation-message" id="passwordValidation"></div>
+          
+          <div class="password-requirements">
+              <strong>شروط كلمة المرور:</strong>
+              <ul>
+                  <li id="reqLength"><i class="fas fa-circle" style="font-size: 6px;"></i> 6 أرقام على الأقل</li>
+                  <li id="reqNumbers"><i class="fas fa-circle" style="font-size: 6px;"></i> أرقام فقط (لا حروف)</li>
+                  <li id="reqUnique"><i class="fas fa-circle" style="font-size: 6px;"></i> لا تتكرر الأرقام بكثرة</li>
+              </ul>
+          </div>
+      </div>
+      
+      <button type="submit" 
+              class="btn-signup" 
+              id="signupBtn"
+              autocomplete="off">
+          <!--<i class="fas fa-rocket"></i> بدء التجربة المجانية (7 أيام)-->
+          <i class="fas fa-rocket"></i> إنشاء حساب جديد
+      </button>
+    </form>
+    
+    <div class="login-link">
+      <p>لديك حساب بالفعل؟ <a href="index.html"><i class="fas fa-sign-in-alt"></i> سجل الدخول هنا</a></p>
+      <p style="font-size: 14px; margin-top: 10px; color: #888;">
+        أو <a href="users_management.html" style="color: #764ba2;">إدارة المستخدمين المتقدم</a>
+      </p>
+    </div>
+  </div>
+
+  <script>
+    // ✅ تكوين Supabase
+    const SUPABASE_URL = 'https://rvjacvrrpguehbapvewe.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2amFjdnJycGd1ZWhiYXB2ZXdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwMjUxNTksImV4cCI6MjA3ODYwMTE1OX0.wSavKzxKOF7-56G-pzDMtbXNrCNAbGs0wvadw-cilBg';
+    
+    let supabaseClient = null;
+    let registrationType = 'email'; // القيمة الافتراضية
+    
+    // 🔧 متغيرات النظام
+    const TRIAL_DAYS = 7; // فترة التجربة 7 أيام
+    const PASSWORD_MIN_LENGTH = 6;
+    
+    // 🔄 تبديل نوع التسجيل
+    function switchRegistrationType(type) {
+      registrationType = type;
+      
+      // تحديث الأزرار
+      document.getElementById('emailOption').classList.remove('active');
+      document.getElementById('phoneOption').classList.remove('active');
+      document.getElementById(type + 'Option').classList.add('active');
+      
+      // إظهار/إخفاء الحقول
+      if (type === 'email') {
+        document.getElementById('emailField').classList.remove('hidden');
+        document.getElementById('phoneField').classList.add('hidden');
+        document.getElementById('email').setAttribute('required', 'required');
+        document.getElementById('phone').removeAttribute('required');
+      } else {
+        document.getElementById('emailField').classList.add('hidden');
+        document.getElementById('phoneField').classList.remove('hidden');
+        document.getElementById('phone').setAttribute('required', 'required');
+        document.getElementById('email').removeAttribute('required');
+      }
+      
+      // تنظيف رسائل التحقق
+      document.getElementById('emailValidation').className = 'validation-message';
+      document.getElementById('phoneValidation').className = 'validation-message';
+    }
+    
+    // 🟢 تهيئة Supabase
+    async function initSupabase() {
+      try {
+        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        
+        const { data, error } = await supabaseClient
+          .from('users')
+          .select('count', { count: 'exact', head: true })
+          .limit(1);
+        
+        if (error) throw error;
+        
+        updateConnectionStatus(true);
+        console.log("✅ تم الاتصال بـ Supabase بنجاح");
+        return true;
+      } catch (error) {
+        console.error("❌ فشل الاتصال بـ Supabase:", error);
+        updateConnectionStatus(false);
+        showMessage('❌ فشل الاتصال بقاعدة البيانات. تأكد من اتصال الإنترنت.', 'error');
+        return false;
+      }
+    }
+    
+    // 🟢 تحديث حالة الاتصال
+    function updateConnectionStatus(connected) {
+      const statusEl = document.getElementById('statusText');
+      const connectionStatus = document.getElementById('connectionStatus');
+      
+      if (connected) {
+        statusEl.textContent = "🌐 متصل بنجاح";
+        connectionStatus.classList.remove('disconnected');
+      } else {
+        statusEl.textContent = "🌐 غير متصل";
+        connectionStatus.classList.add('disconnected');
+      }
+    }
+    
+    // 📊 توليد كود مستخدم عشوائي
+    function generateRandomUserId() {
+      return Math.floor(1000 + Math.random() * 9000);
+    }
+    
+    // 🔍 التحقق من اسم المستخدم في Supabase
+    async function checkUsernameInSupabase(username) {
+      try {
+        if (!supabaseClient) return false;
+        
+        const { data, error } = await supabaseClient
+          .from('users')
+          .select('user_id')
+          .eq('username', username)
+          .maybeSingle();
+        
+        return !error && data !== null;
+      } catch (error) {
+        console.error('Error checking username:', error);
+        return false;
+      }
+    }
+    
+    // 🔍 التحقق من البريد الإلكتروني في Supabase
+    async function checkEmailInSupabase(email) {
+      try {
+        if (!supabaseClient) return false;
+        
+        const { data, error } = await supabaseClient
+          .from('users')
+          .select('user_id')
+          .eq('email', email)
+          .maybeSingle();
+        
+        return !error && data !== null;
+      } catch (error) {
+        console.error('Error checking email:', error);
+        return false;
+      }
+    }
+    
+    // 🔍 التحقق من رقم الهاتف في Supabase
+    async function checkPhoneInSupabase(phone) {
+      try {
+        if (!supabaseClient) return false;
+        
+        const { data, error } = await supabaseClient
+          .from('users')
+          .select('user_id')
+          .eq('phone', phone)
+          .maybeSingle();
+        
+        return !error && data !== null;
+      } catch (error) {
+        console.error('Error checking phone:', error);
+        return false;
+      }
+    }
+    
+    // 🌐 التحقق من صحة البريد الإلكتروني
+    async function validateEmailFormat(email) {
+      // التحقق الأساسي من تنسيق الإيميل
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return { valid: false, message: 'تنسيق البريد الإلكتروني غير صحيح' };
+      }
+      
+      // التحقق من نطاقات الإيميل الوهمية الشائعة
+      const disposableDomains = [
+        'tempmail.com', 'guerrillamail.com', 'mailinator.com', 
+        '10minutemail.com', 'yopmail.com', 'trashmail.com'
+      ];
+      
+      const domain = email.split('@')[1].toLowerCase();
+      if (disposableDomains.some(d => domain.includes(d))) {
+        return { valid: false, message: 'البريد الإلكتروني مؤقت غير مسموح' };
+      }
+      
+      return { valid: true, message: 'البريد الإلكتروني صالح' };
+    }
+    
+    // 📞 التحقق من صحة رقم الهاتف
+    function validatePhoneFormat(phone) {
+      // تنظيف الرقم من المسافات والشارات
+      const cleanedPhone = phone.replace(/\D/g, '');
+      
+      // التحقق من طول الرقم (عادة 10 أرقام للهواتف المحمولة)
+      if (cleanedPhone.length < 11) {
+        return { valid: false, message: 'رقم الهاتف يجب أن يكون 11 أرقام على الأقل' };
+      }
+      
+      // التحقق من أن الرقم يبدأ بـ 05 (للهواتف السعودية) أو أي رمز دولي
+      /*if (!/^(05|2|\+9665)/.test(cleanedPhone)) {
+        return { valid: false, message: 'رقم الهاتف غير صحيح. يرجى استخدام تنسيق صحيح (مثال: 02XXXXXXXX)' };
+      }*/
+      
+      return { 
+        valid: true, 
+        message: 'رقم الهاتف صالح',
+        formattedPhone: cleanedPhone
+      };
+    }
+    
+    // 🔐 التحقق من قوة كلمة المرور الرقمية
+    function validatePassword(password) {
+      const errors = [];
+      
+      // 1. يجب أن تكون أرقاماً فقط
+      if (!/^\d+$/.test(password)) {
+        errors.push('كلمة المرور يجب أن تحتوي على أرقام فقط');
+      }
+      
+      // 2. الطول الأدنى 6 أرقام
+      if (password.length < PASSWORD_MIN_LENGTH) {
+        errors.push(`كلمة المرور يجب أن تكون ${PASSWORD_MIN_LENGTH} أرقام على الأقل`);
+      }
+      
+      // 3. لا تتكرر الأرقام بكثرة (مثل 111111)
+      const repeatingPattern = /(\d)\1{3,}/;
+      if (repeatingPattern.test(password)) {
+        errors.push('كلمة المرور تحتوي على أرقام متكررة بكثرة');
+      }
+      
+      // 4. لا تكون تسلسل (مثل 123456)
+      const isSequential = password.split('').every((digit, index, arr) => {
+        if (index === 0) return true;
+        return parseInt(digit) === parseInt(arr[index - 1]) + 1;
+      });
+      
+      if (isSequential && password.length >= 3) {
+        errors.push('كلمة المرور تسلسل رقمية سهلة التخمين');
+      }
+      
+      // تحديث مؤشرات المتطلبات
+      updatePasswordRequirements(password);
+      
+      return {
+        valid: errors.length === 0,
+        errors: errors,
+        strength: calculatePasswordStrength(password)
+      };
+    }
+    
+    // 📊 حساب قوة كلمة المرور
+    function calculatePasswordStrength(password) {
+      let score = 0;
+      
+      // طول كلمة المرور
+      if (password.length >= 6) score += 1;
+      if (password.length >= 8) score += 1;
+      
+      // تنوع الأرقام
+      const uniqueDigits = new Set(password.split('')).size;
+      if (uniqueDigits >= 4) score += 1;
+      if (uniqueDigits >= 6) score += 1;
+      
+      // عدم تكرار الأنماط
+      const repeatingPattern = /(\d)\1{2,}/;
+      if (!repeatingPattern.test(password)) score += 1;
+      
+      // عدم تسلسل
+      const isSequential = password.split('').every((digit, index, arr) => {
+        if (index === 0) return true;
+        return parseInt(digit) === parseInt(arr[index - 1]) + 1;
+      });
+      
+      if (!isSequential) score += 1;
+      
+      return score;
+    }
+    
+    // 📝 تحديث مؤشرات متطلبات كلمة المرور
+    function updatePasswordRequirements(password) {
+      const reqLength = document.getElementById('reqLength');
+      const reqNumbers = document.getElementById('reqNumbers');
+      const reqUnique = document.getElementById('reqUnique');
+      
+      // شرط الطول
+      if (password.length >= PASSWORD_MIN_LENGTH) {
+        reqLength.innerHTML = '<i class="fas fa-check-circle requirement-met"></i> 6 أرقام على الأقل';
+        reqLength.className = 'requirement-met';
+      } else {
+        reqLength.innerHTML = '<i class="fas fa-times-circle requirement-not-met"></i> 6 أرقام على الأقل';
+        reqLength.className = 'requirement-not-met';
+      }
+      
+      // شرط الأرقام فقط
+      if (/^\d+$/.test(password)) {
+        reqNumbers.innerHTML = '<i class="fas fa-check-circle requirement-met"></i> أرقام فقط (لا حروف)';
+        reqNumbers.className = 'requirement-met';
+      } else {
+        reqNumbers.innerHTML = '<i class="fas fa-times-circle requirement-not-met"></i> أرقام فقط (لا حروف)';
+        reqNumbers.className = 'requirement-not-met';
+      }
+      
+      // شرط عدم التكرار
+      const repeatingPattern = /(\d)\1{3,}/;
+      if (!repeatingPattern.test(password) && password.length > 0) {
+        reqUnique.innerHTML = '<i class="fas fa-check-circle requirement-met"></i> لا تتكرر الأرقام بكثرة';
+        reqUnique.className = 'requirement-met';
+      } else if (password.length > 0) {
+        reqUnique.innerHTML = '<i class="fas fa-times-circle requirement-not-met"></i> لا تتكرر الأرقام بكثرة';
+        reqUnique.className = 'requirement-not-met';
+      } else {
+        reqUnique.innerHTML = '<i class="fas fa-circle" style="font-size: 6px;"></i> لا تتكرر الأرقام بكثرة';
+        reqUnique.className = '';
+      }
+    }
+    
+    // 📤 التحقق من البيانات قبل الإرسال
+    async function validateFormData(formData) {
+      const errors = [];
+      const warnings = [];
+      
+      // 1. التحقق من اسم المستخدم
+      if (!formData.username || formData.username.length < 3) {
+        errors.push('اسم المستخدم يجب أن يكون 3 أحرف على الأقل');
+        showValidationMessage('usernameValidation', 'اسم المستخدم قصير جداً', 'error');
+      } else {
+        const usernameExists = await checkUsernameInSupabase(formData.username);
+        if (usernameExists) {
+          errors.push('اسم المستخدم موجود مسبقاً');
+          showValidationMessage('usernameValidation', 'اسم المستخدم موجود مسبقاً', 'error');
+        } else {
+          showValidationMessage('usernameValidation', 'اسم المستخدم متاح', 'success');
+        }
+      }
+      
+      // 2. التحقق من البريد الإلكتروني أو رقم الهاتف بناءً على النوع المختار
+      if (registrationType === 'email') {
+        const emailValidation = await validateEmailFormat(formData.email);
+        if (!emailValidation.valid) {
+          errors.push(emailValidation.message);
+          showValidationMessage('emailValidation', emailValidation.message, 'error');
+        } else {
+          const emailExists = await checkEmailInSupabase(formData.email);
+          if (emailExists) {
+            errors.push('البريد الإلكتروني مسجل مسبقاً');
+            showValidationMessage('emailValidation', 'البريد الإلكتروني مستخدم بالفعل', 'error');
+          } else {
+            showValidationMessage('emailValidation', 'البريد الإلكتروني صالح', 'success');
+          }
+        }
+      } else {
+        const phoneValidation = validatePhoneFormat(formData.phone);
+        if (!phoneValidation.valid) {
+          errors.push(phoneValidation.message);
+          showValidationMessage('phoneValidation', phoneValidation.message, 'error');
+        } else {
+          const phoneExists = await checkPhoneInSupabase(phoneValidation.formattedPhone);
+          if (phoneExists) {
+            errors.push('رقم الهاتف مسجل مسبقاً');
+            showValidationMessage('phoneValidation', 'رقم الهاتف مستخدم بالفعل', 'error');
+          } else {
+            showValidationMessage('phoneValidation', 'رقم الهاتف صالح', 'success');
+            formData.phone = phoneValidation.formattedPhone; // استخدام الرقم المنظف
+          }
+        }
+      }
+      
+      // 3. التحقق من كلمة المرور
+      const passwordValidation = validatePassword(formData.password);
+      if (!passwordValidation.valid) {
+        errors.push(...passwordValidation.errors);
+        showValidationMessage('passwordValidation', passwordValidation.errors[0], 'error');
+      } else {
+        const strengthText = passwordValidation.strength >= 4 ? 'قوية' : 
+                           passwordValidation.strength >= 2 ? 'متوسطة' : 'ضعيفة';
+        showValidationMessage('passwordValidation', `كلمة المرور ${strengthText}`, 'success');
+      }
+      
+      return { errors, warnings, passwordStrength: passwordValidation.strength };
+    }
+    
+    // 📝 عرض رسائل التحقق
+    function showValidationMessage(elementId, message, type) {
+      const element = document.getElementById(elementId);
+      if (element) {
+        element.textContent = message;
+        element.className = `validation-message ${type}`;
+        
+        const inputElement = document.getElementById(elementId.replace('Validation', ''));
+        if (inputElement) {
+          inputElement.classList.remove('error', 'success');
+          inputElement.classList.add(type);
+        }
+      }
+    }
+    
+    // 📅 حساب تاريخ انتهاء التجربة
+    function calculateTrialExpiry() {
+      const expiryDate = new Date();
+      expiryDate.setDate(expiryDate.getDate() + TRIAL_DAYS);
+      return expiryDate;
+    }
+    
+    // 📤 إرسال نموذج التسجيل السريع
+    document.getElementById('quickSignupForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const signupBtn = document.getElementById('signupBtn');
+      const originalText = signupBtn.innerHTML;
+      signupBtn.innerHTML = '<span class="loading"></span> جاري التحقق وإنشاء الحساب...';
+      signupBtn.disabled = true;
+      
+      // جمع البيانات
+      const userId = generateRandomUserId();
+      const storeId = '001';
+      const trialExpiry = calculateTrialExpiry();
+      
+      const formData = {
+        user_id: userId,
+        username: document.getElementById('username').value.trim(),        
+        password: document.getElementById('password').value,
+        role: 'user',
+        store_id: storeId,
+        active: true,
+        is_trial: true,
+        trial_start: new Date().toISOString(),
+        trial_expiry: trialExpiry.toISOString(),
+        created_at: new Date().toISOString()
+      };
+      
+      // إضافة البريد الإلكتروني أو رقم الهاتف بناءً على النوع
+      if (registrationType === 'email') {
+        formData.email = document.getElementById('email').value.trim();
+      } else {
+        formData.phone = document.getElementById('phone').value.trim();
+        // إضافة اسم مستعار للبريد إذا كان التسجيل بالهاتف
+        formData.email = `user_${userId}@temporary.com`;
+      }
+      
+      try {
+        // التحقق من البيانات
+        const validation = await validateFormData(formData);
+        
+        if (validation.errors.length > 0) {
+          showMessage(`❌ يوجد أخطاء في البيانات:<br>• ${validation.errors.join('<br>• ')}`, 'error');
+          resetButton(signupBtn, originalText);
+          return;
+        }
+        
+        // التحذير إذا كانت كلمة المرور ضعيفة
+        if (validation.passwordStrength < 3) {
+          const confirmWeak = confirm('⚠️ كلمة المرور ضعيفة. هل تريد المتابعة؟\nننصح باستخدام كلمة مرور أقوى.');
+          if (!confirmWeak) {
+            resetButton(signupBtn, originalText);
+            document.getElementById('password').focus();
+            return;
+          }
+        }
+        
+        // تأكيد التسجيل
+        const confirmMessage = `هل أنت متأكد من التسجيل؟\n\n` +
+                              `• كود المستخدم : ${formData.user_id}\n` +
+                              `• كلمه السر: ${formData.password}\n` +                              
+                              `• اسم المستخدم: ${formData.username}\n` +
+                              `• ${registrationType === 'email' ? 'البريد: ' + formData.email : 'الهاتف: ' + formData.phone}\n` +
+                              ` : ${0} ` +
+                              `  احفظ كود المستخدم وكلمه السر لدخول التطبيق\n` ;
+        
+        if (!confirm(confirmMessage)) {
+          resetButton(signupBtn, originalText);
+          return;
+        }
+        
+        // إضافة المستخدم الجديد عبر Supabase
+        console.log('🔗 إضافة مستخدم جديد...');
+        
+        let attempts = 0;
+        let success = false;
+        let finalUserId = userId;
+        
+        while (attempts < 5 && !success) {
+          try {
+            formData.user_id = finalUserId;
+            
+            const { data, error } = await supabaseClient
+              .from('users')
+              .insert([formData])
+              .select()
+              .single();
+            
+            if (error) {
+              if (error.code === '23505' || error.message.includes('duplicate')) {
+                console.log(`⚠️ كود المستخدم ${finalUserId} موجود، تجربة كود جديد...`);
+                finalUserId = generateRandomUserId();
+                attempts++;
+                continue;
+              }
+              throw error;
+            }
+            
+            success = true;
+            
+            // ✅ نجحت العملية
+            const expiryDate = trialExpiry.toLocaleDateString('ar-SA');
+            const contactInfo = registrationType === 'email' ? 
+              `<strong>البريد الإلكتروني:</strong> ${formData.email}` :
+              `<strong>رقم الهاتف:</strong> ${formData.phone}`;
+              
+            showMessage(`🎉 تم إنشاء حسابك بنجاح!<br>
+              <strong>كود المستخدم:</strong> ${finalUserId}<br>
+              <strong>اسم المستخدم:</strong> ${formData.username}<br>
+              ${contactInfo}<br>
+              سيتم توجيهك لصفحة الدخول خلال 5 ثواني...`, 'success');
+            
+            // تنظيف النموذج
+            document.getElementById('quickSignupForm').reset();
+            
+            // حفظ بيانات المستخدم
+            localStorage.setItem('trial_user', JSON.stringify({
+              userId: finalUserId,
+              username: formData.username,              
+              contact: registrationType === 'email' ? formData.email : formData.phone,
+              contactType: registrationType,
+              trialStart: formData.trial_start,
+              trialExpiry: formData.trial_expiry
+            }));
+            
+            // إضافة سجل في جدول trial_logs إذا كان موجوداً
+            try {
+              await supabaseClient
+                .from('trial_logs')
+                .insert([{
+                  user_id: finalUserId,
+                  email: formData.email,
+                  phone: formData.phone || null,
+                  trial_start: formData.trial_start,
+                  trial_expiry: formData.trial_expiry,
+                  registration_type: registrationType,
+                  created_at: new Date().toISOString()
+                }]);
+            } catch (logError) {
+              console.log('⚠️ لم يتم تسجيل سجل التجربة (قد يكون الجدول غير موجود)');
+            }
+            
+            // الانتقال لصفحة الدخول
+            setTimeout(() => {
+              window.location.href = `index.html?trial=true&user_id=${finalUserId}&username=${encodeURIComponent(formData.username)}&expiry=${formData.trial_expiry}`;
+            }, 5000);
+            
+          } catch (error) {
+            attempts++;
+            console.log(`❌ محاولة ${attempts} فشلت:`, error.message);
+            
+            if (attempts >= 5) {
+              throw new Error('فشلت جميع محاولات التسجيل');
+            }
+          }
+        }
+        
+        if (!success) {
+          throw new Error('لم يتمكن من إنشاء الحساب');
+        }
+        
+      } catch (error) {
+        console.error('❌ خطأ في التسجيل:', error);
+        
+        let errorMessage = 'حدث خطأ في التسجيل. حاول مرة أخرى.';
+        
+        if (error.message.includes('duplicate') || error.code === '23505') {
+          errorMessage = 'بيانات المستخدم موجودة مسبقاً. الرجاء اختيار بيانات أخرى.';
+        } else if (error.message.includes('email') || error.message.includes('بريد')) {
+          errorMessage = 'خطأ في البريد الإلكتروني. تأكد من صحته.';
+        } else if (error.message.includes('phone') || error.message.includes('هاتف')) {
+          errorMessage = 'خطأ في رقم الهاتف. تأكد من صحته.';
+        } else if (error.message.includes('network') || error.message.includes('اتصال')) {
+          errorMessage = 'خطأ في الاتصال بالخادم. تأكد من اتصال الإنترنت.';
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        showMessage(`❌ ${errorMessage}`, 'error');
+        resetButton(signupBtn, originalText);
+      }
+    });
+    
+    // 🔍 التحقق الفوري عند إدخال البيانات
+    document.getElementById('username').addEventListener('blur', async function() {
+      const username = this.value.trim();
+      if (!username || username.length < 3) return;
+      
+      const exists = await checkUsernameInSupabase(username);
+      if (exists) {
+        showValidationMessage('usernameValidation', 'اسم المستخدم موجود مسبقاً', 'error');
+      } else {
+        showValidationMessage('usernameValidation', 'اسم المستخدم متاح', 'success');
+      }
+    });
+    
+    document.getElementById('email').addEventListener('blur', async function() {
+      const email = this.value.trim();
+      if (!email) return;
+      
+      const formatValidation = await validateEmailFormat(email);
+      if (!formatValidation.valid) {
+        showValidationMessage('emailValidation', formatValidation.message, 'error');
+        return;
+      }
+      
+      const exists = await checkEmailInSupabase(email);
+      if (exists) {
+        showValidationMessage('emailValidation', 'البريد الإلكتروني مسجل مسبقاً', 'error');
+      } else {
+        showValidationMessage('emailValidation', 'البريد الإلكتروني صالح', 'success');
+      }
+    });
+    
+    document.getElementById('phone').addEventListener('blur', async function() {
+      const phone = this.value.trim();
+      if (!phone) return;
+      
+      const formatValidation = validatePhoneFormat(phone);
+      if (!formatValidation.valid) {
+        showValidationMessage('phoneValidation', formatValidation.message, 'error');
+        return;
+      }
+      
+      const exists = await checkPhoneInSupabase(formatValidation.formattedPhone);
+      if (exists) {
+        showValidationMessage('phoneValidation', 'رقم الهاتف مسجل مسبقاً', 'error');
+      } else {
+        showValidationMessage('phoneValidation', 'رقم الهاتف صالح', 'success');
+      }
+    });
+    
+    document.getElementById('password').addEventListener('input', function() {
+      const password = this.value;
+      const validation = validatePassword(password);
+      
+      if (password.length === 0) {
+        showValidationMessage('passwordValidation', '', '');
+        return;
+      }
+      
+      if (!validation.valid) {
+        showValidationMessage('passwordValidation', validation.errors[0], 'error');
+      } else {
+        const strengthText = validation.strength >= 4 ? 'قوية' : 
+                           validation.strength >= 2 ? 'متوسطة' : 'ضعيفة';
+        showValidationMessage('passwordValidation', `كلمة المرور ${strengthText}`, 'success');
+      }
+    });
+    
+    function showMessage(text, type) {
+      const messageDiv = document.getElementById('message');
+      messageDiv.innerHTML = text;
+      messageDiv.className = `alert ${type}`;
+      messageDiv.style.display = 'block';
+      
+      if (type === 'error') {
+        setTimeout(() => {
+          messageDiv.style.display = 'none';
+        }, 8000);
+      }
+    }
+    
+    function resetButton(button, originalText) {
+      button.innerHTML = originalText;
+      button.disabled = false;
+    }
+    
+    // تحميل الصفحة
+    document.addEventListener('DOMContentLoaded', async function() {
+      await initSupabase();
+      
+      // إظهار مؤقت التجربة
+      document.getElementById('trialTimer').style.display = 'block';
+      
+      document.getElementById('username').focus();
+      
+      // تقييد حقل كلمة المرور للأرقام فقط
+      document.getElementById('password').addEventListener('keypress', function(e) {
+        const charCode = e.which ? e.which : e.keyCode;
+        if (charCode < 48 || charCode > 57) {
+          e.preventDefault();
+          return false;
+        }
+        return true;
+      });
+      
+      // منع النسخ/اللصق للنصوص في حقل كلمة المرور
+      document.getElementById('password').addEventListener('paste', function(e) {
+        e.preventDefault();
+        showValidationMessage('passwordValidation', 'لا يمكن لصق النص في حقل كلمة المرور', 'error');
+      });
+    });
+    
+    // منع الإدخال غير الرقمي في كلمة المرور
+    document.getElementById('password').addEventListener('input', function() {
+      this.value = this.value.replace(/\D/g, '');
+    });
+    
+    // تنظيف رقم الهاتف عند الإدخال
+    document.getElementById('phone').addEventListener('input', function() {
+      // السماح فقط بالأرقام وعلامة +
+      this.value = this.value.replace(/[^\d+]/g, '');
+    });
+  </script>
+</body>
+</html>

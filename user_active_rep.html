@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تقرير تعاملات النظام</title>
+    <!-- إضافة خطوط وأيقونات -->
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- إضافة Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --primary: #4361ee;
+            --secondary: #3a0ca3;
+            --accent: #4cc9f0;
+            --success: #4ade80;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #1e293b;
+            --light: #f8fafc;
+            --gray: #64748b;
+            --gradient: linear-gradient(135deg, #4361ee, #3a0ca3);
+            --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Tajawal', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+            color: var(--dark);
+            min-height: 100vh;
+            padding: 20px;
+            direction: rtl;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            padding: 25px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f1f5f9;
+        }
+
+        .header h1 {
+            color: var(--dark);
+            font-size: 28px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .header h1 i {
+            color: var(--primary);
+            font-size: 32px;
+        }
+
+        .header p {
+            color: var(--gray);
+            font-size: 16px;
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* ✅ فلترة البحث */
+        .filters-section {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .filters-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .filters-title i {
+            color: var(--primary);
+        }
+
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .filter-group label {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .filter-group label i {
+            color: var(--primary);
+            font-size: 16px;
+        }
+
+        .filter-input, .filter-select {
+            padding: 12px 15px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background: white;
+            cursor: pointer;
+        }
+
+        .filter-input:focus, .filter-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-start;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 140px;
+            justify-content: center;
+        }
+
+        .btn-primary {
+            background: var(--gradient);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(67, 97, 238, 0.2);
+        }
+
+        .btn-secondary {
+            background: #f1f5f9;
+            color: var(--dark);
+            border: 1px solid #e2e8f0;
+        }
+
+        .btn-secondary:hover {
+            background: #e2e8f0;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger), #dc2626);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(239, 68, 68, 0.2);
+        }
+
+        /* ✅ قائمة المستخدمين المنسدلة */
+        .user-select-container {
+            position: relative;
+        }
+
+        .user-select-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+
+        .user-select-dropdown.show {
+            display: block;
+        }
+
+        .user-option {
+            padding: 10px 15px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .user-option:last-child {
+            border-bottom: none;
+        }
+
+        .user-option:hover {
+            background: #f8fafc;
+        }
+
+        .user-option i {
+            color: var(--primary);
+            font-size: 14px;
+        }
+
+        .user-code {
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .user-name {
+            color: var(--gray);
+            font-size: 13px;
+        }
+
+        /* ✅ الجدول */
+        .table-container {
+            overflow-x: auto;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            background: white;
+            margin-top: 20px;
+        }
+
+        .table-header {
+            background: #f8fafc;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: var(--dark);
+            background: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .stat-item i {
+            color: var(--primary);
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 800px;
+        }
+
+        thead {
+            background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+        }
+
+        th {
+            padding: 16px 15px;
+            text-align: right;
+            font-weight: 600;
+            color: var(--dark);
+            border-bottom: 2px solid #e2e8f0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            user-select: none;
+        }
+
+        th:hover {
+            background: rgba(67, 97, 238, 0.05);
+        }
+
+        th.sorted-asc::after {
+            content: ' \2191';
+            color: var(--primary);
+            font-weight: bold;
+        }
+
+        th.sorted-desc::after {
+            content: ' \2193';
+            color: var(--primary);
+            font-weight: bold;
+        }
+
+        td {
+            padding: 14px 15px;
+            border-bottom: 1px solid #f1f5f9;
+            text-align: right;
+            color: var(--dark);
+            font-size: 14px;
+        }
+
+        tr:hover {
+            background: #f8fafc;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* ألوان العمليات */
+        .operation-login {
+            background: rgba(74, 222, 128, 0.1);
+            color: #059669;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .operation-logout {
+            background: rgba(248, 113, 113, 0.1);
+            color: #dc2626;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .operation-screen {
+            background: rgba(56, 189, 248, 0.1);
+            color: #0284c7;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* ✅ حالة التحميل والتفريغ */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--gray);
+        }
+
+        .loading i {
+            font-size: 40px;
+            color: var(--primary);
+            margin-bottom: 15px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--gray);
+        }
+
+        .empty-state i {
+            font-size: 60px;
+            color: #cbd5e1;
+            margin-bottom: 20px;
+        }
+
+        .empty-state h3 {
+            font-size: 20px;
+            margin-bottom: 10px;
+            color: var(--dark);
+        }
+
+        /* ✅ التجاوب */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .container {
+                padding: 15px;
+            }
+            
+            .header h1 {
+                font-size: 24px;
+            }
+            
+            .filters-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .filter-buttons {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+            
+            .table-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .stats {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            th, td {
+                padding: 12px 10px;
+                font-size: 13px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 20px;
+            }
+            
+            .header p {
+                font-size: 14px;
+            }
+            
+            .filter-input, .filter-select {
+                padding: 10px 12px;
+                font-size: 13px;
+            }
+            
+            th, td {
+                padding: 10px 8px;
+                font-size: 12px;
+            }
+            
+            .operation-login,
+            .operation-logout,
+            .operation-screen {
+                font-size: 11px;
+                padding: 3px 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>
+                <i class="fas fa-chart-line"></i>
+                تقرير تعاملات النظام
+            </h1>
+            <p>مراقبة وتتبع جميع نشاطات المستخدمين في النظام</p>
+        </div>
+
+        <!-- ✅ فلترة البحث -->
+        <div class="filters-section">
+            <div class="filters-title">
+                <i class="fas fa-filter"></i>
+                فلترة البحث
+            </div>
+            
+            <div class="filters-grid">
+                <div class="filter-group">
+                    <label for="fromDate"><i class="fas fa-calendar-alt"></i> من تاريخ</label>
+                    <input type="date" id="fromDate" class="filter-input">
+                </div>
+                
+                <div class="filter-group">
+                    <label for="toDate"><i class="fas fa-calendar-alt"></i> إلى تاريخ</label>
+                    <input type="date" id="toDate" class="filter-input">
+                </div>
+                
+                <div class="filter-group user-select-container">
+                    <label for="userId"><i class="fas fa-user"></i> كود المستخدم</label>
+                    <div class="user-select-wrapper">
+                        <input type="text" 
+                               id="userId" 
+                               class="filter-input" 
+                               placeholder="ابحث أو اختر مستخدم"
+                               autocomplete="off"
+                               data-user-id="">
+                        <div class="user-select-dropdown" id="userDropdown">
+                            <!-- سيتم ملؤه ديناميكياً -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="operationType"><i class="fas fa-tasks"></i> نوع العملية</label>
+                    <select id="operationType" class="filter-select">
+                        <option value="">جميع العمليات</option>
+                        <option value="login">تسجيل دخول</option>
+                        <option value="logout">تسجيل خروج</option>
+                        <option value="screen_access">دخول شاشة</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="filter-buttons">
+                <button class="btn btn-primary" id="fetchDataBtn">
+                    <i class="fas fa-search"></i>
+                    عرض التقرير
+                </button>
+                
+                <button class="btn btn-secondary" id="clearFiltersBtn">
+                    <i class="fas fa-eraser"></i>
+                    مسح الفلاتر
+                </button>
+                
+                <button class="btn btn-danger" id="clearAllBtn">
+                    <i class="fas fa-trash-alt"></i>
+                    مسح جميع السجلات
+                </button>
+            </div>
+        </div>
+
+        <!-- ✅ الجدول -->
+        <div class="table-container">
+            <div class="table-header">
+                <div class="stats">
+                    <div class="stat-item">
+                        <i class="fas fa-database"></i>
+                        <span>إجمالي السجلات: <span class="stat-value" id="totalRecords">0</span></span>
+                    </div>
+                    <div class="stat-item">
+                        <i class="fas fa-user-check"></i>
+                        <span>عمليات الدخول: <span class="stat-value" id="loginCount">0</span></span>
+                    </div>
+                    <div class="stat-item">
+                        <i class="fas fa-user-times"></i>
+                        <span>عمليات الخروج: <span class="stat-value" id="logoutCount">0</span></span>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="tableContent">
+                <table>
+                    <thead>
+                        <tr>
+                            <th data-column="user_id" class="sortable">كود المستخدم</th>
+                            <th data-column="username" class="sortable">اسم المستخدم</th>
+                            <th data-column="stores.store_name" class="sortable">اسم الفرع</th>
+                            <th data-column="action_type" class="sortable">نوع العملية</th>
+                            <th data-column="screen_name" class="sortable">اسم الشاشة</th>
+                            <th data-column="created_at" class="sortable">تاريخ العملية</th>
+                            <th data-column="created_at" class="sortable">وقت العملية</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reportTableBody">
+                        <!-- سيتم ملؤه ديناميكياً -->
+                    </tbody>
+                </table>
+                
+                <div class="empty-state" id="emptyState" style="display: none;">
+                    <i class="fas fa-inbox"></i>
+                    <h3>لا توجد بيانات لعرضها</h3>
+                    <p>استخدم الفلاتر أعلاه لعرض السجلات</p>
+                </div>
+                
+                <div class="loading" id="loadingState" style="display: none;">
+                    <i class="fas fa-spinner"></i>
+                    <p>جاري تحميل البيانات...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ✅ تكوين Supabase - تعريف مرة واحدة فقط
+        const SUPABASE_URL = 'https://rvjacvrrpguehbapvewe.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2amFjdnJycGd1ZWhiYXB2ZXdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwMjUxNTksImV4cCI6MjA3ODYwMTE1OX0.wSavKzxKOF7-56G-pzDMtbXNrCNAbGs0wvadw-cilBg';
+        
+        // ✅ متغيرات الترتيب
+        let currentSort = {
+            column: 'created_at',
+            order: 'desc'
+        };
+        
+        class ActivityReportManager {
+            constructor() {
+                // ✅ تهيئة Supabase داخل الكلاس
+                this.supabase = null;
+                this.usersList = [];
+                this.initSupabase();
+                this.init();
+            }
+            
+            initSupabase() {
+                // ✅ التحقق إذا كان Supabase موجوداً بالفعل
+                if (!window.supabaseGlobal) {
+                    this.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                    window.supabaseGlobal = this.supabase; // تخزين مرجع عالمي
+                } else {
+                    this.supabase = window.supabaseGlobal; // استخدام المرجع الموجود
+                }
+            }
+            
+            async init() {
+                // ✅ تعيين تواريخ افتراضية (آخر 7 أيام)
+                this.setDefaultDates();
+                
+                // ✅ تحميل قائمة المستخدمين
+                await this.loadUsersList();
+                
+                // ✅ إعداد مستمعي الأحداث
+                this.setupEventListeners();
+                
+                // ✅ تحميل البيانات تلقائياً
+                this.loadData();
+            }
+            
+            setDefaultDates() {
+                const today = new Date();
+                const sevenDaysAgo = new Date();
+                sevenDaysAgo.setDate(today.getDate() - 7);
+                
+                // تنسيق التاريخ لـ input type="date"
+                const formatDate = (date) => {
+                    return date.toISOString().split('T')[0];
+                };
+                
+                document.getElementById('fromDate').value = formatDate(sevenDaysAgo);
+                document.getElementById('toDate').value = formatDate(today);
+            }
+            
+            async loadUsersList() {
+                try {
+                    const { data, error } = await this.supabase
+                        .from('users')
+                        .select('user_id, username')
+                        .order('username', { ascending: true });
+                    
+                    if (error) throw error;
+                    
+                    this.usersList = data || [];
+                    this.renderUsersDropdown();
+                    
+                } catch (error) {
+                    console.error('❌ خطأ في تحميل قائمة المستخدمين:', error);
+                    this.usersList = [];
+                }
+            }
+            
+            renderUsersDropdown() {
+                const dropdown = document.getElementById('userDropdown');
+                if (!dropdown) return;
+                
+                dropdown.innerHTML = '';
+                
+                // ✅ إضافة خيار "جميع المستخدمين"
+                const allOption = document.createElement('div');
+                allOption.className = 'user-option';
+                allOption.innerHTML = `
+                    <i class="fas fa-users"></i>
+                    <div>
+                        <div class="user-code">جميع المستخدمين</div>
+                        <div class="user-name">عرض جميع السجلات</div>
+                    </div>
+                `;
+                allOption.addEventListener('click', () => {
+                    document.getElementById('userId').value = '';
+                    document.getElementById('userId').dataset.userId = '';
+                    dropdown.classList.remove('show');
+                });
+                dropdown.appendChild(allOption);
+                
+                // ✅ إضافة المستخدمين
+                this.usersList.forEach(user => {
+                    const option = document.createElement('div');
+                    option.className = 'user-option';
+                    option.innerHTML = `
+                        <i class="fas fa-user"></i>
+                        <div>
+                            <div class="user-code">${user.user_id}</div>
+                            <div class="user-name">${user.username || 'بدون اسم'}</div>
+                        </div>
+                    `;
+                    option.addEventListener('click', () => {
+                        document.getElementById('userId').value = `${user.user_id} - ${user.username}`;
+                        document.getElementById('userId').dataset.userId = user.user_id;
+                        dropdown.classList.remove('show');
+                    });
+                    dropdown.appendChild(option);
+                });
+            }
+            
+            setupEventListeners() {
+                // ✅ زر عرض التقرير
+                document.getElementById('fetchDataBtn').addEventListener('click', () => {
+                    this.loadData();
+                });
+                
+                // ✅ زر مسح الفلاتر
+                document.getElementById('clearFiltersBtn').addEventListener('click', () => {
+                    this.clearFilters();
+                });
+                
+                // ✅ زر مسح جميع السجلات
+                document.getElementById('clearAllBtn').addEventListener('click', () => {
+                    this.clearAllRecords();
+                });
+                
+                // ✅ الترتيب عند النقر على رؤوس الأعمدة
+                document.querySelectorAll('.sortable').forEach(th => {
+                    th.addEventListener('click', () => {
+                        const column = th.dataset.column;
+                        this.sortTable(column);
+                    });
+                });
+                
+                // ✅ البحث عند الضغط على Enter
+                const inputs = document.querySelectorAll('.filter-input, .filter-select');
+                inputs.forEach(input => {
+                    input.addEventListener('keypress', (e) => {
+                        if (e.key === 'Enter') {
+                            this.loadData();
+                        }
+                    });
+                });
+                
+                // ✅ إظهار/إخفاء قائمة المستخدمين
+                const userIdInput = document.getElementById('userId');
+                const userDropdown = document.getElementById('userDropdown');
+                
+                if (userIdInput && userDropdown) {
+                    // إظهار القائمة عند التركيز
+                    userIdInput.addEventListener('focus', () => {
+                        if (this.usersList.length > 0) {
+                            userDropdown.classList.add('show');
+                        }
+                    });
+                    
+                    // البحث في القائمة أثناء الكتابة
+                    userIdInput.addEventListener('input', (e) => {
+                        const searchTerm = e.target.value.toLowerCase();
+                        const options = userDropdown.querySelectorAll('.user-option');
+                        
+                        options.forEach(option => {
+                            const text = option.textContent.toLowerCase();
+                            if (text.includes(searchTerm) || searchTerm === '') {
+                                option.style.display = 'flex';
+                            } else {
+                                option.style.display = 'none';
+                            }
+                        });
+                        
+                        userDropdown.classList.add('show');
+                    });
+                    
+                    // إغلاق القائمة عند النقر خارجها
+                    document.addEventListener('click', (e) => {
+                        if (!userIdInput.contains(e.target) && !userDropdown.contains(e.target)) {
+                            userDropdown.classList.remove('show');
+                        }
+                    });
+                }
+            }
+            
+            async loadData() {
+                try {
+                    // ✅ إظهار حالة التحميل
+                    this.showLoading(true);
+                    
+                    // ✅ جلب بيانات الفلترة
+                    const filters = this.getFilters();
+                    
+                    // ✅ بناء الاستعلام
+                    let query = this.supabase
+                        .from('activity_log')
+                        .select(`
+                            *,
+                            users!inner(user_id, username),
+                            stores!inner(store_id, store_name)
+                        `, { count: 'exact' });
+                    
+                    // ✅ تطبيق الفلاتر
+                    if (filters.fromDate) {
+                        query = query.gte('created_at', filters.fromDate + ' 00:00:00');
+                    }
+                    
+                    if (filters.toDate) {
+                        query = query.lte('created_at', filters.toDate + ' 23:59:59');
+                    }
+                    
+                    if (filters.userId) {
+                        query = query.eq('user_id', filters.userId);
+                    }
+                    
+                    if (filters.operationType) {
+                        query = query.eq('action_type', filters.operationType);
+                    }
+                    
+                    // ✅ تطبيق الترتيب مع إصلاح أسماء الأعمدة
+                    const sortColumn = this.getSortColumn(currentSort.column);
+                    if (sortColumn) {
+                        query = query.order(sortColumn, { 
+                            ascending: currentSort.order === 'asc' 
+                        });
+                    } else {
+                        query = query.order('created_at', { ascending: false });
+                    }
+                    
+                    // ✅ تنفيذ الاستعلام
+                    const { data, error, count } = await query;
+                    
+                    if (error) {
+                        throw new Error(`خطأ في جلب البيانات: ${error.message}`);
+                    }
+                    
+                    // ✅ تحديث الإحصائيات
+                    this.updateStats(data || [], count || 0);
+                    
+                    // ✅ عرض البيانات
+                    this.displayData(data || []);
+                    
+                    // ✅ إخفاء حالة التحميل
+                    this.showLoading(false);
+                    
+                } catch (error) {
+                    console.error('❌ خطأ في تحميل البيانات:', error);
+                    this.showError('حدث خطأ في جلب البيانات: ' + error.message);
+                    this.showLoading(false);
+                }
+            }
+            
+            // ✅ إصلاح أسماء الأعمدة للترتيب
+            getSortColumn(column) {
+                const columnMap = {
+                    'user_id': 'user_id',
+                    'username': 'users(username)',
+                    'stores.store_name': 'stores(store_name)',
+                    'action_type': 'action_type',
+                    'screen_name': 'screen_name',
+                    'created_at': 'created_at'
+                };
+                
+                return columnMap[column] || column;
+            }
+            
+            getFilters() {
+                const userIdInput = document.getElementById('userId');
+                const userId = userIdInput.dataset.userId || userIdInput.value.split(' - ')[0] || '';
+                
+                return {
+                    fromDate: document.getElementById('fromDate').value,
+                    toDate: document.getElementById('toDate').value,
+                    userId: userId.trim(),
+                    operationType: document.getElementById('operationType').value
+                };
+            }
+            
+            updateStats(data, totalCount) {
+                // ✅ إجمالي السجلات
+                document.getElementById('totalRecords').textContent = totalCount;
+                
+                // ✅ عد العمليات
+                const loginCount = data.filter(item => item.action_type === 'login').length;
+                const logoutCount = data.filter(item => item.action_type === 'logout').length;
+                
+                document.getElementById('loginCount').textContent = loginCount;
+                document.getElementById('logoutCount').textContent = logoutCount;
+            }
+            
+            displayData(data) {
+                const tbody = document.getElementById('reportTableBody');
+                const emptyState = document.getElementById('emptyState');
+                
+                if (!data || data.length === 0) {
+                    tbody.innerHTML = '';
+                    emptyState.style.display = 'block';
+                    return;
+                }
+                
+                emptyState.style.display = 'none';
+                
+                // ✅ إنشاء صفوف الجدول
+                tbody.innerHTML = data.map(item => {
+                    const user = item.users || {};
+                    const store = item.stores || {};
+                    
+                    // ✅ تنسيق التاريخ والوقت
+                    const dateTime = new Date(item.created_at);
+                    const dateStr = dateTime.toLocaleDateString('ar-EG');
+                    const timeStr = dateTime.toLocaleTimeString('ar-EG', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit'
+                    });
+                    
+                    // ✅ تنسيق نوع العملية
+                    let operationClass = '';
+                    let operationIcon = '';
+                    let operationText = '';
+                    
+                    switch(item.action_type) {
+                        case 'login':
+                            operationClass = 'operation-login';
+                            operationIcon = 'fas fa-sign-in-alt';
+                            operationText = 'تسجيل دخول';
+                            break;
+                        case 'logout':
+                            operationClass = 'operation-logout';
+                            operationIcon = 'fas fa-sign-out-alt';
+                            operationText = 'تسجيل خروج';
+                            break;
+                        case 'screen_access':
+                            operationClass = 'operation-screen';
+                            operationIcon = 'fas fa-desktop';
+                            operationText = item.screen_name || 'دخول شاشة';
+                            break;
+                        default:
+                            operationClass = 'operation-screen';
+                            operationIcon = 'fas fa-tasks';
+                            operationText = item.action_type || 'عملية';
+                    }
+                    
+                    return `
+                        <tr>
+                            <td>${item.user_id || 'N/A'}</td>
+                            <td>${user.username || 'غير محدد'}</td>
+                            <td>${store.store_name || 'غير محدد'}</td>
+                            <td>
+                                <span class="${operationClass}">
+                                    <i class="${operationIcon}"></i>
+                                    ${operationText}
+                                </span>
+                            </td>
+                            <td>${item.screen_name || 'N/A'}</td>
+                            <td>${dateStr}</td>
+                            <td>${timeStr}</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+            
+            sortTable(column) {
+                // ✅ تحديث حالة الترتيب
+                if (currentSort.column === column) {
+                    currentSort.order = currentSort.order === 'asc' ? 'desc' : 'asc';
+                } else {
+                    currentSort.column = column;
+                    currentSort.order = 'asc';
+                }
+                
+                // ✅ تحديث مظهر رؤوس الأعمدة
+                this.updateSortHeaders();
+                
+                // ✅ إعادة تحميل البيانات بالترتيب الجديد
+                this.loadData();
+            }
+            
+            updateSortHeaders() {
+                document.querySelectorAll('.sortable').forEach(th => {
+                    th.classList.remove('sorted-asc', 'sorted-desc');
+                    
+                    if (th.dataset.column === currentSort.column) {
+                        th.classList.add(`sorted-${currentSort.order}`);
+                    }
+                });
+            }
+            
+            clearFilters() {
+                document.getElementById('fromDate').value = '';
+                document.getElementById('toDate').value = '';
+                document.getElementById('userId').value = '';
+                document.getElementById('userId').dataset.userId = '';
+                document.getElementById('operationType').value = '';
+                
+                // ✅ إعادة تعيين التواريخ الافتراضية
+                this.setDefaultDates();
+                
+                // ✅ إعادة تحميل البيانات
+                this.loadData();
+            }
+            
+            async clearAllRecords() {
+                const confirmed = confirm('⚠️ هل أنت متأكد من حذف جميع سجلات النشاط؟\n\nهذه العملية لا يمكن التراجع عنها!');
+                
+                if (!confirmed) return;
+                
+                try {
+                    this.showLoading(true);
+                    
+                    // ✅ حذف جميع السجلات
+                    const { error } = await this.supabase
+                        .from('activity_log')
+                        .delete()
+                        .neq('log_id', 0); // حذف جميع السجلات
+                    
+                    if (error) throw error;
+                    
+                    alert('✅ تم حذف جميع سجلات النشاط بنجاح');
+                    
+                    // ✅ إعادة تحميل البيانات
+                    this.loadData();
+                    
+                } catch (error) {
+                    console.error('❌ خطأ في حذف السجلات:', error);
+                    alert('❌ فشل في حذف السجلات: ' + error.message);
+                    this.showLoading(false);
+                }
+            }
+            
+            showLoading(show) {
+                const loadingState = document.getElementById('loadingState');
+                const tableContent = document.getElementById('tableContent');
+                
+                if (show) {
+                    loadingState.style.display = 'block';
+                    tableContent.style.opacity = '0.5';
+                } else {
+                    loadingState.style.display = 'none';
+                    tableContent.style.opacity = '1';
+                }
+            }
+            
+            showError(message) {
+                const tbody = document.getElementById('reportTableBody');
+                const emptyState = document.getElementById('emptyState');
+                
+                tbody.innerHTML = '';
+                emptyState.innerHTML = `
+                    <i class="fas fa-exclamation-triangle" style="color: var(--danger);"></i>
+                    <h3>خطأ في تحميل البيانات</h3>
+                    <p>${message}</p>
+                `;
+                emptyState.style.display = 'block';
+            }
+        }
+        
+        // ✅ تهيئة النظام عند تحميل الصفحة
+        document.addEventListener('DOMContentLoaded', () => {
+            window.activityReport = new ActivityReportManager();
+        });
+    </script>
+</body>
+</html>

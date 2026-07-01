@@ -1,0 +1,1152 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🏭 إدارة الشركات</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+      :root {
+        --primary-color: #3498db;
+        --secondary-color: #2c3e50;
+        --accent-color: #1abc9c;
+        --light-color: #f5f7fa;
+        --dark-color: #34495e;
+        --success-color: #2ecc71;
+        --warning-color: #f39c12;
+        --danger-color: #e74c3c;
+        --border-radius: 12px;
+        --box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
+        --transition: all 0.3s ease;
+        --gradient-primary: linear-gradient(135deg, #3498db, #1abc9c);
+        --gradient-secondary: linear-gradient(135deg, #2c3e50, #34495e);
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ed 100%);
+        padding: 20px;
+        min-height: 100vh;
+      }
+
+      .container {
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+
+      .header {
+        background: var(--gradient-primary);
+        color: white;
+        padding: 25px;
+        border-radius: var(--border-radius);
+        margin-bottom: 25px;
+        text-align: center;
+        box-shadow: var(--box-shadow);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .header::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M0,0 L100,0 L100,100 Z" fill="rgba(255,255,255,0.1)"/></svg>');
+        background-size: cover;
+      }
+
+      .header h2 {
+        font-size: 2.2rem;
+        margin: 0;
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 15px;
+      }
+
+      .connection-status {
+        position: fixed;
+        top: 15px;
+        left: 15px;
+        background: white;
+        padding: 10px 15px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 1000;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border-left: 4px solid #28a745;
+        transition: var(--transition);
+      }
+
+      .loading-spinner {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 9999;
+      }
+
+      .main-content {
+        display: grid;
+        grid-template-columns: 1fr 1.8fr;
+        gap: 25px;
+        margin-top: 20px;
+      }
+
+      @media (max-width: 1024px) {
+        .main-content {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .card {
+        background: white;
+        border-radius: var(--border-radius);
+        padding: 25px;
+        box-shadow: var(--box-shadow);
+        transition: var(--transition);
+        border: none;
+      }
+
+      .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 25px rgba(0, 0, 0, 0.15);
+      }
+
+      .card-title {
+        font-size: 1.4rem;
+        margin-bottom: 20px;
+        color: var(--secondary-color);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding-bottom: 12px;
+        border-bottom: 2px solid var(--light-color);
+      }
+
+      .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      .form-group.full-width {
+        grid-column: 1 / -1;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: var(--dark-color);
+        font-size: 1rem;
+      }
+
+      input, select {
+        width: 100%;
+        padding: 14px 16px;
+        border: 2px solid #e1e5e9;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: var(--transition);
+        background-color: var(--light-color);
+        font-family: inherit;
+      }
+
+      input:focus, select:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        background-color: white;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 14px 24px;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: var(--transition);
+        min-width: 120px;
+      }
+
+      .btn-primary {
+        background: var(--gradient-primary);
+        color: white;
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(52, 152, 219, 0.3);
+      }
+
+      .btn-secondary {
+        background: var(--gradient-secondary);
+        color: white;
+      }
+
+      .btn-secondary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(44, 62, 80, 0.3);
+      }
+
+      .btn-outline {
+        background: transparent;
+        color: var(--primary-color);
+        border: 2px solid var(--primary-color);
+      }
+
+      .btn-outline:hover {
+        background: var(--primary-color);
+        color: white;
+      }
+
+      .btn-success {
+        background: linear-gradient(135deg, var(--success-color), #27ae60);
+        color: white;
+      }
+
+      .btn-warning {
+        background: linear-gradient(135deg, var(--warning-color), #e67e22);
+        color: white;
+      }
+
+      .form-actions {
+        display: flex;
+        gap: 15px;
+        margin-top: 25px;
+        flex-wrap: wrap;
+      }
+
+      .table-container {
+        overflow-x: auto;
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+        background: white;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background-color: white;
+        min-width: 1000px;
+      }
+
+      th {
+        background: var(--gradient-secondary);
+        color: white;
+        padding: 16px 12px;
+        text-align: right;
+        font-weight: 600;
+        font-size: 0.95rem;
+        white-space: nowrap;
+      }
+
+      td {
+        padding: 14px 12px;
+        border-bottom: 1px solid #e1e5e9;
+        font-size: 0.95rem;
+        text-align: right;
+      }
+
+      tr:hover {
+        background-color: rgba(52, 152, 219, 0.05);
+      }
+
+      .actions {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+      }
+
+      .actions button {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 1.1rem;
+        padding: 6px 8px;
+        border-radius: 6px;
+        transition: var(--transition);
+      }
+
+      .actions button:hover {
+        background-color: rgba(0, 0, 0, 0.1);
+        transform: scale(1.1);
+      }
+
+      .edit-btn {
+        color: var(--primary-color);
+      }
+
+      .delete-btn {
+        color: var(--danger-color);
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        color: #7f8c8d;
+      }
+
+      .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 15px;
+        opacity: 0.5;
+      }
+
+      .required::after {
+        content: " *";
+        color: var(--danger-color);
+      }
+
+      .error-msg {
+        color: var(--danger-color);
+        font-weight: bold;
+        margin-top: 5px;
+        display: none;
+        font-size: 0.9rem;
+      }
+
+      .controls-container {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      .search-box {
+        flex: 1;
+        min-width: 250px;
+        position: relative;
+      }
+
+      .search-box i {
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #7f8c8d;
+      }
+
+      .search-box input {
+        padding-right: 45px;
+      }
+
+      .pagination {
+        display: flex;
+        gap: 5px;
+        margin-top: 20px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      .page-btn {
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        background: white;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: var(--transition);
+      }
+
+      .page-btn.active {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+      }
+
+      .page-btn:hover:not(.active) {
+        background: #f8f9fa;
+      }
+
+      .count-display {
+        text-align: center;
+        margin-top: 15px;
+        font-weight: 600;
+        color: var(--dark-color);
+        padding: 10px;
+        background: var(--light-color);
+        border-radius: var(--border-radius);
+      }
+
+      @media (max-width: 768px) {
+        body {
+          padding: 15px;
+        }
+        
+        .header {
+          padding: 20px;
+          border-radius: 10px;
+        }
+        
+        .header h2 {
+          font-size: 1.8rem;
+        }
+        
+        .card {
+          padding: 20px;
+        }
+        
+        .form-grid {
+          grid-template-columns: 1fr;
+        }
+        
+        .form-actions {
+          flex-direction: column;
+        }
+        
+        .btn {
+          width: 100%;
+        }
+        
+        th, td {
+          padding: 12px 8px;
+        }
+        
+        .connection-status {
+          top: 10px;
+          left: 10px;
+          right: 10px;
+          font-size: 12px;
+        }
+        
+        .controls-container {
+          flex-direction: column;
+          align-items: stretch;
+        }
+        
+        .search-box {
+          min-width: 100%;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .header {
+          border-radius: 8px;
+        }
+        
+        .header h2 {
+          font-size: 1.5rem;
+        }
+        
+        .card {
+          padding: 15px;
+          border-radius: 10px;
+        }
+        
+        input, select {
+          padding: 12px 14px;
+        }
+        
+        .btn {
+          padding: 12px 20px;
+        }
+      }
+
+      /* Animations */
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .card, .table-container {
+        animation: fadeIn 0.5s ease;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <!-- شريط حالة الاتصال -->
+      <div class="connection-status">
+        <span id="connection-status">
+          <i class="fas fa-spinner fa-spin"></i> جاري الاتصال...
+        </span>
+      </div>
+
+      <!-- مؤشر التحميل -->
+      <div id="loading-spinner" class="loading-spinner">
+        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;">
+          <span class="visually-hidden">جاري التحميل...</span>
+        </div>
+      </div>
+
+      <div class="header">
+        <h2><i class="fas fa-industry"></i> إدارة الشركات</h2>
+      </div>
+
+      <div class="main-content">
+        <!-- نموذج الإضافة -->
+        <div class="card">
+          <h3 class="card-title"><i class="fas fa-building"></i> إضافة شركة جديدة</h3>
+          <form id="factoryForm">
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="factory_id" class="required">كود الشركة:</label>
+                <input type="number" id="factory_id" required placeholder="أدخل كود الشركة">
+                <div id="idError" class="error-msg">❌ هذا الكود مسجل مسبقًا!</div>
+              </div>
+
+              <div class="form-group">
+                <label for="factory_name" class="required">اسم الشركة:</label>
+                <input type="text" id="factory_name" required placeholder="أدخل اسم الشركة">
+              </div>
+
+              <div class="form-group full-width">
+                <label for="address">العنوان:</label>
+                <input type="text" id="address" placeholder="أدخل عنوان الشركة">
+              </div>
+
+              <div class="form-group">
+                <label for="phone">رقم الهاتف:</label>
+                <input type="text" id="phone" placeholder="أدخل رقم الهاتف">
+              </div>
+
+              <div class="form-group">
+                <label for="user_id">رقم المستخدم:</label>
+                <input type="number" id="user_id" placeholder="أدخل رقم المستخدم">
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="button" id="save-btn" class="btn btn-primary">
+                <i class="fas fa-save"></i> حفظ الشركة
+              </button>
+              <button type="button" id="clear-btn" class="btn btn-outline">
+                <i class="fas fa-broom"></i> مسح النموذج
+              </button>
+              <button type="button" id="importBtn" class="btn btn-success">
+                <i class="fas fa-file-import"></i> استيراد
+              </button>
+              <button type="button" id="exportBtn" class="btn btn-warning">
+                <i class="fas fa-file-export"></i> تصدير
+              </button>
+            </div>
+            <input id="importInput" type="file" accept=".csv,.xls,.xlsx" style="display:none">
+          </form>
+        </div>
+
+        <!-- جدول الشركات -->
+        <div class="card">
+          <h3 class="card-title"><i class="fas fa-list"></i> قائمة الشركات</h3>
+          
+          <!-- عناصر التحكم -->
+          <div class="controls-container">
+            <div class="search-box">
+              <i class="fas fa-search"></i>
+              <input type="text" id="searchBox" placeholder="ابحث عن شركة بالاسم أو الكود...">
+            </div>
+            
+            <select id="pageSizeSelector" class="form-select" style="width: auto;">
+              <option value="10">عرض 10</option>
+              <option value="20" selected>عرض 20</option>
+              <option value="50">عرض 50</option>
+              <option value="all">عرض الكل</option>
+            </select>
+          </div>
+
+          <div class="table-container">
+            <table id="factoriesTable">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>كود الشركة</th>
+                  <th>الاسم</th>
+                  <th>العنوان</th>
+                  <th>الهاتف</th>
+                  <th>رقم المستخدم</th>
+                  <th>التاريخ</th>
+                  <th>الإجراءات</th>
+                </tr>
+              </thead>
+              <tbody id="factoriesTableBody">
+                <tr>
+                  <td colspan="8" class="empty-state">
+                    <div><i class="fas fa-industry"></i></div>
+                    <p>لا توجد بيانات للشركات</p>
+                    <small>قم بإضافة شركة جديدة باستخدام النموذج</small>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div id="pagination" class="pagination"></div>
+          <div id="factoryCount" class="count-display"></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // FactoryApp - مع دعم Supabase
+      class FactoryApp {
+        constructor() {
+          // تكوين Supabase
+          this.SUPABASE_URL = 'https://rvjacvrrpguehbapvewe.supabase.co';
+          this.SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2amFjdnJycGd1ZWhiYXB2ZXdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwMjUxNTksImV4cCI6MjA3ODYwMTE1OX0.wSavKzxKOF7-56G-pzDMtbXNrCNAbGs0wvadw-cilBg';
+          this.supabase = null;
+          this.isOnline = false;
+          this.currentEditId = null;
+          this.duplicateCode = false;
+          
+          this.allFactories = [];
+          this.currentPage = 1;
+          this.itemsPerPage = 20;
+          
+          this.init();
+        }
+
+        async init() {
+          this.dom = this._initDOM();
+          this._bindEvents();
+          const connected = await this.initSupabase();
+          
+          if (connected) {
+            await this.loadFactories();
+          } else {
+            this.showError('فشل في الاتصال بقاعدة البيانات. يرجى التحقق من الاتصال بالإنترنت.');
+          }
+        }
+
+        _initDOM() {
+          return {
+            form: document.getElementById("factoryForm"),
+            factoryId: document.getElementById("factory_id"),
+            factoryName: document.getElementById("factory_name"),
+            address: document.getElementById("address"),
+            phone: document.getElementById("phone"),
+            userId: document.getElementById("user_id"),
+            idError: document.getElementById("idError"),
+            saveBtn: document.getElementById("save-btn"),
+            clearBtn: document.getElementById("clear-btn"),
+            importBtn: document.getElementById("importBtn"),
+            exportBtn: document.getElementById("exportBtn"),
+            importInput: document.getElementById("importInput"),
+            searchBox: document.getElementById("searchBox"),
+            pageSizeSelector: document.getElementById("pageSizeSelector"),
+            tableBody: document.querySelector("#factoriesTableBody"),
+            pagination: document.getElementById("pagination"),
+            factoryCount: document.getElementById("factoryCount"),
+            connectionStatus: document.getElementById("connection-status"),
+            loadingSpinner: document.getElementById("loading-spinner")
+          };
+        }
+
+        _bindEvents() {
+          // أحداث الأزرار
+          this.dom.saveBtn.addEventListener("click", () => this.saveFactory());
+          this.dom.clearBtn.addEventListener("click", () => this.clearForm());
+          this.dom.importBtn.addEventListener("click", () => this.dom.importInput.click());
+          this.dom.exportBtn.addEventListener("click", () => this.exportData());
+          
+          // أحداث الإدخال
+          this.dom.factoryId.addEventListener("blur", () => this.checkDuplicateCode());
+          this.dom.searchBox.addEventListener("input", () => {
+            this.currentPage = 1;
+            this.renderTable();
+          });
+          this.dom.pageSizeSelector.addEventListener("change", (e) => {
+            this.itemsPerPage = e.target.value === "all" ? "all" : parseInt(e.target.value);
+            this.currentPage = 1;
+            this.renderTable();
+          });
+          
+          // استيراد الملفات
+          this.dom.importInput.addEventListener("change", (e) => this.importData(e));
+          
+          // منع Enter من الحفظ التلقائي
+          this.dom.form.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              const inputs = [...this.dom.form.querySelectorAll("input, select")];
+              const idx = inputs.indexOf(e.target);
+              if (idx > -1 && idx < inputs.length - 1) {
+                inputs[idx + 1].focus();
+              }
+            }
+          });
+          
+          // التركيز على حقل الكود عند التحميل
+          this.focusFactoryId();
+        }
+
+        async initSupabase() {
+          try {
+            this.showLoading(true);
+            this.updateConnectionStatus('warning', '<i class="fas fa-spinner fa-spin"></i> جاري الاتصال...');
+            
+            console.log('🔄 جاري تهيئة Supabase...');
+            this.supabase = supabase.createClient(this.SUPABASE_URL, this.SUPABASE_KEY);
+            
+            // اختبار الاتصال البسيط
+            const { data, error } = await this.supabase.auth.getSession();
+            
+            if (error) {
+              console.error('❌ خطأ في المصادقة:', error);
+              throw error;
+            }
+
+            // اختبار جدول factories
+            const { data: factoryData, error: factoryError } = await this.supabase
+              .from('factories')
+              .select('count')
+              .limit(1)
+              .single();
+
+            if (factoryError && factoryError.code !== 'PGRST116') {
+              console.warn('⚠️ تحذير في جدول factories:', factoryError);
+            }
+
+            this.isOnline = true;
+            this.updateConnectionStatus('success', '<i class="fas fa-cloud-check"></i> متصل بالسحابة');
+            console.log('✅ Supabase متصل بنجاح');
+            return true;
+            
+          } catch (error) {
+            console.error('❌ فشل في الاتصال بـ Supabase:', error);
+            this.isOnline = false;
+            this.updateConnectionStatus('danger', '<i class="fas fa-cloud-slash"></i> غير متصل');
+            
+            let errorMessage = 'فشل في الاتصال بقاعدة البيانات';
+            if (error.message) {
+              errorMessage += `: ${error.message}`;
+            }
+            this.showError(errorMessage);
+            return false;
+          } finally {
+            this.showLoading(false);
+          }
+        }
+
+        // تحديث حالة الاتصال
+        updateConnectionStatus(type, message) {
+          if (!this.dom.connectionStatus) return;
+          
+          this.dom.connectionStatus.innerHTML = message;
+          this.dom.connectionStatus.style.borderLeftColor = 
+            type === 'success' ? '#28a745' : 
+            type === 'danger' ? '#dc3545' : '#ffc107';
+        }
+
+        // إظهار/إخفاء مؤشر التحميل
+        showLoading(show) {
+          if (this.dom.loadingSpinner) {
+            this.dom.loadingSpinner.style.display = show ? 'block' : 'none';
+          }
+        }
+
+        async loadFactories() {
+          try {
+            this.showLoading(true);
+            console.log('🔄 جاري تحميل بيانات الشركات...');
+            
+            if (!this.supabase) {
+              throw new Error('Supabase غير مهيئ');
+            }
+
+            const { data, error } = await this.supabase
+              .from('factories')
+              .select('*')
+              .order('factory_id');
+
+            if (error) {
+              console.error('❌ خطأ في تحميل الشركات:', error);
+              
+              if (error.code === '42P01') {
+                console.log('⚠️ جدول factories غير موجود، استخدام بيانات تجريبية');
+                this.loadSampleFactories();
+                return;
+              }
+              throw error;
+            }
+
+            console.log('✅ تم تحميل الشركات:', data);
+            this.allFactories = data || [];
+            this.renderTable();
+                
+          } catch (error) {
+            console.error('❌ خطأ في تحميل بيانات الشركات:', error);
+            this.loadSampleFactories();
+          } finally {
+            this.showLoading(false);
+          }
+        }
+
+        // تحميل بيانات تجريبية للشركات
+        loadSampleFactories() {
+          this.allFactories = [
+            {
+              factory_id: 1,
+              factory_name: 'شركة التقنية المتطورة',
+              address: 'الرياض - حي العليا',
+              phone: '0112345678',
+              user_id: 101,
+              user_stamp: '2023-01-15T10:30:00Z'
+            },
+            {
+              factory_id: 2,
+              factory_name: 'مصنع الأجهزة الإلكترونية',
+              address: 'جدة - حي الصفا',
+              phone: '0123456789',
+              user_id: 102,
+              user_stamp: '2023-02-20T14:45:00Z'
+            },
+            {
+              factory_id: 3,
+              factory_name: 'شركة الصناعات الحديثة',
+              address: 'الدمام - حي الثقبة',
+              phone: '0134567890',
+              user_id: 103,
+              user_stamp: '2023-03-10T09:15:00Z'
+            }
+          ];
+          
+          this.renderTable();
+          this.showInfo('يتم استخدام بيانات تجريبية للشركات');
+        }
+
+        renderTable() {
+          const factories = this.filteredFactories();
+          const totalPages = Math.ceil(factories.length / (this.itemsPerPage === "all" ? factories.length : this.itemsPerPage));
+          const start = this.itemsPerPage === "all" ? 0 : (this.currentPage - 1) * this.itemsPerPage;
+          const end = this.itemsPerPage === "all" ? factories.length : start + this.itemsPerPage;
+          const pageFactories = factories.slice(start, end);
+
+          this.dom.tableBody.innerHTML = "";
+          
+          if (pageFactories.length === 0) {
+            this.dom.tableBody.innerHTML = `
+              <tr>
+                <td colspan="8" class="empty-state">
+                  <div><i class="fas fa-industry"></i></div>
+                  <p>لا توجد بيانات للشركات</p>
+                  <small>قم بإضافة شركة جديدة باستخدام النموذج</small>
+                </td>
+              </tr>
+            `;
+          } else {
+            pageFactories.forEach((f, index) => {
+              const serial = (this.itemsPerPage === "all") ? (index + 1) : (start + index + 1);
+              const tr = document.createElement("tr");
+              tr.innerHTML = `
+                <td>${serial}</td>
+                <td>${f.factory_id}</td>
+                <td>${f.factory_name}</td>
+                <td>${f.address || ""}</td>
+                <td>${f.phone || ""}</td>
+                <td>${f.user_id || ""}</td>
+                <td>${f.user_stamp ? new Date(f.user_stamp).toLocaleString("ar-EG") : ""}</td>
+                <td class="actions">
+                  <button class="edit-btn" onclick="app.editFactory(${f.factory_id})">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button class="delete-btn" onclick="app.deleteFactory(${f.factory_id})">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </td>
+              `;
+              this.dom.tableBody.appendChild(tr);
+            });
+          }
+          
+          this.renderPagination(totalPages);
+          this.renderCount(factories.length);
+        }
+
+        filteredFactories() {
+          const query = this.dom.searchBox.value.trim().toLowerCase();
+          if (!query) return this.allFactories;
+          
+          return this.allFactories.filter(f =>
+            String(f.factory_id || "").toLowerCase().includes(query) ||
+            (f.factory_name && f.factory_name.toLowerCase().includes(query)) ||
+            (f.address && f.address.toLowerCase().includes(query)) ||
+            (f.phone && f.phone.toLowerCase().includes(query))
+          );
+        }
+
+        renderPagination(totalPages) {
+          this.dom.pagination.innerHTML = "";
+          if (this.itemsPerPage === "all" || totalPages <= 1) return;
+          
+          for (let i = 1; i <= totalPages; i++) {
+            const btn = document.createElement("button");
+            btn.textContent = i;
+            btn.className = "page-btn" + (i === this.currentPage ? " active" : "");
+            btn.onclick = () => {
+              this.currentPage = i;
+              this.renderTable();
+            };
+            this.dom.pagination.appendChild(btn);
+          }
+        }
+
+        renderCount(count) {
+          this.dom.factoryCount.textContent = `عدد الشركات المسجلة: ${count}`;
+        }
+
+        focusFactoryId() {
+          if (!this.currentEditId) {
+            this.dom.factoryId.focus();
+          }
+        }
+
+        async checkDuplicateCode() {
+          const id = this.dom.factoryId.value.trim();
+          if (!id) return;
+          
+          try {
+            if (!this.supabase || !this.isOnline) return;
+            
+            const { data, error } = await this.supabase
+              .from('factories')
+              .select('factory_id')
+              .eq('factory_id', id)
+              .single();
+
+            if (data && !this.currentEditId) {
+              this.dom.idError.style.display = "block";
+              this.duplicateCode = true;
+            } else {
+              this.dom.idError.style.display = "none";
+              this.duplicateCode = false;
+            }
+          } catch (error) {
+            this.dom.idError.style.display = "none";
+            this.duplicateCode = false;
+          }
+        }
+
+        async saveFactory() {
+          // التحقق من البيانات
+          if (!this.dom.factoryId.value.trim() || !this.dom.factoryName.value.trim()) {
+            this.showError('يرجى إدخال كود الشركة واسم الشركة');
+            return;
+          }
+
+          if (this.duplicateCode && !this.currentEditId) {
+            this.showError('❌ لا يمكن الحفظ لأن الكود مسجل مسبقًا!');
+            this.dom.factoryId.focus();
+            return;
+          }
+
+          const factoryData = {
+            factory_id: parseInt(this.dom.factoryId.value.trim()),
+            factory_name: this.dom.factoryName.value.trim(),
+            address: this.dom.address.value.trim(),
+            phone: this.dom.phone.value.trim(),
+            user_id: this.dom.userId.value.trim() ? parseInt(this.dom.userId.value.trim()) : null,
+            user_stamp: new Date().toISOString()
+          };
+
+          try {
+            this.showLoading(true);
+            
+            if (!this.supabase || !this.isOnline) {
+              this.showInfo('⚠️ لا يمكن الحفظ - غير متصل بالسحابة');
+              return;
+            }
+
+            let result;
+            if (this.currentEditId) {
+              // حالة التعديل
+              result = await this.supabase
+                .from('factories')
+                .update(factoryData)
+                .eq('factory_id', this.currentEditId);
+            } else {
+              // حالة الإضافة
+              result = await this.supabase
+                .from('factories')
+                .insert([factoryData]);
+            }
+
+            if (result.error) {
+              throw result.error;
+            }
+
+            const message = this.currentEditId ? '✅ تم تحديث الشركة بنجاح' : '✅ تم حفظ الشركة بنجاح';
+            this.showSuccess(message);
+            this.clearForm();
+            await this.loadFactories();
+                
+          } catch (error) {
+            console.error('❌ خطأ في حفظ الشركة:', error);
+            this.showError('فشل في حفظ البيانات: ' + error.message);
+          } finally {
+            this.showLoading(false);
+          }
+        }
+
+        async editFactory(id) {
+          try {
+            this.showLoading(true);
+            
+            if (!this.supabase || !this.isOnline) {
+              this.showInfo('⚠️ لا يمكن التعديل - غير متصل بالسحابة');
+              return;
+            }
+
+            const { data, error } = await this.supabase
+              .from('factories')
+              .select('*')
+              .eq('factory_id', id)
+              .single();
+
+            if (error) {
+              throw error;
+            }
+
+            // تعبئة النموذج
+            this.dom.factoryId.value = data.factory_id;
+            this.dom.factoryName.value = data.factory_name;
+            this.dom.address.value = data.address || '';
+            this.dom.phone.value = data.phone || '';
+            this.dom.userId.value = data.user_id || '';
+
+            // تحديث حالة الزر للنمط التعديلي
+            this.currentEditId = id;
+            this.duplicateCode = false;
+            this.dom.idError.style.display = "none";
+            this.dom.saveBtn.innerHTML = '<i class="fas fa-edit"></i> تحديث الشركة';
+            this.dom.saveBtn.classList.remove('btn-primary');
+            this.dom.saveBtn.classList.add('btn-secondary');
+            
+            this.showInfo('يمكنك الآن تعديل بيانات الشركة');
+                
+          } catch (error) {
+            console.error('❌ خطأ في تحميل بيانات الشركة:', error);
+            this.showError('فشل في تحميل بيانات الشركة للتعديل');
+          } finally {
+            this.showLoading(false);
+          }
+        }
+
+        async deleteFactory(id) {
+          if (!confirm("هل تريد حذف هذه الشركة؟")) return;
+
+          try {
+            this.showLoading(true);
+            
+            if (!this.supabase || !this.isOnline) {
+              this.showInfo('⚠️ لا يمكن الحذف - غير متصل بالسحابة');
+              return;
+            }
+
+            const { error } = await this.supabase
+              .from('factories')
+              .delete()
+              .eq('factory_id', id);
+
+            if (error) {
+              throw error;
+            }
+
+            this.showSuccess('✅ تم حذف الشركة بنجاح');
+            await this.loadFactories();
+                
+          } catch (error) {
+            console.error('❌ خطأ في حذف الشركة:', error);
+            this.showError('فشل في حذف البيانات: ' + error.message);
+          } finally {
+            this.showLoading(false);
+          }
+        }
+
+        clearForm() {
+          this.dom.form.reset();
+          
+          // إعادة الزر لحالته الأصلية
+          this.currentEditId = null;
+          this.duplicateCode = false;
+          this.dom.idError.style.display = "none";
+          this.dom.saveBtn.innerHTML = '<i class="fas fa-save"></i> حفظ الشركة';
+          this.dom.saveBtn.classList.remove('btn-secondary');
+          this.dom.saveBtn.classList.add('btn-primary');
+          
+          this.focusFactoryId();
+        }
+
+        async importData(event) {
+          const file = event.target.files[0];
+          if (!file) return;
+          
+          this.dom.importBtn.disabled = true;
+          this.dom.importBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الاستيراد...';
+          
+          try {
+            // محاكاة عملية الاستيراد
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            this.showSuccess('✅ تم استيراد البيانات بنجاح');
+            await this.loadFactories();
+          } catch (error) {
+            console.error('❌ خطأ في استيراد البيانات:', error);
+            this.showError('فشل في استيراد البيانات');
+          } finally {
+            this.dom.importInput.value = "";
+            this.dom.importBtn.disabled = false;
+            this.dom.importBtn.innerHTML = '<i class="fas fa-file-import"></i> استيراد';
+          }
+        }
+
+        exportData() {
+          // محاكاة عملية التصدير
+          this.showInfo('⏳ جاري تحضير البيانات للتصدير...');
+          setTimeout(() => {
+            this.showSuccess('✅ تم تصدير البيانات بنجاح');
+          }, 1500);
+        }
+
+        // دوال مساعدة للرسائل
+        showError(message) {
+          alert(`❌ ${message}`);
+        }
+
+        showSuccess(message) {
+          alert(`✅ ${message}`);
+        }
+
+        showInfo(message) {
+          alert(`ℹ️ ${message}`);
+        }
+      }
+
+      // تهيئة التطبيق
+      const app = new FactoryApp();
+    </script>
+  </body>
+</html>

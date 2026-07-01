@@ -1,0 +1,1671 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔄 مرتجع المشتريات</title>
+    <link rel="stylesheet" href="styleP.css">
+    <!-- إضافة Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- إضافة Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <style>
+        /* ✅ إضافة أنماط جديدة لنظام الصلاحيات */
+        .user-system-bar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .user-info-display {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .user-avatar {
+            background: white;
+            color: #667eea;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .user-details {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .user-name {
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .user-store {
+            font-size: 13px;
+            opacity: 0.9;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .special-user-badge {
+            background: gold;
+            color: black;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: bold;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .required-field-label::after {
+            content: " *";
+            color: #f44336;
+            font-weight: bold;
+        }
+
+        .connection-status {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: #fff;
+            padding: 8px 12px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1000;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .connection-status.supabase {
+            border-left: 4px solid #28a745;
+            background: #f8fff9;
+        }
+        .connection-status.offline {
+            border-left: 4px solid #dc3545;
+            background: #fff5f5;
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .status-dot.connected {
+            background: #28a745;
+        }
+        .status-dot.disconnected {
+            background: #dc3545;
+        }
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+            margin-left: 8px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* مؤشر التحميل */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            border-radius: 8px;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .error-message {
+            background-color: #ffebee;
+            color: #c62828;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 15px 0;
+            text-align: center;
+            border-left: 4px solid #f44336;
+            display: none;
+        }
+
+        .success-message {
+            background-color: #e8f5e8;
+            color: #2e7d32;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 15px 0;
+            text-align: center;
+            border-left: 4px solid #4caf50;
+            display: none;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .btn-success:hover, .btn-secondary:hover {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <!-- شريط حالة الاتصال -->
+    <div id="connectionStatus" class="connection-status offline">
+        <span class="status-dot disconnected"></span>
+        <span id="statusText">جارٍ الاتصال...</span>
+    </div>
+
+    <div class="container">
+        <!-- ✅ شريط معلومات المستخدم المحسن -->
+        <div id="userSystemBar" class="user-system-bar">
+            <div class="user-info-display">
+                <div class="user-avatar" id="userAvatar">👤</div>
+                <div class="user-details">
+                    <div class="user-name" id="userName">جاري التحميل...</div>
+                    <div class="user-store">
+                        <i class="fas fa-store"></i>
+                        <span id="storeName">المخزن: جاري التحميل...</span>
+                        <span id="specialUserBadge" class="special-user-badge" style="display: none;">
+                            <i class="fas fa-crown"></i> مستخدم خاص
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <button onclick="logout()" class="btn-secondary" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3);">
+                <i class="fas fa-sign-out-alt"></i> تسجيل الخروج
+            </button>
+        </div>
+
+        <h2 style="margin:0 0 8px 0;color:#2c3e50;font-size:16px">🔄 شاشة مرتجع المشتريات</h2>
+
+        <!-- مؤشر التحميل -->
+        <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+            <div class="spinner"></div>
+        </div>
+        
+        <!-- رسالة الخطأ -->
+        <div id="errorMessage" class="error-message"></div>
+        
+        <!-- رسالة النجاح -->
+        <div id="successMessage" class="success-message"></div>
+
+        <form id="returnForm">
+            <div class="section-title">معلومات الفاتورة الأصلية</div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="store_id" class="required-field-label">الفرع:</label>
+                    <select id="store_id" required>
+                        <option value="">جاري التحميل...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="original_invoice_id" class="required-field-label">رقم الفاتورة الأصلية:</label>
+                    <input type="number" id="original_invoice_id" required class="auto-select" placeholder="أدخل رقم الفاتورة">
+                </div>
+                <div class="form-group">
+                    <button type="button" id="search_original_btn" style="background:#17a2b8; margin-top: 22px;">
+                        <i class="fas fa-search"></i> بحث عن الفاتورة
+                    </button>
+                </div>
+            </div>
+
+            <div id="originalPurchaseInfo" class="original-purchase" style="display:none">
+                <h4>بيانات الفاتورة الأصلية</h4>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>التاريخ:</label>
+                        <span id="original_date"></span>
+                    </div>
+                    <div class="form-group">
+                        <label>الفرع:</label>
+                        <span id="original_store"></span>
+                    </div>
+                    <div class="form-group">
+                        <label>المورد:</label>
+                        <span id="original_supplier"></span>
+                    </div>
+                </div>
+                <div class="stock-info" id="original_items_count"></div>
+                <div class="stock-info" id="quantity_info"></div>
+            </div>
+
+            <div class="return-section">
+                <div class="section-title">معلومات المرتجع</div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="return_invoice_id" class="required-field-label">رقم فاتورة المرتجع:</label>
+                        <input type="number" id="return_invoice_id" required class="auto-select">
+                    </div>
+                    <div class="form-group">
+                        <label for="return_date" class="required-field-label">تاريخ المرتجع:</label>
+                        <input type="datetime-local" id="return_date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="return_reason" class="required-field-label">سبب المرتجع:</label>
+                        <select id="return_reason" required>
+                            <option value="">اختر السبب</option>
+                            <option value="تالف">تالف</option>
+                            <option value="منتهي الصلاحية">منتهي الصلاحية</option>
+                            <option value="خطأ في الكمية">خطأ في الكمية</option>
+                            <option value="خطأ في الصنف">خطأ في الصنف</option>
+                            <option value="جودة منخفضة">جودة منخفضة</option>
+                            <option value="آخر">آخر</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="return_notes">ملاحظات المرتجع:</label>
+                        <textarea id="return_notes" rows="3" placeholder="ملاحظات إضافية..." class="auto-select"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-title">الأصناف المراد إرجاعها</div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="return_item_id" class="required-field-label">الصنف:</label>
+                    <div class="input-combined">
+                        <div class="combobox-container">
+                            <input type="text" id="return_item_id" required placeholder="ابحث عن الصنف" list="return-items-list" class="auto-select">
+                            <datalist id="return-items-list"></datalist>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="return_item_qty" class="required-field-label">الكمية المرتجعة:</label>
+                    <input type="number" id="return_item_qty" step="0.01" required class="auto-select">
+                </div>
+                <div class="form-group">
+                    <label for="available_qty">الكمية المتاحة للإرجاع:</label>
+                    <input type="number" id="available_qty" step="0.01" readonly style="background:#f8f9fa">
+                </div>
+            </div>
+
+            <div style="text-align:left; margin-top:10px">
+                <button type="button" id="addReturnItemBtn" class="btn-success">
+                    <i class="fas fa-plus"></i> إضافة صنف للإرجاع
+                </button>
+            </div>
+        </form>
+
+        <div class="section-title">الأصناف المضافة للإرجاع</div>
+        <table class="items-table" id="returnItemsTable">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>كود الصنف</th>
+                    <th>اسم الصنف</th>
+                    <th>الكمية المرتجعة</th>
+                    <th>سعر الشراء</th>
+                    <th>الإجمالي</th>
+                    <th>سبب المرتجع</th>
+                    <th>الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody id="returnItemsTableBody">
+                <tr><td colspan="8" style="text-align:center" class="loading">لم يتم إضافة أي أصناف للإرجاع</td></tr>
+            </tbody>
+        </table>
+
+        <div class="control-row">
+            <button type="button" id="saveReturnBtn" style="background:#dc3545; flex:1">
+                <i class="fas fa-save"></i> حفظ مرتجع المشتريات
+            </button>
+            <button type="button" id="refreshBtn" style="background:#2980b9;">
+                <i class="fas fa-redo"></i> تحديث البيانات
+            </button>
+        </div>
+
+        <!-- قسم عرض الفواتير السابقة -->
+        <div class="history-section">
+            <div class="section-title">فواتير مرتجع المشتريات السابقة</div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="search_return_invoice">بحث برقم فاتورة المرتجع:</label>
+                    <input type="number" id="search_return_invoice" placeholder="أدخل رقم فاتورة المرتجع" class="auto-select">
+                </div>
+                <div class="form-group">
+                    <label for="search_original_invoice">بحث برقم الفاتورة الأصلية:</label>
+                    <input type="number" id="search_original_invoice" placeholder="أدخل رقم الفاتورة الأصلية" class="auto-select">
+                </div>
+                <div class="form-group">
+                    <button type="button" id="searchReturnsBtn" style="background:#28a745">
+                        <i class="fas fa-search"></i> بحث
+                    </button>
+                    <button type="button" id="showAllReturnsBtn" style="background:#17a2b8">
+                        <i class="fas fa-redo"></i> عرض الكل
+                    </button>
+                </div>
+            </div>
+
+            <table class="items-table" id="returnsHistoryTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>رقم فاتورة المرتجع</th>
+                        <th>رقم الفاتورة الأصلية</th>
+                        <th>التاريخ</th>
+                        <th>الفرع</th>
+                        <th>عدد الأصناف</th>
+                        <th>إجمالي القيمة</th>
+                        <th>سبب المرتجع</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody id="returnsHistoryTableBody">
+                    <tr><td colspan="9" style="text-align:center" class="loading">لم يتم تحميل البيانات بعد</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal لعرض التفاصيل -->
+    <div id="returnDetailsModal" class="modal">
+        <div class="modal-content">
+            <h3>تفاصيل فاتورة المرتجع</h3>
+            <div id="returnDetailsContent"></div>
+            <div style="text-align:left; margin-top:15px">
+                <button type="button" id="closeModalBtn" class="btn-secondary">إغلاق</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== تكوين Supabase ====================
+        const SUPABASE_CONFIG = {
+            url: 'https://rvjacvrrpguehbapvewe.supabase.co',
+            key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2amFjdnJycGd1ZWhiYXB2ZXdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwMjUxNTksImV4cCI6MjA3ODYwMTE1OX0.wSavKzxKOF7-56G-pzDMtbXNrCNAbGs0wvadw-cilBg'
+        };
+
+        // ==================== نظام إدارة الصلاحيات ====================
+        class UserPermissionManager {
+            constructor() {
+                this.supabase = null;
+                this.initialize();
+            }
+
+            initialize() {
+                try {
+                    this.supabase = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.key);
+                    console.log('✅ UserPermissionManager initialized');
+                } catch (error) {
+                    console.error('❌ Failed to initialize Supabase:', error);
+                }
+            }
+
+            /*checkLogin() {
+                const userId = localStorage.getItem('user_id');
+                const storeId = localStorage.getItem('store_id');
+                
+                if (!userId) {
+                    window.location.href = 'index.html';
+                    return false;
+                }
+                
+                if (storeId === '9999') {
+                    localStorage.setItem('is_special_user', 'true');
+                    localStorage.setItem('full_access', 'true');
+                } else {
+                    localStorage.setItem('is_special_user', 'false');
+                    localStorage.setItem('full_access', 'false');
+                }
+                
+                return true;
+            }
+            */
+
+            checkLogin() {
+                // ✅ أبسط نسخة: التحقق من المخزن فقط
+                const storeId = localStorage.getItem('store_id');
+                
+                // 1. تأكد من وجود مخزن
+                if (!storeId) {
+                    localStorage.setItem('store_id', '1');
+                    localStorage.setItem('store_name', 'المخزن الرئيسي');
+                }
+                
+                // 2. تحديد نوع المستخدم بناءً على المخزن
+                if (storeId === '9999') {
+                    localStorage.setItem('is_special_user', 'true');
+                } else {
+                    localStorage.setItem('is_special_user', 'false');
+                }
+                
+                // 3. دائمًا نرجع true (لا توجيه لـ index.html)
+                return true;
+            }
+            isSpecialUser() {
+                return localStorage.getItem('is_special_user') === 'true';
+            }
+
+            isViewAllStores() {
+                return localStorage.getItem('view_all_stores') === 'true';
+            }
+
+            getCurrentStore() {
+                return {
+                    id: localStorage.getItem('store_id'),
+                    name: localStorage.getItem('store_name')
+                };
+            }
+
+            displayUserInfo() {
+                const userName = localStorage.getItem('username') || 'مستخدم غير معروف';
+                const storeName = localStorage.getItem('store_name') || 'مخزن غير محدد';
+                const isSpecial = this.isSpecialUser();
+                
+                document.getElementById('userName').textContent = `مرحباً: ${userName}`;
+                document.getElementById('storeName').textContent = `المخزن: ${storeName}`;
+                
+                const badge = document.getElementById('specialUserBadge');
+                if (isSpecial) {
+                    badge.style.display = 'inline-flex';
+                } else {
+                    badge.style.display = 'none';
+                }
+                
+                const avatar = document.getElementById('userAvatar');
+                if (avatar && userName) {
+                    avatar.textContent = userName.charAt(0);
+                }
+            }
+        }
+
+        // ==================== تهيئة النظام ====================
+        document.addEventListener('DOMContentLoaded', async function() {
+            const permissionManager = new UserPermissionManager();
+            if (!permissionManager.checkLogin()) return;
+            
+            permissionManager.displayUserInfo();
+            
+            window.returnManager = new PurchaseReturnManager(permissionManager);
+        });
+
+        function logout() {
+            if (confirm('هل تريد تسجيل الخروج؟')) {
+                const keys = [
+                    'user_id', 'username', 'store_name', 'store_id',
+                    'is_special_user', 'full_access', 'view_all_stores'
+                ];
+                keys.forEach(key => localStorage.removeItem(key));
+                window.location.href = 'index.html';
+            }
+        }
+
+        // ==================== فئة مدير مرتجع المشتريات ====================
+        class PurchaseReturnManager {
+            constructor(permissionManager) {
+                this.permissionManager = permissionManager;
+                this.supabase = permissionManager.supabase;
+                this.returnItems = [];
+                this.originalPurchase = null;
+                this.isOnline = false;
+                this.init();
+            }
+
+            async init() {
+                await this.checkConnection();
+                await this.loadStores();
+                this.setCurrentDate();
+                this.setupEventListeners();
+                await this.loadReturnsHistory();
+            }
+
+            async loadStores() {
+                try {
+                    const storeSelect = document.getElementById('store_id');
+                    if (!storeSelect) return;
+
+                    const isSpecialUser = this.permissionManager.isSpecialUser();
+                    const userStoreId = this.permissionManager.getCurrentStore().id;
+                    
+                    if (isSpecialUser) {
+                        const { data, error } = await this.supabase
+                            .from('stores')
+                            .select('store_id, store_name')
+                            .order('store_name', { ascending: true });
+                        
+                        if (error) throw error;
+                        
+                        if (!data || data.length === 0) {
+                            storeSelect.innerHTML = `<option value="${userStoreId}" selected>المخزن الرئيسي</option>`;
+                            return;
+                        }
+                        
+                        storeSelect.innerHTML = '<option value="">اختر الفرع</option>';
+                        data.forEach(store => {
+                            const option = new Option(
+                                `${store.store_name || `مخزن ${store.store_id}`}`,
+                                store.store_id
+                            );
+                            
+                            if (store.store_id === userStoreId) {
+                                option.selected = true;
+                            }
+                            
+                            storeSelect.add(option);
+                        });
+                        
+                        storeSelect.disabled = false;
+                        
+                    } else {
+                        try {
+                            const { data, error } = await this.supabase
+                                .from('stores')
+                                .select('store_id, store_name')
+                                .eq('store_id', userStoreId)
+                                .single();
+                            
+                            if (!error && data) {
+                                storeSelect.innerHTML = `<option value="${data.store_id}" selected>${data.store_name}</option>`;
+                            } else {
+                                storeSelect.innerHTML = `<option value="${userStoreId}" selected>مخزن ${userStoreId}</option>`;
+                            }
+                            
+                            storeSelect.disabled = true;
+                            
+                        } catch (error) {
+                            console.error('❌ خطأ في تحميل مخزن المستخدم:', error);
+                            storeSelect.innerHTML = `<option value="${userStoreId}" selected>مخزن ${userStoreId}</option>`;
+                            storeSelect.disabled = true;
+                        }
+                    }
+                } catch (error) {
+                    console.error('❌ خطأ عام في loadStores:', error);
+                    this.showError('❌ حدث خطأ في تحميل قائمة المخازن');
+                    
+                    const storeSelect = document.getElementById('store_id');
+                    if (storeSelect) {
+                        const userStoreId = this.permissionManager.getCurrentStore().id || '9999';
+                        storeSelect.innerHTML = `<option value="${userStoreId}" selected>المخزن الرئيسي</option>`;
+                    }
+                }
+            }
+
+            async checkConnection() {
+                const statusElement = document.getElementById('connectionStatus');
+                const statusText = document.getElementById('statusText');
+                
+                try {
+                    const { data, error } = await this.supabase
+                        .from('stores')
+                        .select('store_id')
+                        .limit(1);
+                    
+                    if (!error) {
+                        this.isOnline = true;
+                        statusElement.className = 'connection-status supabase';
+                        statusElement.querySelector('.status-dot').className = 'status-dot connected';
+                        statusText.textContent = 'متصل بـ Supabase';
+                    } else {
+                        throw error;
+                    }
+                } catch (error) {
+                    this.isOnline = false;
+                    statusElement.className = 'connection-status offline';
+                    statusElement.querySelector('.status-dot').className = 'status-dot disconnected';
+                    statusText.textContent = 'غير متصل';
+                    console.error('الاتصال بـ Supabase فشل:', error);
+                }
+            }
+
+            setCurrentDate() {
+                const now = new Date();
+                const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+                const dateField = document.getElementById("return_date");
+                if (dateField) {
+                    dateField.value = local.toISOString().slice(0, 16);
+                }
+            }
+
+            setupEventListeners() {
+                // المستمعين الأساسيين
+                document.getElementById("search_original_btn").addEventListener("click", () => this.searchOriginalInvoice());
+                document.getElementById("addReturnItemBtn").addEventListener("click", () => this.addReturnItem());
+                document.getElementById("saveReturnBtn").addEventListener("click", () => this.saveReturn());
+                document.getElementById("return_item_id").addEventListener("input", () => this.checkAvailableQty());
+                document.getElementById("return_item_qty").addEventListener("input", () => this.validateReturnQty());
+                
+                // مستمعين البحث والعرض
+                document.getElementById("searchReturnsBtn").addEventListener("click", () => this.searchReturns());
+                document.getElementById("showAllReturnsBtn").addEventListener("click", () => this.loadReturnsHistory());
+                document.getElementById("closeModalBtn").addEventListener("click", () => this.closeModal());
+                document.getElementById("refreshBtn").addEventListener("click", () => this.loadReturnsHistory());
+                
+                this.setupEnterNavigation();
+            }
+
+            setupEnterNavigation() {
+                const fields = [
+                    'store_id',
+                    'original_invoice_id',
+                    'return_invoice_id', 
+                    'return_date',
+                    'return_reason',
+                    'return_item_id',
+                    'return_item_qty'
+                ];
+
+                fields.forEach((fieldId, index) => {
+                    const field = document.getElementById(fieldId);
+                    if (field) {
+                        field.addEventListener('keypress', (e) => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                
+                                if (fieldId === 'original_invoice_id') {
+                                    this.searchOriginalInvoice();
+                                }
+                                else if (fieldId === 'return_item_qty') {
+                                    this.addReturnItem();
+                                }
+                                else if (index < fields.length - 1) {
+                                    const nextField = document.getElementById(fields[index + 1]);
+                                    if (nextField) nextField.focus();
+                                }
+                            }
+                        });
+                    }
+                });
+            }
+
+            async searchOriginalInvoice() {
+                const storeId = document.getElementById("store_id").value;
+                const originalInvoiceId = document.getElementById("original_invoice_id").value;
+                
+                if (!storeId) {
+                    this.showError('❌ يرجى اختيار مخزن');
+                    document.getElementById('store_id').focus();
+                    return;
+                }
+
+                if (!originalInvoiceId) {
+                    this.showError('❌ يرجى إدخال رقم الفاتورة الأصلية');
+                    document.getElementById('original_invoice_id').focus();
+                    return;
+                }
+
+                const isSpecialUser = this.permissionManager.isSpecialUser();
+                const userStoreId = this.permissionManager.getCurrentStore().id;
+                
+                if (!isSpecialUser && storeId !== userStoreId) {
+                    this.showError('⚠️ يمكنك البحث فقط في المخزن المرتبط بحسابك');
+                    document.getElementById('store_id').value = userStoreId;
+                    return;
+                }
+
+                this.setLoading(true);
+                this.hideMessages();
+
+                try {
+                    console.log(`🔍 جاري البحث عن الفاتورة ${originalInvoiceId} في المخزن ${storeId}`);
+
+                    // البحث عن الفاتورة في جدول المشتريات
+                    const { data: purchasesData, error: purchasesError } = await this.supabase
+                        .from('purchases')
+                        .select(`
+                            *,
+                            items:item_nm,
+                            suppliers(supplier_name)
+                        `)
+                        .eq('store_id', storeId)
+                        .eq('invoice_id', originalInvoiceId);
+
+                    if (purchasesError) {
+                        console.error('❌ خطأ في البحث عن الفاتورة:', purchasesError);
+                        throw new Error('فشل في البحث عن الفاتورة');
+                    }
+
+                    if (!purchasesData || purchasesData.length === 0) {
+                        throw new Error('الفاتورة غير موجودة في هذا المخزن');
+                    }
+
+                    // جلب تفاصيل الأصناف
+                    const { data: purchaseItems, error: itemsError } = await this.supabase
+                        .from('purchases')
+                        .select(`
+                            *,
+                            items(item_nm)
+                        `)
+                        .eq('store_id', storeId)
+                        .eq('invoice_id', originalInvoiceId);
+
+                    if (itemsError) {
+                        console.error('❌ خطأ في جلب الأصناف:', itemsError);
+                        throw new Error('فشل في جلب تفاصيل الفاتورة');
+                    }
+
+                    // البحث عن الكميات المرتجعة سابقاً
+                    const { data: previousReturns, error: returnsError } = await this.supabase
+                        .from('purchases_return')
+                        .select('item_id, item_qty')
+                        .eq('store_id', storeId)
+                        .eq('original_invoice_id', originalInvoiceId);
+
+                    if (returnsError) {
+                        console.error('❌ خطأ في جلب المرتجعات السابقة:', returnsError);
+                    }
+
+                    // حساب الكميات المرتجعة سابقاً لكل صنف
+                    const returnedQuantities = {};
+                    if (previousReturns) {
+                        previousReturns.forEach(returnItem => {
+                            const itemId = returnItem.item_id;
+                            const qty = parseFloat(returnItem.item_qty) || 0;
+                            returnedQuantities[itemId] = (returnedQuantities[itemId] || 0) + qty;
+                        });
+                    }
+
+                    // البحث عن المخزون الحالي في a_master
+                    const itemIds = purchaseItems.map(item => item.item_id);
+                    const { data: currentStockData, error: stockError } = await this.supabase
+                        .from('a_master')
+                        .select('item_id, item_qty')
+                        .eq('store_id', storeId)
+                        .in('item_id', itemIds);
+
+                    if (stockError) {
+                        console.error('❌ خطأ في جلب المخزون:', stockError);
+                    }
+
+                    // حساب المخزون الحالي لكل صنف
+                    const currentStock = {};
+                    if (currentStockData) {
+                        currentStockData.forEach(item => {
+                            currentStock[item.item_id] = parseFloat(item.item_qty) || 0;
+                        });
+                    }
+
+                    // تحضير البيانات للعرض
+                    this.originalPurchase = {
+                        ...purchasesData[0],
+                        items: purchaseItems.map(item => ({
+                            ...item,
+                            item_nm: item.items?.item_nm || item.item_id,
+                            total_returned_qty: returnedQuantities[item.item_id] || 0,
+                            current_stock: currentStock[item.item_id] || 0
+                        }))
+                    };
+
+                    this.displayOriginalPurchaseInfo();
+                    this.populateOriginalItems();
+                    this.showSuccess('✅ تم العثور على الفاتورة بنجاح');
+
+                } catch (error) {
+                    console.error('❌ خطأ في البحث:', error);
+                    this.showError(`❌ ${error.message}`);
+                } finally {
+                    this.setLoading(false);
+                }
+            }
+
+            displayOriginalPurchaseInfo() {
+                const infoDiv = document.getElementById("originalPurchaseInfo");
+                if (!infoDiv || !this.originalPurchase) return;
+
+                const originalDate = document.getElementById("original_date");
+                const originalStore = document.getElementById("original_store");
+                const originalSupplier = document.getElementById("original_supplier");
+                const originalItemsCount = document.getElementById("original_items_count");
+                const quantityInfo = document.getElementById("quantity_info");
+
+                if (originalDate) originalDate.textContent = new Date(this.originalPurchase.tran_date).toLocaleDateString('ar-EG');
+                if (originalStore) originalStore.textContent = this.originalPurchase.store_id || '';
+                if (originalSupplier) originalSupplier.textContent = this.originalPurchase.suppliers?.supplier_name || this.originalPurchase.supplierid || '';
+                
+                const itemsCount = this.originalPurchase.items?.length || 0;
+                if (originalItemsCount) {
+                    originalItemsCount.textContent = `عدد الأصناف في الفاتورة: ${itemsCount} صنف`;
+                }
+                
+                const totalPurchased = this.originalPurchase.items.reduce((sum, item) => 
+                    sum + (parseFloat(item.item_qty) || 0), 0
+                );
+                const totalStock = this.originalPurchase.items.reduce((sum, item) => 
+                    sum + (parseFloat(item.current_stock) || 0), 0
+                );
+                
+                if (quantityInfo) {
+                    quantityInfo.innerHTML = `
+                        <div class="quantity-info">
+                            <strong>معلومات الكميات الإجمالية:</strong>
+                            <div class="quantity-breakdown">
+                                <div class="quantity-item">
+                                    <span class="quantity-label">إجمالي المشتريات:</span>
+                                    <span class="quantity-value">${totalPurchased.toFixed(2)}</span>
+                                </div>
+                                <div class="quantity-item">
+                                    <span class="quantity-label">المخزون الحالي:</span>
+                                    <span class="quantity-value">${totalStock.toFixed(2)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                infoDiv.style.display = 'block';
+            }
+
+            populateOriginalItems() {
+                const datalist = document.getElementById("return-items-list");
+                if (!datalist || !this.originalPurchase.items) return;
+                
+                datalist.innerHTML = '';
+                
+                this.originalPurchase.items.forEach(item => {
+                    const originalQty = parseFloat(item.item_qty) || 0;
+                    const currentStock = parseFloat(item.current_stock) || 0;
+                    const alreadyReturned = parseFloat(item.total_returned_qty) || 0;
+                    const availableForReturn = Math.min(originalQty - alreadyReturned, currentStock);
+                    
+                    const option = document.createElement('option');
+                    option.value = item.item_id;
+                    option.textContent = `${item.item_id} - ${item.item_nm} (المتبقي: ${availableForReturn.toFixed(2)} من ${originalQty.toFixed(2)})`;
+                    datalist.appendChild(option);
+                });
+            }
+
+            checkAvailableQty() {
+                const itemId = document.getElementById("return_item_id").value;
+                if (!itemId || !this.originalPurchase) {
+                    document.getElementById("available_qty").value = '';
+                    return;
+                }
+
+                const originalItem = this.originalPurchase.items.find(item => 
+                    item.item_id === itemId
+                );
+
+                if (!originalItem) {
+                    document.getElementById("available_qty").value = '';
+                    return;
+                }
+
+                const originalQty = parseFloat(originalItem.item_qty) || 0;
+                const currentStock = parseFloat(originalItem.current_stock) || 0;
+                const alreadyReturnedQty = parseFloat(originalItem.total_returned_qty) || 0;
+                const currentSessionReturned = this.calculateAlreadyReturnedQty(itemId);
+                
+                const availableFromPurchase = originalQty - alreadyReturnedQty - currentSessionReturned;
+                const availableForReturn = Math.min(availableFromPurchase, currentStock);
+                
+                document.getElementById("available_qty").value = availableForReturn.toFixed(2);
+                this.displayQuantityInfo(originalItem, availableForReturn, alreadyReturnedQty, currentSessionReturned);
+            }
+
+            displayQuantityInfo(item, availableForReturn, alreadyReturnedQty, currentSessionReturned) {
+                const existingInfo = document.getElementById("item_quantity_info");
+                if (existingInfo) {
+                    existingInfo.remove();
+                }
+
+                const originalQty = parseFloat(item.item_qty) || 0;
+                const currentStock = parseFloat(item.current_stock) || 0;
+
+                const quantityInfo = document.createElement('div');
+                quantityInfo.id = "item_quantity_info";
+                quantityInfo.className = "quantity-info";
+                quantityInfo.innerHTML = `
+                    <strong>معلومات الكميات للصنف:</strong>
+                    <div class="quantity-breakdown">
+                        <div class="quantity-item">
+                            <span class="quantity-label">الكمية المشتراة:</span>
+                            <span class="quantity-value">${originalQty.toFixed(2)}</span>
+                        </div>
+                        <div class="quantity-item">
+                            <span class="quantity-label">المخزون الحالي:</span>
+                            <span class="quantity-value">${currentStock.toFixed(2)}</span>
+                        </div>
+                        <div class="quantity-item">
+                            <span class="quantity-label">المرتجعة سابقاً:</span>
+                            <span class="quantity-value">${alreadyReturnedQty.toFixed(2)}</span>
+                        </div>
+                        <div class="quantity-item">
+                            <span class="quantity-label">المضافة في الجلسة:</span>
+                            <span class="quantity-value">${currentSessionReturned.toFixed(2)}</span>
+                        </div>
+                        <div class="quantity-item" style="grid-column: 1 / -1; border-top: 1px solid #dee2e6; padding-top: 5px; margin-top: 5px;">
+                            <span class="quantity-label">المتاح للإرجاع:</span>
+                            <span class="quantity-value" style="color:#28a745">${availableForReturn.toFixed(2)}</span>
+                        </div>
+                    </div>
+                `;
+
+                const availableQtyField = document.getElementById("available_qty");
+                if (availableQtyField) {
+                    availableQtyField.parentNode.appendChild(quantityInfo);
+                }
+            }
+
+            calculateAlreadyReturnedQty(itemId) {
+                let totalReturned = 0;
+                this.returnItems.forEach(item => {
+                    if (item.item_id === itemId) {
+                        totalReturned += parseFloat(item.item_qty) || 0;
+                    }
+                });
+                return totalReturned;
+            }
+            
+            validateReturnQty() {
+                const returnQty = parseFloat(document.getElementById("return_item_qty").value) || 0;
+                const availableQty = parseFloat(document.getElementById("available_qty").value) || 0;
+                
+                if (returnQty > availableQty) {
+                    this.showError('❌ الكمية المرتجعة أكبر من الكمية المتاحة');
+                    document.getElementById("return_item_qty").value = availableQty;
+                }
+            }
+
+            addReturnItem() {
+                const itemId = document.getElementById("return_item_id").value;
+                const returnQty = parseFloat(document.getElementById("return_item_qty").value) || 0;
+                const availableQty = parseFloat(document.getElementById("available_qty").value) || 0;
+                const returnReason = document.getElementById("return_reason").value;
+
+                if (!itemId || !returnQty || !returnReason) {
+                    this.showError('❌ يرجى تعبئة جميع بيانات الصنف');
+                    return;
+                }
+
+                if (returnQty <= 0) {
+                    this.showError('❌ الكمية المرتجعة يجب أن تكون أكبر من الصفر');
+                    return;
+                }
+
+                if (returnQty > availableQty) {
+                    this.showError(`❌ الكمية المرتجعة (${returnQty}) أكبر من الكمية المتاحة للإرجاع (${availableQty})`);
+                    return;
+                }
+
+                const originalItem = this.originalPurchase.items.find(item => 
+                    item.item_id === itemId
+                );
+
+                if (!originalItem) {
+                    this.showError('❌ الصنف غير موجود في الفاتورة الأصلية');
+                    return;
+                }
+
+                const originalQty = parseFloat(originalItem.item_qty) || 0;
+                const alreadyReturnedQty = parseFloat(originalItem.total_returned_qty) || 0;
+                const currentSessionReturned = this.calculateAlreadyReturnedQty(itemId);
+                const totalAfterReturn = alreadyReturnedQty + currentSessionReturned + returnQty;
+
+                if (totalAfterReturn > originalQty) {
+                    const remaining = originalQty - alreadyReturnedQty - currentSessionReturned;
+                    this.showError(`❌ لا يمكن إرجاع أكثر من الكمية المشتراة الأصلية\n- الكمية المشتراة: ${originalQty}\n- المرتجعة سابقاً: ${alreadyReturnedQty}\n- المضافة في الجلسة: ${currentSessionReturned}\n- المتبقي للإرجاع: ${remaining}`);
+                    return;
+                }
+
+                const buyPrice = parseFloat(originalItem.buy_price) || 0;
+                const totalPrice = returnQty * buyPrice;
+
+                const returnItem = {
+                    item_id: originalItem.item_id,
+                    item_nm: originalItem.item_nm,
+                    item_qty: returnQty,
+                    buy_price: buyPrice,
+                    total_price: totalPrice,
+                    net_buy_price: originalItem.net_buy_price || buyPrice,
+                    total_net_buy_price: returnQty * (originalItem.net_buy_price || buyPrice),
+                    return_reason: returnReason,
+                    batch_no: originalItem.batch_no,
+                    expiry_date: originalItem.expiry_date,
+                    unit_type: originalItem.unit_type || 'piece',
+                    units_per_package: originalItem.units_per_package || 1,
+                    sale_unit: originalItem.sale_unit || 'piece',
+                    conversion_factor: originalItem.conversion_factor || 1,
+                    converted_qty: returnQty * (originalItem.conversion_factor || 1)
+                };
+
+                this.returnItems.push(returnItem);
+                this.updateReturnItemsTable();
+                
+                // تنظيف الحقول
+                document.getElementById("return_item_id").value = '';
+                document.getElementById("return_item_qty").value = '';
+                document.getElementById("available_qty").value = '';
+                
+                const infoElement = document.getElementById("item_quantity_info");
+                if (infoElement) {
+                    infoElement.remove();
+                }
+                
+                document.getElementById("return_item_id").focus();
+                this.showSuccess('✅ تم إضافة صنف للإرجاع بنجاح');
+                
+                console.log('✅ تم إضافة صنف للإرجاع:', returnItem);
+            }
+
+            updateReturnItemsTable() {
+                const tbody = document.getElementById("returnItemsTableBody");
+                if (!tbody) return;
+                
+                if (this.returnItems.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center" class="loading">لم يتم إضافة أي أصناف للإرجاع</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = this.returnItems.map((item, index) => `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${item.item_id}</td>
+                        <td>${item.item_nm}</td>
+                        <td>${item.item_qty.toFixed(2)}</td>
+                        <td>${item.buy_price?.toFixed(2)}</td>
+                        <td>${item.total_price?.toFixed(2)}</td>
+                        <td>${item.return_reason}</td>
+                        <td>
+                            <button type="button" onclick="returnManager.removeReturnItem(${index})" style="background:#dc3545; padding:2px 8px; color:white; border:none; border-radius:3px; cursor:pointer;">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+
+            removeReturnItem(index) {
+                if (confirm('هل تريد حذف هذا الصنف من قائمة الإرجاع؟')) {
+                    const removedItem = this.returnItems[index];
+                    this.returnItems.splice(index, 1);
+                    this.updateReturnItemsTable();
+                    
+                    const currentItemId = document.getElementById("return_item_id").value;
+                    if (currentItemId === removedItem.item_id) {
+                        this.checkAvailableQty();
+                    }
+                    this.showSuccess('✅ تم حذف الصنف بنجاح');
+                }
+            }
+
+            async saveReturn() {
+                if (this.returnItems.length === 0) {
+                    this.showError('❌ يرجى إضافة أصناف للإرجاع');
+                    return;
+                }
+
+                if (!this.originalPurchase) {
+                    this.showError('❌ يرجى البحث عن الفاتورة الأصلية أولاً');
+                    return;
+                }
+
+                const storeId = document.getElementById("store_id").value;
+                const returnInvoiceId = document.getElementById("return_invoice_id").value;
+                const returnDate = document.getElementById("return_date").value;
+                const returnReason = document.getElementById("return_reason").value;
+                const returnNotes = document.getElementById("return_notes").value;
+
+                if (!storeId || !returnInvoiceId || !returnDate || !returnReason) {
+                    this.showError('❌ يرجى تعبئة جميع الحقول المطلوبة');
+                    return;
+                }
+
+                const isSpecialUser = this.permissionManager.isSpecialUser();
+                const userStoreId = this.permissionManager.getCurrentStore().id;
+                
+                if (!isSpecialUser && storeId !== userStoreId) {
+                    this.showError('⚠️ يمكنك الإضافة فقط للمخزن المرتبط بحسابك');
+                    document.getElementById('store_id').value = userStoreId;
+                    return;
+                }
+
+                const validationResult = this.validateReturnQuantities();
+                if (!validationResult.isValid) {
+                    this.showError(`❌ خطأ في التحقق من الكميات: ${validationResult.message}`);
+                    return;
+                }
+
+                this.setLoading(true);
+                this.hideMessages();
+
+                try {
+                    // التحقق من عدم تكرار رقم فاتورة المرتجع
+                    const { data: existingReturn, error: checkError } = await this.supabase
+                        .from('purchases_return')
+                        .select('invoice_id')
+                        .eq('store_id', storeId)
+                        .eq('invoice_id', returnInvoiceId)
+                        .maybeSingle();
+
+                    if (checkError) {
+                        console.error('❌ خطأ في التحقق من رقم الفاتورة:', checkError);
+                    }
+
+                    if (existingReturn) {
+                        throw new Error('رقم فاتورة المرتجع موجود مسبقاً في هذا المخزن');
+                    }
+
+                    console.log(`💾 جاري حفظ المرتجع ${returnInvoiceId}...`);
+
+                    // حفظ المرتجعات في جدول purchases_return
+                    const returnPromises = this.returnItems.map(item => {
+                        const returnData = {
+                            tran_date: returnDate,
+                            store_id: parseInt(storeId),
+                            supplierid: this.originalPurchase.supplierid,
+                            invoice_id: parseInt(returnInvoiceId),
+                            item_id: item.item_id,
+                            item_qty: parseFloat(item.item_qty),
+                            buy_price: parseFloat(item.buy_price),
+                            total_price: parseFloat(item.total_price),
+                            user_id: localStorage.getItem('user_id') || 1,
+                            user_stamp: new Date().toISOString(),
+                            original_invoice_id: parseInt(document.getElementById("original_invoice_id").value),
+                            return_reason: returnReason,
+                            return_notes: returnNotes,
+                            net_buy_price: parseFloat(item.net_buy_price),
+                            total_net_buy_price: parseFloat(item.total_net_buy_price),
+                            rate: this.originalPurchase.rate || 0,
+                            unit: this.originalPurchase.unit || 1,
+                            discount_type: this.originalPurchase.discount_type || 'none',
+                            discount_value: parseFloat(this.originalPurchase.discount_value) || 0,
+                            mndop: this.originalPurchase.mndop,
+                            sale_price1: parseFloat(item.buy_price * (1 + (this.originalPurchase.rate || 0) / 100)),
+                            supplier_name: this.originalPurchase.suppliers?.supplier_name,
+                            item_nm: item.item_nm,
+                            previously_returned_qty: parseFloat(this.originalPurchase.items.find(i => i.item_id === item.item_id)?.total_returned_qty || 0),
+                            batch_no: item.batch_no,
+                            expiry_date: item.expiry_date,
+                            unit_type: item.unit_type,
+                            units_per_package: parseFloat(item.units_per_package) || 1,
+                            sale_unit: item.sale_unit,
+                            conversion_factor: parseFloat(item.conversion_factor) || 1,
+                            converted_qty: parseFloat(item.converted_qty) || 0,
+                            payment_method: this.originalPurchase.payment_method || 'cash',
+                            due_date: this.originalPurchase.due_date,
+                            credit_period: this.originalPurchase.credit_period || 30,
+                            payment_terms: this.originalPurchase.payment_terms,
+                            check_number: this.originalPurchase.check_number,
+                            bank_name: this.originalPurchase.bank_name,
+                            check_date: this.originalPurchase.check_date,
+                            check_holder: this.originalPurchase.check_holder,
+                            check_branch: this.originalPurchase.check_branch
+                        };
+
+                        return this.supabase
+                            .from('purchases_return')
+                            .insert(returnData);
+                    });
+
+                    const results = await Promise.all(returnPromises);
+                    const errors = results.filter(result => result.error);
+                    
+                    if (errors.length > 0) {
+                        console.error('❌ أخطاء في حفظ المرتجعات:', errors);
+                        throw new Error('فشل في حفظ بعض الأصناف');
+                    }
+
+                    // تحديث المخزون في a_master (تخفيض الكمية)
+                    for (const item of this.returnItems) {
+                        try {
+                            const { data: existingRecord, error: fetchError } = await this.supabase
+                                .from('a_master')
+                                .select('item_qty')
+                                .eq('store_id', storeId)
+                                .eq('item_id', item.item_id)
+                                .maybeSingle();
+                            
+                            if (fetchError) {
+                                console.error(`❌ خطأ في البحث عن الصنف ${item.item_id}:`, fetchError);
+                                continue;
+                            }
+                            
+                            if (existingRecord) {
+                                const currentQty = parseFloat(existingRecord.item_qty || 0);
+                                const newQty = Math.max(0, currentQty - parseFloat(item.item_qty));
+                                
+                                const { error: updateError } = await this.supabase
+                                    .from('a_master')
+                                    .update({
+                                        item_qty: newQty,
+                                        user_stamp: new Date().toISOString(),
+                                        user_id: localStorage.getItem('user_id') || 1,
+                                        last_out_date: new Date().toISOString()
+                                    })
+                                    .eq('store_id', storeId)
+                                    .eq('item_id', item.item_id);
+                                
+                                if (updateError) {
+                                    console.error(`❌ فشل تحديث المخزون للصنف ${item.item_id}:`, updateError);
+                                } else {
+                                    console.log(`✅ تم تحديث المخزون للصنف ${item.item_id}`);
+                                }
+                            }
+                        } catch (masterError) {
+                            console.error(`❌ خطأ في معالجة المخزون للصنف ${item.item_id}:`, masterError);
+                        }
+                    }
+
+                    this.showSuccess(`✅ تم حفظ مرتجع المشتريات ${returnInvoiceId} وتحديث المخزون بنجاح`);
+                    this.resetForm();
+                    await this.loadReturnsHistory();
+
+                } catch (error) {
+                    console.error('❌ خطأ في الحفظ:', error);
+                    this.showError(`❌ حدث خطأ أثناء حفظ المرتجع: ${error.message}`);
+                } finally {
+                    this.setLoading(false);
+                }
+            }
+
+            validateReturnQuantities() {
+                for (const returnItem of this.returnItems) {
+                    const originalItem = this.originalPurchase.items.find(item => 
+                        item.item_id === returnItem.item_id
+                    );
+
+                    if (!originalItem) {
+                        return {
+                            isValid: false,
+                            message: `الصنف ${returnItem.item_id} غير موجود في الفاتورة الأصلية`
+                        };
+                    }
+
+                    const originalQty = parseFloat(originalItem.item_qty) || 0;
+                    const returnQty = parseFloat(returnItem.item_qty) || 0;
+
+                    if (returnQty > originalQty) {
+                        return {
+                            isValid: false,
+                            message: `كمية الصنف ${returnItem.item_nm} المرتجعة (${returnQty}) تتجاوز الكمية المشتراة (${originalQty})`
+                        };
+                    }
+
+                    const currentStock = parseFloat(originalItem.current_stock) || 0;
+                    if (returnQty > currentStock) {
+                        return {
+                            isValid: false,
+                            message: `كمية الصنف ${returnItem.item_nm} المرتجعة (${returnQty}) تتجاوز المخزون الحالي (${currentStock})`
+                        };
+                    }
+                }
+
+                return { isValid: true, message: 'جميع الكميات صالحة' };
+            }
+            
+            resetForm() {
+                this.returnItems = [];
+                this.originalPurchase = null;
+                const infoDiv = document.getElementById("originalPurchaseInfo");
+                if (infoDiv) infoDiv.style.display = 'none';
+                
+                document.getElementById("original_invoice_id").value = '';
+                document.getElementById("return_invoice_id").value = '';
+                document.getElementById("return_notes").value = '';
+                document.getElementById("return_item_id").value = '';
+                document.getElementById("return_item_qty").value = '';
+                document.getElementById("available_qty").value = '';
+                this.updateReturnItemsTable();
+                this.setCurrentDate();
+            }
+
+            // === إدارة الفواتير السابقة ===
+
+            async loadReturnsHistory() {
+                try {
+                    this.setLoading(true);
+                    console.log('📋 جاري تحميل فواتير المرتجع...');
+
+                    const isSpecialUser = this.permissionManager.isSpecialUser();
+                    const userStoreId = this.permissionManager.getCurrentStore().id;
+                    
+                    let query = this.supabase
+                        .from('purchases_return')
+                        .select('*')
+                        .order('tran_date', { ascending: false });
+
+                    if (!isSpecialUser) {
+                        query = query.eq('store_id', userStoreId);
+                    }
+
+                    const { data: returns, error } = await query;
+
+                    if (error) {
+                        console.error('❌ خطأ في تحميل الفواتير:', error);
+                        this.displayErrorMessage(error.message);
+                        return;
+                    }
+                    
+                    this.displayReturnsHistory(returns || []);
+                    
+                } catch (error) {
+                    console.error('❌ خطأ في تحميل الفواتير:', error);
+                    this.displayErrorMessage(error.message);
+                } finally {
+                    this.setLoading(false);
+                }
+            }
+
+            displayErrorMessage(message) {
+                const tbody = document.getElementById("returnsHistoryTableBody");
+                if (tbody) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="9" style="text-align:center; color:#dc3545;">
+                                ❌ فشل في تحميل البيانات<br>
+                                <small>${message}</small>
+                            </td>
+                        </tr>
+                    `;
+                }
+            }
+
+            async searchReturns() {
+                const returnInvoice = document.getElementById("search_return_invoice").value;
+                const originalInvoice = document.getElementById("search_original_invoice").value;
+
+                if (!returnInvoice && !originalInvoice) {
+                    this.loadReturnsHistory();
+                    return;
+                }
+
+                this.setLoading(true);
+
+                try {
+                    const isSpecialUser = this.permissionManager.isSpecialUser();
+                    const userStoreId = this.permissionManager.getCurrentStore().id;
+                    
+                    let query = this.supabase.from('purchases_return').select('*');
+                    
+                    if (returnInvoice) {
+                        query = query.eq('invoice_id', returnInvoice);
+                    } else if (originalInvoice) {
+                        query = query.eq('original_invoice_id', originalInvoice);
+                    }
+                    
+                    if (!isSpecialUser) {
+                        query = query.eq('store_id', userStoreId);
+                    }
+
+                    const { data: returns, error } = await query;
+                    
+                    if (error) {
+                        throw new Error(error.message);
+                    }
+                    
+                    this.displayReturnsHistory(returns || []);
+                    
+                } catch (error) {
+                    console.error('❌ خطأ في البحث:', error);
+                    this.showError('❌ فشل في البحث: ' + error.message);
+                } finally {
+                    this.setLoading(false);
+                }
+            }
+
+            displayReturnsHistory(returns) {
+                const tbody = document.getElementById("returnsHistoryTableBody");
+                if (!tbody) return;
+                
+                if (!returns || returns.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center" class="loading">لا توجد فواتير مرتجع</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = returns.map((returnItem, index) => `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${returnItem.invoice_id}</td>
+                        <td>${returnItem.original_invoice_id}</td>
+                        <td>${new Date(returnItem.tran_date).toLocaleDateString('ar-EG')}</td>
+                        <td>${returnItem.store_id}</td>
+                        <td>1</td>
+                        <td>${parseFloat(returnItem.total_price || 0).toFixed(2)}</td>
+                        <td>${returnItem.return_reason || ''}</td>
+                        <td>
+                            <button class="btn-info" onclick="returnManager.showReturnDetails(${returnItem.invoice_id}, ${returnItem.store_id})" style="background:#3498db; color:white; border:none; padding:2px 6px; border-radius:3px; cursor:pointer; margin:1px">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn-danger" onclick="returnManager.deleteReturn(${returnItem.invoice_id}, ${returnItem.store_id})" style="background:#dc3545; color:white; border:none; padding:2px 6px; border-radius:3px; cursor:pointer; margin:1px">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+
+            async showReturnDetails(invoiceId, storeId) {
+                try {
+                    const { data: returnDetails, error } = await this.supabase
+                        .from('purchases_return')
+                        .select('*')
+                        .eq('invoice_id', invoiceId)
+                        .eq('store_id', storeId);
+
+                    if (error) {
+                        throw new Error(error.message);
+                    }
+                    
+                    if (!returnDetails || returnDetails.length === 0) {
+                        throw new Error('لم يتم العثور على تفاصيل الفاتورة');
+                    }
+                    
+                    this.displayReturnDetails(returnDetails);
+                    
+                } catch (error) {
+                    console.error('❌ خطأ في تحميل التفاصيل:', error);
+                    this.showError('❌ فشل في تحميل التفاصيل: ' + error.message);
+                }
+            }
+
+            displayReturnDetails(returnDetails) {
+                const modal = document.getElementById("returnDetailsModal");
+                const content = document.getElementById("returnDetailsContent");
+                
+                if (!modal || !content) return;
+                
+                const itemsHtml = returnDetails.map(item => `
+                    <div style="border:1px solid #ddd; padding:10px; margin:5px 0; border-radius:4px;">
+                        <strong>${item.item_nm} (${item.item_id})</strong><br>
+                        الكمية: ${item.item_qty} | السعر: ${item.buy_price} | الإجمالي: ${item.total_price}<br>
+                        سبب الإرجاع: ${item.return_reason}<br>
+                        المخزن: ${item.store_id} | المورد: ${item.supplierid}
+                    </div>
+                `).join('');
+                
+                content.innerHTML = `
+                    <div><strong>رقم فاتورة المرتجع:</strong> ${returnDetails[0].invoice_id}</div>
+                    <div><strong>رقم الفاتورة الأصلية:</strong> ${returnDetails[0].original_invoice_id}</div>
+                    <div><strong>التاريخ:</strong> ${new Date(returnDetails[0].tran_date).toLocaleDateString('ar-EG')}</div>
+                    <div><strong>الفرع:</strong> ${returnDetails[0].store_id}</div>
+                    <div><strong>سبب المرتجع:</strong> ${returnDetails[0].return_reason}</div>
+                    <div><strong>ملاحظات:</strong> ${returnDetails[0].return_notes || 'لا توجد'}</div>
+                    <div style="margin-top:15px;"><strong>الأصناف:</strong></div>
+                    ${itemsHtml}
+                `;
+                
+                modal.style.display = 'block';
+            }
+
+            closeModal() {
+                const modal = document.getElementById("returnDetailsModal");
+                if (modal) {
+                    modal.style.display = 'none';
+                }
+            }
+
+            async deleteReturn(invoiceId, storeId) {
+                if (!confirm(`هل أنت متأكد من حذف مرتجع المشتريات رقم ${invoiceId}؟ سيتم استعادة المخزون.`)) {
+                    return;
+                }
+
+                this.setLoading(true);
+
+                try {
+                    // جلب أصناف المرتجع أولاً
+                    const { data: returnItems, error: fetchError } = await this.supabase
+                        .from('purchases_return')
+                        .select('item_id, item_qty')
+                        .eq('invoice_id', invoiceId)
+                        .eq('store_id', storeId);
+
+                    if (fetchError) {
+                        throw new Error(fetchError.message);
+                    }
+
+                    // حذف المرتجع
+                    const { error: deleteError } = await this.supabase
+                        .from('purchases_return')
+                        .delete()
+                        .eq('invoice_id', invoiceId)
+                        .eq('store_id', storeId);
+
+                    if (deleteError) {
+                        throw new Error(deleteError.message);
+                    }
+
+                    // استعادة المخزون في a_master
+                    if (returnItems && returnItems.length > 0) {
+                        for (const item of returnItems) {
+                            try {
+                                const { data: existingRecord, error: fetchStockError } = await this.supabase
+                                    .from('a_master')
+                                    .select('item_qty')
+                                    .eq('store_id', storeId)
+                                    .eq('item_id', item.item_id)
+                                    .maybeSingle();
+                                
+                                if (fetchStockError) {
+                                    console.error(`❌ خطأ في البحث عن الصنف ${item.item_id}:`, fetchStockError);
+                                    continue;
+                                }
+                                
+                                if (existingRecord) {
+                                    const currentQty = parseFloat(existingRecord.item_qty || 0);
+                                    const newQty = currentQty + parseFloat(item.item_qty);
+                                    
+                                    const { error: updateError } = await this.supabase
+                                        .from('a_master')
+                                        .update({
+                                            item_qty: newQty,
+                                            user_stamp: new Date().toISOString(),
+                                            user_id: localStorage.getItem('user_id') || 1
+                                        })
+                                        .eq('store_id', storeId)
+                                        .eq('item_id', item.item_id);
+                                    
+                                    if (updateError) {
+                                        console.error(`❌ فشل استعادة المخزون للصنف ${item.item_id}:`, updateError);
+                                    } else {
+                                        console.log(`✅ تم استعادة المخزون للصنف ${item.item_id}`);
+                                    }
+                                }
+                            } catch (masterError) {
+                                console.error(`❌ خطأ في معالجة المخزون للصنف ${item.item_id}:`, masterError);
+                            }
+                        }
+                    }
+
+                    this.showSuccess('✅ تم حذف المرتجع واستعادة المخزون بنجاح');
+                    await this.loadReturnsHistory();
+                    
+                } catch (error) {
+                    console.error('❌ خطأ في الحذف:', error);
+                    this.showError('❌ فشل في حذف المرتجع: ' + error.message);
+                } finally {
+                    this.setLoading(false);
+                }
+            }
+
+            setLoading(loading) {
+                const overlay = document.getElementById('loadingOverlay');
+                const btn = document.getElementById('saveReturnBtn');
+                
+                if (loading) {
+                    overlay.style.display = 'flex';
+                    if (btn) btn.innerHTML = '<div class="loading-spinner"></div> جارٍ الحفظ...';
+                    if (btn) btn.disabled = true;
+                } else {
+                    overlay.style.display = 'none';
+                    if (btn) btn.innerHTML = '<i class="fas fa-save"></i> حفظ مرتجع المشتريات';
+                    if (btn) btn.disabled = false;
+                }
+            }
+
+            showError(message) {
+                const errorElement = document.getElementById('errorMessage');
+                if (errorElement) {
+                    errorElement.textContent = message;
+                    errorElement.style.display = 'block';
+                    setTimeout(() => {
+                        errorElement.style.display = 'none';
+                    }, 5000);
+                }
+            }
+
+            showSuccess(message) {
+                const successElement = document.getElementById('successMessage');
+                if (successElement) {
+                    successElement.textContent = message;
+                    successElement.style.display = 'block';
+                    setTimeout(() => {
+                        successElement.style.display = 'none';
+                    }, 3000);
+                }
+            }
+
+            hideMessages() {
+                const errorElement = document.getElementById('errorMessage');
+                const successElement = document.getElementById('successMessage');
+                if (errorElement) errorElement.style.display = 'none';
+                if (successElement) successElement.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

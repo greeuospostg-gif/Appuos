@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>عن النظام | نظام إدارة متكامل</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-light: #818cf8;
+            --primary-dark: #3730a3;
+            --secondary: #f59e0b;
+            --secondary-light: #fbbf24;
+            --dark: #1e293b;
+            --dark-light: #334155;
+            --light: #f8fafc;
+            --gray: #64748b;
+            --gray-light: #e2e8f0;
+            --success: #10b981;
+            --info: #3b82f6;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            
+            --gradient-primary: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            --gradient-secondary: linear-gradient(135deg, var(--secondary) 0%, #d97706 100%);
+            --gradient-light: linear-gradient(135deg, #ffffff 0%, var(--light) 100%);
+            --gradient-dark: linear-gradient(135deg, var(--dark) 0%, #0f172a 100%);
+            
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 8px 25px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 15px 40px rgba(0, 0, 0, 0.15);
+            --shadow-xl: 0 25px 60px rgba(0, 0, 0, 0.2);
+            
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 24px;
+            --radius-full: 9999px;
+            
+            --transition-fast: all 0.2s ease;
+            --transition-normal: all 0.3s ease;
+            --transition-slow: all 0.5s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Segoe UI", "Cairo", "Tajawal", sans-serif;
+            background: var(--gradient-light);
+            color: var(--dark);
+            line-height: 1.7;
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(79, 70, 229, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(245, 158, 11, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(59, 130, 246, 0.03) 0%, transparent 50%);
+            z-index: -1;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        /* 🔥 تصميم البطاقة الرئيسية */
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: var(--radius-xl);
+            padding: 50px;
+            box-shadow: var(--shadow-xl);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            overflow: hidden;
+            transition: var(--transition-normal);
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100%;
+            height: 6px;
+            background: var(--gradient-primary);
+            border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+        }
+
+        /* 🎯 تصميم الرأس */
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+            position: relative;
+        }
+
+        .header-icon {
+            width: 80px;
+            height: 80px;
+            background: var(--gradient-primary);
+            border-radius: var(--radius-full);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 25px;
+            color: white;
+            font-size: 36px;
+            box-shadow: var(--shadow-md);
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        h1 {
+            color: var(--primary-dark);
+            font-size: 2.8rem;
+            font-weight: 800;
+            margin-bottom: 15px;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.5px;
+            line-height: 1.3;
+        }
+
+        .subtitle {
+            color: var(--gray);
+            font-size: 1.2rem;
+            max-width: 700px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* 📋 تصميم المحتوى */
+        .content-section {
+            margin-bottom: 50px;
+        }
+
+        h2 {
+            color: var(--primary-dark);
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            position: relative;
+            padding-right: 20px;
+        }
+
+        h2::before {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 6px;
+            height: 30px;
+            background: var(--gradient-primary);
+            border-radius: var(--radius-full);
+        }
+
+        h2 i {
+            color: var(--primary);
+            font-size: 1.4rem;
+        }
+
+        .intro-text {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: var(--dark-light);
+            margin-bottom: 25px;
+            padding: 20px;
+            background: rgba(248, 250, 252, 0.7);
+            border-radius: var(--radius-md);
+            border-right: 4px solid var(--primary-light);
+        }
+
+        /* ✨ تصميم قائمة المميزات */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        .feature-card {
+            background: var(--light);
+            padding: 25px;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--gray-light);
+            transition: var(--transition-normal);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary-light);
+            box-shadow: var(--shadow-md);
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--gradient-primary);
+        }
+
+        .feature-icon {
+            width: 60px;
+            height: 60px;
+            background: var(--gradient-primary);
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            color: white;
+            font-size: 24px;
+        }
+
+        .feature-card h3 {
+            color: var(--primary-dark);
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .feature-card p {
+            color: var(--gray);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        /* 🎯 تصميم الهدف */
+        .purpose-box {
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.05) 0%, rgba(245, 158, 11, 0.05) 100%);
+            padding: 30px;
+            border-radius: var(--radius-lg);
+            border: 1px solid rgba(79, 70, 229, 0.1);
+            margin: 25px 0;
+        }
+
+        .purpose-box p {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: var(--dark-light);
+        }
+
+        /* 📞 تصميم معلومات الاتصال */
+        .contact-section {
+            background: var(--gradient-light);
+            padding: 40px;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--gray-light);
+            margin-top: 40px;
+        }
+
+        .contact-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 20px;
+            background: white;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--gray-light);
+            transition: var(--transition-normal);
+        }
+
+        .contact-item:hover {
+            transform: translateX(-5px);
+            border-color: var(--primary-light);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .contact-icon {
+            width: 50px;
+            height: 50px;
+            background: var(--gradient-primary);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .contact-info h4 {
+            color: var(--primary-dark);
+            font-size: 1rem;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .contact-info p {
+            color: var(--gray);
+            font-size: 0.95rem;
+        }
+
+        /* ✨ تصميم الفوتر */
+        .footer {
+            text-align: center;
+            margin-top: 60px;
+            padding-top: 40px;
+            border-top: 1px solid var(--gray-light);
+            color: var(--gray);
+            font-size: 0.95rem;
+        }
+
+        .footer-logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            color: var(--primary);
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .footer-logo i {
+            color: var(--secondary);
+        }
+
+        /* 📱 تصميم متجاوب */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px 15px;
+            }
+            
+            .card {
+                padding: 30px 20px;
+            }
+            
+            h1 {
+                font-size: 2.2rem;
+            }
+            
+            h2 {
+                font-size: 1.6rem;
+            }
+            
+            .header-icon {
+                width: 70px;
+                height: 70px;
+                font-size: 30px;
+            }
+            
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .contact-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .intro-text,
+            .purpose-box {
+                padding: 20px 15px;
+            }
+            
+            .contact-section {
+                padding: 25px 20px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            h2 {
+                font-size: 1.4rem;
+            }
+            
+            .header-icon {
+                width: 60px;
+                height: 60px;
+                font-size: 24px;
+            }
+            
+            .feature-card,
+            .contact-item {
+                padding: 20px 15px;
+            }
+        }
+
+        /* 🎨 تأثيرات إضافية */
+        .highlight {
+            background: linear-gradient(120deg, rgba(79, 70, 229, 0.1) 0%, rgba(79, 70, 229, 0) 100%);
+            padding: 2px 8px;
+            border-radius: 4px;
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .badge {
+            display: inline-block;
+            background: var(--gradient-secondary);
+            color: white;
+            padding: 6px 15px;
+            border-radius: var(--radius-full);
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* ✨ تأثيرات تحميل */
+        .fade-in {
+            animation: fadeIn 0.8s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.2s; }
+        .delay-3 { animation-delay: 0.3s; }
+        .delay-4 { animation-delay: 0.4s; }
+        .delay-5 { animation-delay: 0.5s; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="card fade-in">
+        
+        <!-- 🎯 رأس الصفحة -->
+        <div class="header fade-in">
+            <div class="header-icon">
+                <i class="fas fa-rocket"></i>
+            </div>
+            <h1 class="fade-in delay-1">نظام إدارة المؤسسات المتكامل</h1>
+            <p class="subtitle fade-in delay-2">
+                حل تقني متكامل يجمع بين القوة والمرونة لتلبية جميع احتياجات إدارة أعمالك
+            </p>
+            <div class="badge fade-in delay-3">نسخة تجريبية متقدمة</div>
+        </div>
+
+        <!-- 📋 مقدمة -->
+        <div class="content-section fade-in delay-1">
+            <h2><i class="fas fa-info-circle"></i> نظرة عامة</h2>
+            <div class="intro-text">
+                <p>
+                    هذا النظام هو <span class="highlight">منصة ERP متكاملة</span> تم تصميمها خصيصاً لتلبية احتياجات
+                    الشركات والمؤسسات الصغيرة والمتوسطة. يجمع النظام بين بساطة الاستخدام وقوة الأداء
+                    ليكون الحل الأمثل لإدارة جميع عملياتك التجارية في مكان واحد.
+                </p>
+            </div>
+        </div>
+
+        <!-- ✨ المميزات -->
+        <div class="content-section fade-in delay-2">
+            <h2><i class="fas fa-star"></i> مميزات النظام</h2>
+            <div class="features-grid">
+                <div class="feature-card fade-in delay-1">
+                    <div class="feature-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h3>إدارة مالية متكاملة</h3>
+                    <p>
+                        نظام محاسبة شامل مع تقارير مالية مفصلة، كشوف حساب، 
+                        وتحليل مالي متقدم لاتخاذ قرارات مدروسة.
+                    </p>
+                </div>
+                
+                <div class="feature-card fade-in delay-2">
+                    <div class="feature-icon">
+                        <i class="fas fa-shopping-cart"></i>
+                    </div>
+                    <h3>المبيعات والمشتريات</h3>
+                    <p>
+                        إدارة كاملة لعملية المبيعات من الطلبات حتى التحصيل، 
+                        ونظام مشتريات ذكي يتحكم في التكاليف.
+                    </p>
+                </div>
+                
+                <div class="feature-card fade-in delay-3">
+                    <div class="feature-icon">
+                        <i class="fas fa-boxes"></i>
+                    </div>
+                    <h3>إدارة المخزون</h3>
+                    <p>
+                        تتبع دقيق للمخزون، جرد آلي، تنبيهات بالنواقص، 
+                        وإدارة مستودعات متعددة بفعالية.
+                    </p>
+                </div>
+                
+                <div class="feature-card fade-in delay-4">
+                    <div class="feature-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <h3>العملاء والموردين</h3>
+                    <p>
+                        قاعدة بيانات متكاملة للعملاء والموردين مع سجل تعاملات 
+                        كامل وتحليل أداء تفاعلي.
+                    </p>
+                </div>
+                
+                <div class="feature-card fade-in delay-5">
+                    <div class="feature-icon">
+                        <i class="fas fa-desktop"></i>
+                    </div>
+                    <h3>واجهة حديثة</h3>
+                    <p>
+                        تصميم عصري سريع الاستجابة، يدعم العربية بشكل كامل، 
+                        ويتوافق مع جميع الأجهزة والشاشات.
+                    </p>
+                </div>
+                
+                <div class="feature-card fade-in delay-6">
+                    <div class="feature-icon">
+                        <i class="fas fa-cogs"></i>
+                    </div>
+                    <h3>تخصيص وتطوير</h3>
+                    <p>
+                        بنية مرنة قابلة للتطوير والتخصيص حسب احتياجات عملك، 
+                        مع دعم تقني متواصل.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 🎯 الغرض -->
+        <div class="content-section fade-in delay-3">
+            <h2><i class="fas fa-bullseye"></i> الغرض من هذه النسخة</h2>
+            <div class="purpose-box">
+                <p>
+                    هذه النسخة التجريبية تم تصميمها خصيصاً لتقديم <span class="highlight">تجربة عملية كاملة</span>
+                    تغطي جميع جوانب النظام. تهدف إلى:
+                </p>
+                <ul style="margin-right: 20px; margin-top: 15px; color: var(--dark-light);">
+                    <li style="margin-bottom: 10px;">توفير فهم عميق لإمكانيات النظام الحقيقية</li>
+                    <li style="margin-bottom: 10px;">اختبار الأداء والكفاءة في ظروف عمل حقيقية</li>
+                    <li style="margin-bottom: 10px;">تقييم مدى ملاءمة النظام لاحتياجات مؤسستك</li>
+                    <li>توفير أساس قوي لاتخاذ قرار الاعتماد الكامل على النظام</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 📞 الاتصال -->
+        <!--<div class="content-section fade-in delay-4">
+            <h2><i class="fas fa-headset"></i> تواصل معنا</h2>
+            <div class="contact-section">
+                <p style="color: var(--dark-light); margin-bottom: 20px; text-align: center;">
+                    نرحب باستفساراتكم ونسعد بخدمتكم على مدار الساعة
+                </p>
+                <div class="contact-grid">
+                    <div class="contact-item fade-in delay-1">
+                        <div class="contact-icon">
+                            <i class="fas fa-phone"></i>
+                        </div>
+                        <div class="contact-info">
+                            <h4>الهاتف</h4>
+                            <p>+20 100 000 0000</p>
+                        </div>
+                    </div>
+                    
+                    <div class="contact-item fade-in delay-2">
+                        <div class="contact-icon">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <div class="contact-info">
+                            <h4>البريد الإلكتروني</h4>
+                            <p>info@erp-system.com</p>
+                        </div>
+                    </div>
+                    
+                    <div class="contact-item fade-in delay-3">
+                        <div class="contact-icon">
+                            <i class="fas fa-globe"></i>
+                        </div>
+                        <div class="contact-info">
+                            <h4>الموقع الإلكتروني</h4>
+                            <p>www.erp-system.com</p>
+                        </div>
+                    </div>
+                    
+                    <div class="contact-item fade-in delay-4">
+                        <div class="contact-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="contact-info">
+                            <h4>ساعات العمل</h4>
+                            <p>24/7 - خدمة على مدار الساعة</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>-->
+
+        <!-- ✨ الفوتر -->
+        <div class="footer fade-in delay-5">
+            <div class="footer-logo">
+                <i class="fas fa-bolt"></i>
+                <span>نظام ERP المتكامل</span>
+            </div>
+            <p>© 2024 جميع الحقوق محفوظة | تم التطوير بدقة واحترافية</p>
+            <p style="margin-top: 10px; font-size: 0.85rem; color: var(--gray);">
+                نسخة تجريبية - للأغراض التجريبية والتقييم فقط
+            </p>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // تأثيرات تحميل إضافية
+    document.addEventListener('DOMContentLoaded', function() {
+        // إضافة تأثيرات للمحتوى عند التمرير
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+        
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('fade-in');
+                }
+            });
+        }, observerOptions);
+        
+        // مراقبة جميع أقسام المحتوى
+        document.querySelectorAll('.content-section').forEach(section => {
+            observer.observe(section);
+        });
+        
+        // تأثير للبطاقات عند المرور عليها
+        const featureCards = document.querySelectorAll('.feature-card');
+        featureCards.forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-8px) scale(1.02)';
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0) scale(1)';
+            });
+        });
+        
+        // تأثير للعناصر المهمة
+        const highlightElements = document.querySelectorAll('.highlight');
+        highlightElements.forEach(el => {
+            el.addEventListener('mouseenter', function() {
+                this.style.background = 'linear-gradient(120deg, rgba(79, 70, 229, 0.2) 0%, rgba(79, 70, 229, 0.1) 100%)';
+            });
+            
+            el.addEventListener('mouseleave', function() {
+                this.style.background = 'linear-gradient(120deg, rgba(79, 70, 229, 0.1) 0%, rgba(79, 70, 229, 0) 100%)';
+            });
+        });
+    });
+</script>
+
+</body>
+</html>

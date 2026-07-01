@@ -1,0 +1,1639 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>تقرير المشتريات</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
+<style>
+    :root {
+        --primary-color: #3498db;
+        --secondary-color: #2c3e50;
+        --accent-color: #1abc9c;
+        --light-color: #f5f7fa;
+        --dark-color: #34495e;
+        --success-color: #2ecc71;
+        --warning-color: #f39c12;
+        --danger-color: #e74c3c;
+        --border-radius: 12px;
+        --box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
+        --transition: all 0.3s ease;
+        --gradient-primary: linear-gradient(135deg, #3498db, #1abc9c);
+        --gradient-secondary: linear-gradient(135deg, #2c3e50, #34495e);
+    }
+
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ed 100%);
+        padding: 20px;
+        min-height: 100vh;
+    }
+
+    .container {
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    /* ✅ أنماط نظام الصلاحيات */
+    .user-system-bar {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .user-info-display {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+
+    .user-avatar {
+        background: white;
+        color: #667eea;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 18px;
+    }
+
+    .user-details {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+    }
+
+    .user-name {
+        font-weight: bold;
+        font-size: 16px;
+    }
+
+    .user-store {
+        font-size: 13px;
+        opacity: 0.9;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .special-user-badge {
+        background: gold;
+        color: black;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 11px;
+        font-weight: bold;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .logout-btn {
+        background: rgba(255,255,255,0.2);
+        border: 1px solid rgba(255,255,255,0.3);
+        color: white;
+        padding: 8px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.3s;
+    }
+
+    .logout-btn:hover {
+        background: rgba(255,255,255,0.3);
+    }
+
+    .header {
+        background: var(--gradient-primary);
+        color: white;
+        padding: 25px;
+        border-radius: var(--border-radius);
+        margin-bottom: 25px;
+        text-align: center;
+        box-shadow: var(--box-shadow);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .header::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M0,0 L100,0 L100,100 Z" fill="rgba(255,255,255,0.1)"/></svg>');
+        background-size: cover;
+    }
+
+    .header h1 {
+        font-size: 2.2rem;
+        margin: 0;
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 15px;
+    }
+
+    .connection-status {
+        position: fixed;
+        top: 15px;
+        left: 15px;
+        background: white;
+        padding: 10px 15px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 1000;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border-left: 4px solid #28a745;
+        transition: var(--transition);
+    }
+
+    .loading-spinner {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 9999;
+    }
+
+    .card {
+        background: white;
+        border-radius: var(--border-radius);
+        padding: 25px;
+        box-shadow: var(--box-shadow);
+        transition: var(--transition);
+        border: none;
+        margin-bottom: 25px;
+    }
+
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    .card-title {
+        font-size: 1.4rem;
+        margin-bottom: 20px;
+        color: var(--secondary-color);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding-bottom: 12px;
+        border-bottom: 2px solid var(--light-color);
+    }
+
+    .filters-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+    }
+
+    .filter-section {
+        background: var(--light-color);
+        padding: 20px;
+        border-radius: var(--border-radius);
+        border-right: 4px solid var(--primary-color);
+    }
+
+    .filter-section h3 {
+        font-size: 1.1rem;
+        margin-bottom: 15px;
+        color: var(--dark-color);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .filter-group {
+        margin-bottom: 15px;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: var(--dark-color);
+        font-size: 0.95rem;
+    }
+
+    input, select {
+        width: 100%;
+        padding: 12px 15px;
+        border: 2px solid #e1e5e9;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: var(--transition);
+        background-color: white;
+        font-family: inherit;
+    }
+
+    input:focus, select:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+    }
+
+    /* ✅ تنسيق خاص لحقول المخازن للمستخدمين العاديين */
+    .store-field-disabled {
+        background-color: #f8f9fa !important;
+    }
+
+    .store-field-disabled label {
+        color: #6c757d !important;
+    }
+
+    .store-field-disabled .store-display-value {
+        background-color: #f8f9fa !important;
+        color: #495057 !important;
+        border-color: #ced4da !important;
+        cursor: not-allowed !important;
+    }
+
+    .store-display-value {
+        width: 100%;
+        padding: 12px 15px;
+        border: 2px solid #e1e5e9;
+        border-radius: 8px;
+        font-size: 1rem;
+        background-color: white;
+        color: #495057;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-height: 46px;
+        box-sizing: border-box;
+    }
+
+    .store-display-value::after {
+        content: "🔒";
+        font-size: 0.9em;
+        opacity: 0.7;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 14px 24px;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: var(--transition);
+        min-width: 140px;
+    }
+
+    .btn-primary {
+        background: var(--gradient-primary);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(52, 152, 219, 0.3);
+    }
+
+    .btn-success {
+        background: linear-gradient(135deg, var(--success-color), #27ae60);
+        color: white;
+    }
+
+    .btn-warning {
+        background: linear-gradient(135deg, var(--warning-color), #e67e22);
+        color: white;
+    }
+
+    .actions-section {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-top: 20px;
+    }
+
+    .report-content {
+        display: none;
+        background: white;
+        border-radius: var(--border-radius);
+        padding: 25px;
+        box-shadow: var(--box-shadow);
+        margin-top: 25px;
+    }
+
+    .report-header {
+        text-align: center;
+        margin-bottom: 25px;
+        padding-bottom: 20px;
+        border-bottom: 2px solid var(--light-color);
+    }
+
+    .report-title {
+        font-size: 1.8rem;
+        color: var(--secondary-color);
+        margin-bottom: 10px;
+    }
+
+    .report-subtitle {
+        font-size: 1.1rem;
+        color: var(--dark-color);
+        margin-bottom: 15px;
+    }
+
+    .user-info, .filters-info {
+        background: var(--light-color);
+        padding: 15px;
+        border-radius: var(--border-radius);
+        margin-bottom: 20px;
+        font-size: 0.95rem;
+    }
+
+    .section-title {
+        font-size: 1.3rem;
+        color: var(--secondary-color);
+        margin: 25px 0 15px 0;
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--light-color);
+    }
+
+    .report-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 15px 0;
+        font-size: 0.9rem;
+    }
+
+    .report-table th {
+        background: var(--gradient-secondary);
+        color: white;
+        padding: 12px 8px;
+        text-align: center;
+        font-weight: 600;
+        border: 1px solid #2c3e50;
+    }
+
+    .report-table td {
+        padding: 10px 8px;
+        border: 1px solid #e1e5e9;
+        text-align: center;
+    }
+
+    .report-table tr:nth-child(even) {
+        background-color: #f8f9fa;
+    }
+
+    .report-table tr:hover {
+        background-color: rgba(52, 152, 219, 0.05);
+    }
+
+    .summary-row {
+        background: var(--light-color) !important;
+        font-weight: 600;
+    }
+
+    .invoice-header {
+        background: var(--primary-color) !important;
+        color: white;
+        font-weight: 600;
+        font-size: 1rem;
+    }
+
+    .no-data {
+        text-align: center;
+        padding: 40px 20px;
+        color: #7f8c8d;
+        font-size: 1.1rem;
+        background: var(--light-color);
+        border-radius: var(--border-radius);
+    }
+
+    .page-break {
+        page-break-before: always;
+    }
+
+    @media (max-width: 768px) {
+        body {
+            padding: 15px;
+        }
+        
+        .header {
+            padding: 20px;
+            border-radius: 10px;
+        }
+        
+        .header h1 {
+            font-size: 1.8rem;
+        }
+        
+        .user-system-bar {
+            flex-direction: column;
+            gap: 10px;
+            text-align: center;
+        }
+        
+        .card {
+            padding: 20px;
+        }
+        
+        .filters-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .actions-section {
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .btn {
+            width: 100%;
+            max-width: 300px;
+        }
+        
+        .connection-status {
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            font-size: 12px;
+        }
+        
+        .report-table {
+            font-size: 0.8rem;
+        }
+        
+        .report-table th,
+        .report-table td {
+            padding: 8px 4px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .header {
+            border-radius: 8px;
+        }
+        
+        .header h1 {
+            font-size: 1.5rem;
+        }
+        
+        .card {
+            padding: 15px;
+            border-radius: 10px;
+        }
+        
+        input, select {
+            padding: 10px 12px;
+        }
+        
+        .btn {
+            padding: 12px 20px;
+        }
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .card, .report-content {
+        animation: fadeIn 0.5s ease;
+    }
+
+    /* Print Styles */
+    @media print {
+        body * {
+            visibility: hidden;
+        }
+        .report-content,
+        .report-content * {
+            visibility: visible;
+        }
+        .report-content {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            box-shadow: none;
+            margin: 0;
+            padding: 20px;
+        }
+        .no-print {
+            display: none !important;
+        }
+    }
+</style>
+</head>
+
+<body>
+<div class="container">
+    <!-- ✅ شريط معلومات المستخدم المحسن -->
+    <div id="userSystemBar" class="user-system-bar no-print" style="display: none;">
+        <div class="user-info-display">
+            <div class="user-avatar" id="userAvatar">👤</div>
+            <div class="user-details">
+                <div class="user-name" id="userName">جاري التحميل...</div>
+                <div class="user-store">
+                    <i class="fas fa-store"></i>
+                    <span id="storeName">المخزن: جاري التحميل...</span>
+                    <span id="specialUserBadge" class="special-user-badge" style="display: none;">
+                        <i class="fas fa-crown"></i> مستخدم خاص
+                    </span>
+                </div>
+            </div>
+        </div>
+        <button onclick="logout()" class="logout-btn">
+            <i class="fas fa-sign-out-alt"></i> تسجيل الخروج
+        </button>
+    </div>
+
+    <!-- شريط حالة الاتصال -->
+    <div class="connection-status no-print">
+        <span id="connection-status">
+            <i class="fas fa-spinner fa-spin"></i> جاري الاتصال...
+        </span>
+    </div>
+
+    <!-- مؤشر التحميل -->
+    <div id="loading-spinner" class="loading-spinner no-print">
+        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;">
+            <span class="visually-hidden">جاري التحميل...</span>
+        </div>
+    </div>
+
+    <!-- الهيدر -->
+    <div class="header no-print">
+        <h1><i class="fas fa-chart-bar"></i> تقرير المشتريات</h1>
+        <div>نظام إدارة المخازن والمستودعات</div>
+    </div>
+
+    <!-- الفلاتر -->
+    <div class="card no-print">
+        <h2 class="card-title"><i class="fas fa-filter"></i> معايير البحث</h2>
+        <div class="filters-grid">
+            <div class="filter-section">
+                <h3><i class="fas fa-calendar-alt"></i> الفترة الزمنية</h3>
+                <div class="filter-group">
+                    <label for="dateFrom">من تاريخ:</label>
+                    <input type="date" id="dateFrom">
+                </div>
+                <div class="filter-group">
+                    <label for="dateTo">إلى تاريخ:</label>
+                    <input type="date" id="dateTo">
+                </div>
+            </div>
+
+            <div class="filter-section">
+                <h3><i class="fas fa-warehouse"></i> المخازن والموردين</h3>
+                <div class="filter-group" id="storeFromGroup">
+                    <label for="storeFrom">من فرع:</label>
+                    <select id="storeFrom"></select>
+                </div>
+                <div class="filter-group" id="storeToGroup">
+                    <label for="storeTo">إلى فرع:</label>
+                    <select id="storeTo"></select>
+                </div>
+                <div class="filter-group">
+                    <label for="supplierFrom">من مورد:</label>
+                    <select id="supplierFrom"></select>
+                </div>
+                <div class="filter-group">
+                    <label for="supplierTo">إلى مورد:</label>
+                    <select id="supplierTo"></select>
+                </div>
+            </div>
+
+            <div class="filter-section">
+                <h3><i class="fas fa-boxes"></i> الأصناف والإعدادات</h3>
+                <div class="filter-group">
+                    <label for="itemFrom">من صنف:</label>
+                    <select id="itemFrom"></select>
+                </div>
+                <div class="filter-group">
+                    <label for="itemTo">إلى صنف:</label>
+                    <select id="itemTo"></select>
+                </div>
+                <div class="filter-group">
+                    <label for="userNameFilter">اسم المستخدم:</label>
+                    <input type="text" id="userNameFilter" placeholder="أدخل اسم المستخدم">
+                </div>
+                <div class="filter-group">
+                    <label for="paymentMethod">طريقة الدفع:</label>
+                    <select id="paymentMethod">
+                        <option value="">الكل</option>
+                        <option value="cash">نقدي</option>
+                        <option value="credit">آجل</option>
+                        <option value="check">شيك</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- الأزرار -->
+        <div class="actions-section">
+            <button class="btn btn-primary" id="generateReportBtn">
+                <i class="fas fa-chart-bar"></i> إنشاء التقرير
+            </button>
+            <button class="btn btn-success" id="exportPdfBtn">
+                <i class="fas fa-file-pdf"></i> تصدير PDF
+            </button>
+            <button class="btn btn-warning" id="printBtn">
+                <i class="fas fa-print"></i> طباعة
+            </button>
+        </div>
+    </div>
+
+    <!-- عرض التقرير -->
+    <div class="report-content" id="reportContent"></div>
+</div>
+
+<script>
+// PurchaseReportApp - مع دعم Supabase
+class PurchaseReportApp {
+    constructor() {
+        // تكوين Supabase
+        this.SUPABASE_URL = 'https://rvjacvrrpguehbapvewe.supabase.co';
+        this.SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2amFjdnJycGd1ZWhiYXB2ZXdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwMjUxNTksImV4cCI6MjA3ODYwMTE1OX0.wSavKzxKOF7-56G-pzDMtbXNrCNAbGs0wvadw-cilBg';
+        this.supabase = null;
+        this.isOnline = false;
+        
+        // ✅ متغيرات الصلاحيات - مأخوذة من شاشة الدخول
+        this.currentUser = null;
+        this.userStoreId = null;
+        this.userName = '';
+        this.isSpecialUser = false;
+        this.userStoreName = '';
+        
+        this.allPurchases = [];
+        this.allStores = [];
+        this.allSuppliers = [];
+        this.allItems = [];
+        
+        this.init();
+    }
+
+    async init() {
+        console.log('🚀 بدء تهيئة نظام تقرير المشتريات');
+        console.log('🌐 عنوان الصفحة:', window.location.href);
+        
+        // ✅ التحقق من وجود بيانات الدخول أولاً
+        if (!this.checkLogin()) {
+            return; // إذا لم يكن هناك دخول، سيتم التوجيه لصفحة الدخول
+        }
+        
+        this.dom = this._initDOM();
+        this._bindEvents();
+        const connected = await this.initSupabase();
+        
+        if (connected) {
+            // ✅ أولاً: تحميل معلومات المستخدم من localStorage
+            await this.loadUserInfoFromLogin();
+            
+            // ✅ ثانياً: تحميل البيانات بناءً على صلاحيات المستخدم
+            await this.loadInitialData();
+            
+            // ✅ ثالثاً: تطبيق الإعدادات والصلاحيات
+            this.setDefaultDates();
+            this.addEnterNavigation();
+            await this.updateConnectionStatus();
+            this.displayUserInfo();
+            
+            // ✅ رابعاً: تطبيق الصلاحيات على حقول المخازن
+            this.applyStorePermissions();
+            
+            console.log(`🎯 حالة النظام النهائية: ${this.userName} - المخزن: ${this.userStoreId} - خاص: ${this.isSpecialUser}`);
+        } else {
+            this.showError('فشل في الاتصال بقاعدة البيانات. يرجى التحقق من الاتصال بالإنترنت.');
+        }
+    }
+
+    // ✅ التحقق من وجود بيانات الدخول
+    /*checkLogin() {
+        const userId = localStorage.getItem('user_id');
+        const userName = localStorage.getItem('username');
+        const storeId = localStorage.getItem('store_id');
+        
+        if (!userId || !userName || !storeId) {
+            console.log('❌ لا توجد بيانات دخول، التوجيه لصفحة الدخول');
+            setTimeout(() => {
+                window.location.href = 'index.html'; // أو اسم صفحة الدخول الخاص بك
+            }, 1000);
+            return false;
+        }
+        
+        console.log('✅ بيانات الدخول موجودة:', { userId, userName, storeId });
+        return true;
+    }
+    */
+    checkLogin() {
+    // ✅ أبسط نسخة: التحقق من المخزن فقط
+    const storeId = localStorage.getItem('store_id');
+    
+    // 1. تأكد من وجود مخزن
+    if (!storeId) {
+        localStorage.setItem('store_id', '1');
+        localStorage.setItem('store_name', 'المخزن الرئيسي');
+    }
+    
+    // 2. تحديد نوع المستخدم بناءً على المخزن
+    if (storeId === '9999') {
+        localStorage.setItem('is_special_user', 'true');
+    } else {
+        localStorage.setItem('is_special_user', 'false');
+    }
+    
+    // 3. دائمًا نرجع true (لا توجيه لـ index.html)
+    return true;
+    }
+
+    _initDOM() {
+        return {
+            // ✅ شريط المستخدم
+            userSystemBar: document.getElementById("userSystemBar"),
+            userAvatar: document.getElementById("userAvatar"),
+            userName: document.getElementById("userName"),
+            storeName: document.getElementById("storeName"),
+            specialUserBadge: document.getElementById("specialUserBadge"),
+            
+            // عناصر الفلترة
+            dateFrom: document.getElementById("dateFrom"),
+            dateTo: document.getElementById("dateTo"),
+            storeFrom: document.getElementById("storeFrom"),
+            storeTo: document.getElementById("storeTo"),
+            storeFromGroup: document.getElementById("storeFromGroup"),
+            storeToGroup: document.getElementById("storeToGroup"),
+            supplierFrom: document.getElementById("supplierFrom"),
+            supplierTo: document.getElementById("supplierTo"),
+            itemFrom: document.getElementById("itemFrom"),
+            itemTo: document.getElementById("itemTo"),
+            userNameFilter: document.getElementById("userNameFilter"),
+            paymentMethod: document.getElementById("paymentMethod"),
+            
+            // الأزرار
+            generateReportBtn: document.getElementById("generateReportBtn"),
+            exportPdfBtn: document.getElementById("exportPdfBtn"),
+            printBtn: document.getElementById("printBtn"),
+            
+            // عرض التقرير
+            reportContent: document.getElementById("reportContent"),
+            
+            // حالة النظام
+            connectionStatus: document.getElementById("connection-status"),
+            loadingSpinner: document.getElementById("loading-spinner")
+        };
+    }
+
+    _bindEvents() {
+        this.dom.generateReportBtn.addEventListener("click", () => this.generateReport());
+        this.dom.exportPdfBtn.addEventListener("click", () => this.exportToPDF());
+        this.dom.printBtn.addEventListener("click", () => this.printReport());
+    }
+
+    async initSupabase() {
+        try {
+            this.showLoading(true);
+            this.updateConnectionStatus('warning', '<i class="fas fa-spinner fa-spin"></i> جاري الاتصال...');
+            
+            console.log('🔄 جاري تهيئة Supabase...');
+            this.supabase = supabase.createClient(this.SUPABASE_URL, this.SUPABASE_KEY);
+            
+            // اختبار الاتصال البسيط
+            const { data, error } = await this.supabase.auth.getSession();
+            
+            if (error) {
+                console.error('❌ خطأ في المصادقة:', error);
+                throw error;
+            }
+
+            this.isOnline = true;
+            console.log('✅ Supabase متصل بنجاح');
+            return true;
+            
+        } catch (error) {
+            console.error('❌ فشل في الاتصال بـ Supabase:', error);
+            this.isOnline = false;
+            let errorMessage = 'فشل في الاتصال بقاعدة البيانات';
+            if (error.message) {
+                errorMessage += `: ${error.message}`;
+            }
+            this.showError(errorMessage);
+            return false;
+        } finally {
+            this.showLoading(false);
+        }
+    }
+
+    // ✅ تحميل معلومات المستخدم من بيانات الدخول المحفوظة
+    async loadUserInfoFromLogin() {
+        try {
+            // ✅ القراءة من localStorage كما يحفظها نظام الدخول
+            this.userStoreId = localStorage.getItem('store_id');
+            this.userName = localStorage.getItem('username');
+            this.userStoreName = localStorage.getItem('store_name') || `مخزن ${this.userStoreId}`;
+            
+            // ✅ تحديد إذا كان مستخدم خاص (صلاحيات كاملة)
+            // وفقاً لشاشة الدخول: store_id = '9999' يعني صلاحيات كاملة
+            // أو إذا كان full_access = 'true'
+            const fullAccess = localStorage.getItem('full_access') === 'true';
+            const userId = localStorage.getItem('user_id');
+            
+            this.isSpecialUser = fullAccess || this.userStoreId === '9999' || userId === '9999';
+            
+            console.log('📋 معلومات المستخدم من نظام الدخول:', {
+                userStoreId: this.userStoreId,
+                userName: this.userName,
+                userStoreName: this.userStoreName,
+                isSpecialUser: this.isSpecialUser,
+                fullAccess: fullAccess,
+                userId: userId
+            });
+            
+            // ✅ إذا كان مستخدم خاص، نحتاج لتحميل اسم المخزن الصحيح
+            if (this.isSpecialUser && this.userStoreId === '9999') {
+                this.userStoreName = 'جميع المخازن';
+                localStorage.setItem('store_name', this.userStoreName);
+            }
+            
+        } catch (error) {
+            console.error('❌ خطأ في تحميل معلومات المستخدم:', error);
+            // القيم الافتراضية في حالة الخطأ
+            this.userStoreId = '1';
+            this.userName = 'مستخدم عادي';
+            this.userStoreName = 'المخزن الرئيسي';
+            this.isSpecialUser = false;
+        }
+    }
+
+    // ✅ عرض معلومات المستخدم في الشريط العلوي
+    displayUserInfo() {
+        const userSystemBar = this.dom.userSystemBar;
+        if (!userSystemBar) return;
+        
+        userSystemBar.style.display = 'flex';
+        this.dom.userName.textContent = `مرحباً: ${this.userName}`;
+        
+        const storeDisplay = this.isSpecialUser ? 'مدير النظام' : this.userStoreName;
+        this.dom.storeName.textContent = `المخزن: ${storeDisplay}`;
+        
+        if (this.isSpecialUser) {
+            this.dom.specialUserBadge.style.display = 'inline-flex';
+        }
+        
+        const avatar = this.dom.userAvatar;
+        if (avatar && this.userName) {
+            avatar.textContent = this.userName.charAt(0);
+        }
+    }
+
+    // ✅ تطبيق الصلاحيات على حقول المخازن
+    applyStorePermissions() {
+        const storeFromGroup = this.dom.storeFromGroup;
+        const storeToGroup = this.dom.storeToGroup;
+        const storeFrom = this.dom.storeFrom;
+        const storeTo = this.dom.storeTo;
+        
+        if (!storeFromGroup || !storeToGroup || !storeFrom || !storeTo) return;
+        
+        if (!this.isSpecialUser && this.userStoreId) {
+            console.log(`🔄 تطبيق الصلاحيات للمستخدم العادي (المخزن: ${this.userStoreId})`);
+            
+            // ✅ إزالة عناصر select القديمة واستبدالها بعرض ثابت
+            storeFrom.innerHTML = '';
+            storeTo.innerHTML = '';
+            
+            // ✅ إنشاء عرض ثابت بدلاً من select
+            const staticDisplayFrom = document.createElement('div');
+            staticDisplayFrom.className = 'store-display-value';
+            staticDisplayFrom.id = 'staticStoreFrom';
+            staticDisplayFrom.innerHTML = `
+                <span>${this.userStoreName || `المخزن ${this.userStoreId}`}</span>
+                <span style="opacity: 0.7; font-size: 0.9em;">🔒</span>
+            `;
+            
+            const staticDisplayTo = document.createElement('div');
+            staticDisplayTo.className = 'store-display-value';
+            staticDisplayTo.id = 'staticStoreTo';
+            staticDisplayTo.innerHTML = `
+                <span>${this.userStoreName || `المخزن ${this.userStoreId}`}</span>
+                <span style="opacity: 0.7; font-size: 0.9em;">🔒</span>
+            `;
+            
+            // ✅ استبدال عناصر select بالعرض الثابت
+            storeFromGroup.classList.add('store-field-disabled');
+            storeToGroup.classList.add('store-field-disabled');
+            
+            storeFrom.appendChild(staticDisplayFrom);
+            storeTo.appendChild(staticDisplayTo);
+            
+            // ✅ إضافة حقول مخفية للقيم
+            const hiddenFromStore = document.createElement('input');
+            hiddenFromStore.type = 'hidden';
+            hiddenFromStore.id = 'storeFromValue';
+            hiddenFromStore.name = 'storeFrom';
+            hiddenFromStore.value = this.userStoreId;
+            storeFromGroup.appendChild(hiddenFromStore);
+            
+            const hiddenToStore = document.createElement('input');
+            hiddenToStore.type = 'hidden';
+            hiddenToStore.id = 'storeToValue';
+            hiddenToStore.name = 'storeTo';
+            hiddenToStore.value = this.userStoreId;
+            storeToGroup.appendChild(hiddenToStore);
+            
+            console.log(`✅ تم تطبيق الصلاحيات: المستخدم العادي - المخزن ${this.userStoreId} (${this.userStoreName})`);
+        } else {
+            // ✅ المستخدم الخاص: يعرض جميع المخازن في قائمة اختيار
+            console.log('🔄 تطبيق الصلاحيات للمستخدم الخاص');
+            
+            // ✅ إزالة أي عناصر ثابتة موجودة
+            const staticFrom = document.getElementById('staticStoreFrom');
+            const staticTo = document.getElementById('staticStoreTo');
+            const hiddenFrom = document.getElementById('storeFromValue');
+            const hiddenTo = document.getElementById('storeToValue');
+            
+            if (staticFrom) staticFrom.remove();
+            if (staticTo) staticTo.remove();
+            if (hiddenFrom) hiddenFrom.remove();
+            if (hiddenTo) hiddenTo.remove();
+            
+            // ✅ إعادة إنشاء عناصر select
+            storeFromGroup.classList.remove('store-field-disabled');
+            storeToGroup.classList.remove('store-field-disabled');
+            
+            const selectFrom = document.createElement('select');
+            selectFrom.id = 'storeFrom';
+            selectFrom.className = 'form-control';
+            selectFrom.innerHTML = '<option value="">جميع المخازن</option>';
+            
+            const selectTo = document.createElement('select');
+            selectTo.id = 'storeTo';
+            selectTo.className = 'form-control';
+            selectTo.innerHTML = '<option value="">جميع المخازن</option>';
+            
+            storeFrom.innerHTML = '';
+            storeTo.innerHTML = '';
+            
+            storeFrom.appendChild(selectFrom);
+            storeTo.appendChild(selectTo);
+            
+            // ✅ تحديث مراجع DOM
+            this.dom.storeFrom = document.getElementById('storeFrom');
+            this.dom.storeTo = document.getElementById('storeTo');
+            
+            // ✅ تعبئة المخازن
+            if (this.allStores && this.allStores.length > 0) {
+                this.allStores.forEach(store => {
+                    const storeId = store.store_id;
+                    const storeName = store.store_name || `فرع ${storeId}`;
+                    
+                    if (storeId) {
+                        const option1 = new Option(storeName, storeId);
+                        const option2 = new Option(storeName, storeId);
+                        
+                        this.dom.storeFrom.add(option1);
+                        this.dom.storeTo.add(option2);
+                    }
+                });
+            }
+            
+            console.log(`✅ تم تطبيق الصلاحيات: المستخدم الخاص - جميع المخازن`);
+        }
+    }
+   
+    // ✅ الحصول على الفلاتر (محدث لدعم الحقول المخفية)
+    getFilters() {
+        let storeFromValue, storeToValue;
+        
+        if (!this.isSpecialUser && this.userStoreId) {
+            // ✅ للمستخدم العادي: استخدام القيم المخفية
+            storeFromValue = this.userStoreId;
+            storeToValue = this.userStoreId;
+        } else {
+            // ✅ للمستخدم الخاص: استخدام القيم من الـ select
+            storeFromValue = this.dom.storeFrom ? this.dom.storeFrom.value : '';
+            storeToValue = this.dom.storeTo ? this.dom.storeTo.value : '';
+        }
+        
+        return {
+            dateFrom: this.dom.dateFrom.value,
+            dateTo: this.dom.dateTo.value,
+            storeFrom: storeFromValue,
+            storeTo: storeToValue,
+            supplierFrom: this.dom.supplierFrom.value,
+            supplierTo: this.dom.supplierTo.value,
+            itemFrom: this.dom.itemFrom.value,
+            itemTo: this.dom.itemTo.value,
+            userName: this.dom.userNameFilter.value,
+            paymentMethod: this.dom.paymentMethod.value
+        };
+    }
+
+    // تحديث حالة الاتصال
+    async updateConnectionStatus() {
+        const statusDiv = document.querySelector('.connection-status');
+        const statusText = document.getElementById('connection-status');
+        
+        if (!statusDiv || !statusText) return;
+        
+        const success = await this.testSupabaseConnection();
+        if (success) {
+            statusDiv.style.borderLeftColor = '#28a745';
+            statusText.innerHTML = '<i class="fas fa-cloud-check"></i> متصل بالسحابة';
+        } else {
+            statusDiv.style.borderLeftColor = '#dc3545';
+            statusText.innerHTML = '<i class="fas fa-cloud-slash"></i> غير متصل';
+        }
+    }
+
+    // اختبار الاتصال بـ Supabase
+    async testSupabaseConnection() {
+        try {
+            if (!this.supabase) return false;
+            
+            const { data, error } = await this.supabase
+                .from('items')
+                .select('count')
+                .limit(1);
+            
+            if (error) {
+                console.error('❌ فشل الاتصال بـ Supabase:', error.message);
+                return false;
+            }
+            
+            console.log('✅ الاتصال بـ Supabase ناجح');
+            return true;
+        } catch (error) {
+            console.error('❌ خطأ في الاتصال بـ Supabase:', error.message);
+            return false;
+        }
+    }
+
+    // إظهار/إخفاء مؤشر التحميل
+    showLoading(show) {
+        if (this.dom.loadingSpinner) {
+            this.dom.loadingSpinner.style.display = show ? 'block' : 'none';
+        }
+    }
+
+    // تعيين التواريخ الافتراضية
+    setDefaultDates() {
+        const today = new Date();
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+        this.dom.dateFrom.valueAsDate = firstDay;
+        this.dom.dateTo.valueAsDate = today;
+    }
+
+    // التنقل بالـ Enter بين الحقول
+    addEnterNavigation() {
+        const focusable = Array.from(document.querySelectorAll(
+            'input:not([type="hidden"]), select, button'
+        )).filter(el => !el.disabled && el.offsetParent !== null);
+
+        focusable.forEach((el, i) => {
+            el.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const next = focusable[i + 1];
+                    if (next) next.focus();
+                }
+            });
+        });
+    }
+
+    // تحميل البيانات الأولية
+    async loadInitialData() {
+        try {
+            this.showLoading(true);
+            await Promise.all([
+                this.loadStores(),
+                this.loadSuppliers(),
+                this.loadItems()
+            ]);
+            console.log('✅ تم تحميل جميع البيانات بنجاح');
+        } catch (error) {
+            console.error('❌ خطأ في تحميل البيانات:', error);
+            this.showError('حدث خطأ في تحميل البيانات الأساسية: ' + error.message);
+        } finally {
+            this.showLoading(false);
+        }
+    }
+
+    // ✅ تحميل المخازن مع الصلاحيات
+    async loadStores() {
+        try {
+            if (!this.supabase) {
+                this.showError('غير متصل بقاعدة البيانات');
+                return;
+            }
+
+            console.log(`🔄 جاري تحميل المخازن للمستخدم: ${this.userStoreId}, خاص: ${this.isSpecialUser}`);
+            
+            // ✅ المستخدم العادي: يحمل مخزنه فقط
+            if (!this.isSpecialUser && this.userStoreId) {
+                const { data, error } = await this.supabase
+                    .from('stores')
+                    .select('store_id, store_name')
+                    .eq('store_id', this.userStoreId);
+
+                if (error) {
+                    console.error('❌ خطأ في تحميل المخزن الخاص:', error);
+                    // استخدام البيانات المحلية كبديل
+                    this.allStores = [{
+                        store_id: this.userStoreId,
+                        store_name: this.userStoreName || `مخزن ${this.userStoreId}`
+                    }];
+                } else {
+                    this.allStores = data || [];
+                    if (data && data.length > 0 && data[0].store_name) {
+                        this.userStoreName = data[0].store_name;
+                        localStorage.setItem('store_name', this.userStoreName);
+                    }
+                    console.log(`📋 تم تحميل مخزن المستخدم: ${this.userStoreName} (${this.userStoreId})`);
+                }
+            } else {
+                // ✅ المستخدم الخاص: يحمل جميع المخازن
+                const { data, error } = await this.supabase
+                    .from('stores')
+                    .select('store_id, store_name')
+                    .order('store_name');
+
+                if (error) {
+                    console.error('❌ خطأ في تحميل المخازن:', error);
+                    this.showError('خطأ في تحميل المخازن: ' + error.message);
+                    return;
+                }
+
+                this.allStores = data || [];
+                console.log(`📋 تم تحميل ${this.allStores.length} مخزن للمستخدم الخاص`);
+            }
+            
+        } catch (error) {
+            console.error('❌ خطأ في تحميل المخازن:', error);
+            this.showError('خطأ في تحميل المخازن: ' + error.message);
+        }
+    }
+
+    // تحميل الموردين
+    async loadSuppliers() {
+        try {
+            if (!this.supabase) {
+                this.showError('غير متصل بقاعدة البيانات');
+                return;
+            }
+
+            const { data, error } = await this.supabase
+                .from('suppliers')
+                .select('supplierid, supplier_name')
+                .order('supplier_name');
+
+            if (error) {
+                console.error('❌ خطأ في تحميل الموردين:', error);
+                this.showError('خطأ في تحميل الموردين: ' + error.message);
+                return;
+            }
+
+            this.allSuppliers = data || [];
+            this.renderDropdown(this.dom.supplierFrom, this.allSuppliers, 'supplierid', 'supplier_name', 'جميع الموردين');
+            this.renderDropdown(this.dom.supplierTo, this.allSuppliers, 'supplierid', 'supplier_name', 'جميع الموردين');
+            
+        } catch (error) {
+            console.error('❌ خطأ في تحميل الموردين:', error);
+            this.showError('خطأ في تحميل الموردين: ' + error.message);
+        }
+    }
+
+    // تحميل الأصناف
+    async loadItems() {
+        try {
+            if (!this.supabase) {
+                this.showError('غير متصل بقاعدة البيانات');
+                return;
+            }
+
+            const { data, error } = await this.supabase
+                .from('items')
+                .select('item_id, item_nm')
+                .order('item_nm');
+
+            if (error) {
+                console.error('❌ خطأ في تحميل الأصناف:', error);
+                this.showError('خطأ في تحميل الأصناف: ' + error.message);
+                return;
+            }
+
+            this.allItems = data || [];
+            this.renderDropdown(this.dom.itemFrom, this.allItems, 'item_id', 'item_nm', 'جميع الأصناف');
+            this.renderDropdown(this.dom.itemTo, this.allItems, 'item_id', 'item_nm', 'جميع الأصناف');
+            
+        } catch (error) {
+            console.error('❌ خطأ في تحميل الأصناف:', error);
+            this.showError('خطأ في تحميل الأصناف: ' + error.message);
+        }
+    }
+
+    // عرض القوائم المنسدلة
+    renderDropdown(element, data, valueField, displayField, defaultText) {
+        if (!element) return;
+        
+        element.innerHTML = `<option value="">${defaultText}</option>` +
+            data.map(item => 
+                `<option value="${item[valueField]}">${item[valueField]} - ${item[displayField]}</option>`
+            ).join('');
+    }
+
+    // ✅ إنشاء التقرير مع تطبيق الصلاحيات
+    async generateReport() {
+        try {
+            // ✅ التحقق من الصلاحيات أولاً
+            if (!this.isSpecialUser && this.userStoreId) {
+                const fromStore = this.dom.storeFrom.value;
+                const toStore = this.dom.storeTo.value;
+                
+                // ✅ إذا كان المستخدم عادي، التأكد من أنه يبحث في مخزنه فقط
+                if (fromStore && fromStore != this.userStoreId) {
+                    this.showError('❌ غير مصرح لك بالبحث في هذا المخزن');
+                    return;
+                }
+                if (toStore && toStore != this.userStoreId) {
+                    this.showError('❌ غير مصرح لك بالبحث في هذا المخزن');
+                    return;
+                }
+            }
+            
+            this.showLoading(true);
+            const originalText = this.dom.generateReportBtn.textContent;
+            this.dom.generateReportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحميل...';
+            this.dom.generateReportBtn.disabled = true;
+
+            const filters = this.getFilters();
+            console.log('🔄 جاري إنشاء التقرير...', filters);
+
+            if (!this.supabase || !this.isOnline) {
+                this.showError('غير متصل بقاعدة البيانات');
+                return;
+            }
+
+            try {
+                // ✅ بناء الاستعلام مع تطبيق الصلاحيات
+                let query = this.supabase
+                    .from('purchases')
+                    .select(`
+                        *,
+                        stores!purchases_store_id_fkey(store_name),
+                        suppliers!purchases_supplierid_fkey(supplier_name),
+                        items!purchases_item_id_fkey(item_nm)
+                    `)
+                    .order('tran_date', { ascending: false });
+
+                // ✅ تطبيق الصلاحيات على مستوى المخزن
+                if (!this.isSpecialUser && this.userStoreId) {
+                    query = query.eq('store_id', this.userStoreId);
+                }
+
+                // تطبيق الفلاتر
+                if (filters.dateFrom) {
+                    query = query.gte('tran_date', filters.dateFrom + 'T00:00:00');
+                }
+                if (filters.dateTo) {
+                    query = query.lte('tran_date', filters.dateTo + 'T23:59:59');
+                }
+                if (filters.storeFrom && this.isSpecialUser) {
+                    query = query.gte('store_id', filters.storeFrom);
+                }
+                if (filters.storeTo && this.isSpecialUser) {
+                    query = query.lte('store_id', filters.storeTo);
+                }
+                if (filters.supplierFrom) {
+                    query = query.gte('supplierid', filters.supplierFrom);
+                }
+                if (filters.supplierTo) {
+                    query = query.lte('supplierid', filters.supplierTo);
+                }
+                if (filters.itemFrom) {
+                    query = query.gte('item_id', filters.itemFrom);
+                }
+                if (filters.itemTo) {
+                    query = query.lte('item_id', filters.itemTo);
+                }
+                if (filters.paymentMethod) {
+                    query = query.eq('payment_method', filters.paymentMethod);
+                }
+
+                const { data, error } = await query;
+
+                if (error) {
+                    console.error('❌ خطأ في تحميل المشتريات:', error);
+                    this.showError('خطأ في تحميل بيانات المشتريات: ' + error.message);
+                    return;
+                }
+
+                this.allPurchases = data || [];
+                const filteredPurchases = this.filterPurchases(this.allPurchases, filters);
+                console.log(`📊 بعد الفلترة: ${filteredPurchases.length} فاتورة`);
+                this.displayReport(filteredPurchases, filters);
+                
+            } catch (error) {
+                console.error('❌ خطأ في الاستعلام:', error);
+                this.showError('حدث خطأ في جلب البيانات: ' + error.message);
+            }
+            
+        } catch (error) {
+            console.error('❌ خطأ في إنشاء التقرير:', error);
+            this.showError('حدث خطأ في إنشاء التقرير: ' + error.message);
+        } finally {
+            this.showLoading(false);
+            if (this.dom.generateReportBtn) {
+                this.dom.generateReportBtn.innerHTML = '<i class="fas fa-chart-bar"></i> إنشاء التقرير';
+                this.dom.generateReportBtn.disabled = false;
+            }
+        }
+    }
+
+    // فلترة المشتريات
+    filterPurchases(purchases, filters) {
+        return purchases.filter(purchase => {
+            // فلترة اسم المستخدم
+            if (filters.userName && purchase.user_name && !purchase.user_name.includes(filters.userName)) {
+                return false;
+            }
+            return true;
+        });
+    }
+
+    // ✅ عرض التقرير مع معلومات المستخدم
+    displayReport(purchases, filters) {
+        this.dom.reportContent.style.display = 'block';
+
+        if (purchases.length === 0) {
+            this.dom.reportContent.innerHTML = `
+                <div class="report-header">
+                    <div class="report-title">تقرير المشتريات</div>
+                    <div class="report-subtitle">الفترة من ${filters.dateFrom || 'بداية'} إلى ${filters.dateTo || 'نهاية'}</div>
+                    <div class="user-info"><strong>المستخدم:</strong> ${this.userName} - <strong>المخزن:</strong> ${this.isSpecialUser ? 'مدير النظام' : this.userStoreName}</div>
+                </div>
+                <div class="no-data">⚠️ لا توجد بيانات مطابقة لمعايير البحث</div>`;
+            return;
+        }
+
+        const totals = this.calculateTotals(purchases);
+        const filtersText = this.getFiltersText(filters);
+
+        let reportHTML = `
+            <div class="report-header">
+                <div class="report-title">تقرير المشتريات</div>
+                <div class="report-subtitle">الفترة من ${filters.dateFrom || 'بداية'} إلى ${filters.dateTo || 'نهاية'}</div>
+                <div class="user-info"><strong>المستخدم:</strong> ${this.userName} - <strong>المخزن:</strong> ${this.isSpecialUser ? 'مدير النظام' : this.userStoreName}</div>
+            </div>
+            <div class="filters-info"><strong>معايير التقرير:</strong><br>${filtersText}</div>
+            
+            <div class="section-title">ملخص التقرير</div>
+            <table class="report-table">
+                <tr>
+                    <th>عدد الفواتير</th>
+                    <th>إجمالي المشتريات</th>
+                    <th>إجمالي الخصومات</th>
+                    <th>الصافي النهائي</th>
+                    <th>متوسط قيمة الفاتورة</th>
+                </tr>
+                <tr class="summary-row">
+                    <td>${purchases.length}</td>
+                    <td>${this.formatNumber(totals.totalPurchases)} ج.م</td>
+                    <td>${this.formatNumber(totals.totalDiscounts)} ج.م</td>
+                    <td>${this.formatNumber(totals.netTotal)} ج.م</td>
+                    <td>${this.formatNumber(totals.averageInvoice)} ج.م</td>
+                </tr>
+            </table>
+
+            <div class="section-title">تفاصيل المشتريات</div>
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>رقم الفاتورة</th>
+                        <th>التاريخ</th>
+                        <th>المخزن</th>
+                        <th>المورد</th>
+                        <th>كود الصنف</th>
+                        <th>اسم الصنف</th>
+                        <th>الكمية</th>
+                        <th>سعر الشراء</th>
+                        <th>الإجمالي</th>
+                        <th>الخصم</th>
+                        <th>الصافي</th>
+                        <th>طريقة الدفع</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+        purchases.forEach((purchase, index) => {
+            const purchaseDate = purchase.tran_date ? new Date(purchase.tran_date).toLocaleDateString('ar-EG') : 'غير محدد';
+            const storeName = purchase.stores?.store_name || purchase.store_id;
+            const supplierName = purchase.suppliers?.supplier_name || purchase.supplier_name || purchase.supplierid;
+            const itemName = purchase.items?.item_nm || purchase.item_nm || purchase.item_id;
+            const paymentMethod = this.getPaymentMethodText(purchase.payment_method);
+
+            reportHTML += `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${purchase.invoice_id || ''}</td>
+                    <td>${purchaseDate}</td>
+                    <td>${storeName}</td>
+                    <td>${supplierName}</td>
+                    <td>${purchase.item_id || ''}</td>
+                    <td>${itemName}</td>
+                    <td>${this.formatNumber(this.safeParseFloat(purchase.item_qty))}</td>
+                    <td>${this.formatNumber(this.safeParseFloat(purchase.buy_price))} ج.م</td>
+                    <td>${this.formatNumber(this.safeParseFloat(purchase.total_price))} ج.م</td>
+                    <td>${this.formatNumber(this.safeParseFloat(purchase.discount))} ج.م</td>
+                    <td>${this.formatNumber(this.safeParseFloat(purchase.total_net_buy_price))} ج.م</td>
+                    <td>${paymentMethod}</td>
+                </tr>`;
+        });
+
+        reportHTML += `</tbody></table>`;
+        this.dom.reportContent.innerHTML = reportHTML;
+    }
+
+    // دوال مساعدة
+    calculateTotals(purchases) {
+        let totalPurchases = 0, totalDiscounts = 0, netTotal = 0;
+        purchases.forEach(purchase => {
+            totalPurchases += this.safeParseFloat(purchase.total_price);
+            totalDiscounts += this.safeParseFloat(purchase.discount);
+            netTotal += this.safeParseFloat(purchase.total_net_buy_price);
+        });
+        return {
+            totalPurchases,
+            totalDiscounts,
+            netTotal,
+            averageInvoice: purchases.length > 0 ? netTotal / purchases.length : 0
+        };
+    }
+
+    getFiltersText(filters) {
+        const texts = [];
+        if (filters.dateFrom || filters.dateTo) texts.push(`الفترة: ${filters.dateFrom || 'بداية'} - ${filters.dateTo || 'نهاية'}`);
+        
+        // ✅ تحسين عرض معلومات المخزن حسب الصلاحيات
+        if (filters.storeFrom || filters.storeTo) {
+            if (this.isSpecialUser) {
+                if (filters.storeFrom && filters.storeTo) {
+                    texts.push(`الفرع: ${this.getSelectedText('storeFrom', filters.storeFrom)} - ${this.getSelectedText('storeTo', filters.storeTo)}`);
+                } else if (filters.storeFrom) {
+                    texts.push(`من فرع: ${this.getSelectedText('storeFrom', filters.storeFrom)}`);
+                } else if (filters.storeTo) {
+                    texts.push(`إلى فرع: ${this.getSelectedText('storeTo', filters.storeTo)}`);
+                }
+            } else {
+                texts.push(`الفرع: ${this.userStoreName}`);
+            }
+        }
+        
+        if (filters.supplierFrom || filters.supplierTo) texts.push(`المورد: ${this.getSelectedText('supplierFrom', filters.supplierFrom)} - ${this.getSelectedText('supplierTo', filters.supplierTo)}`);
+        if (filters.itemFrom || filters.itemTo) texts.push(`الصنف: ${this.getSelectedText('itemFrom', filters.itemFrom)} - ${this.getSelectedText('itemTo', filters.itemTo)}`);
+        if (filters.paymentMethod) texts.push(`طريقة الدفع: ${this.getPaymentMethodText(filters.paymentMethod)}`);
+        if (filters.userName) texts.push(`اسم المستخدم: ${filters.userName}`);
+        return texts.join(' | ');
+    }
+    getSelectedText(elementId, value) {
+        if (!value) return 'الكل';
+        const element = document.getElementById(elementId);
+        if (element) {
+            const selectedOption = element.options[element.selectedIndex];
+            if (selectedOption) {
+                const text = selectedOption.textContent || '';
+                const match = text.match(/ - (.*)/);
+                return match ? match[1] : text;
+            }
+        }
+        return value;
+    }
+
+    getPaymentMethodText(method) {
+        const methods = { 'cash': 'نقدي', 'credit': 'آجل', 'check': 'شيك' };
+        return methods[method] || method || 'غير محدد';
+    }
+
+    formatNumber(value) {
+        const num = parseFloat(value);
+        return isNaN(num) ? '0.00' : num.toFixed(2);
+    }
+
+    safeParseFloat(value) {
+        const num = parseFloat(value);
+        return isNaN(num) ? 0 : num;
+    }
+
+    // تصدير إلى PDF
+    exportToPDF() {
+        if (!this.dom.reportContent || this.dom.reportContent.style.display === 'none') {
+            this.showError('⚠️ يرجى إنشاء التقرير أولاً قبل التصدير');
+            return;
+        }
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('p', 'pt', 'a4');
+        
+        // العنوان
+        doc.setFontSize(18);
+        doc.text('تقرير المشتريات', 40, 40);
+        
+        // المستخدم والمخزن
+        doc.setFontSize(12);
+        doc.text(`المستخدم: ${this.userName}`, 40, 60);
+        doc.text(`المخزن: ${this.isSpecialUser ? 'مدير النظام' : this.userStoreName}`, 40, 80);
+        doc.text(`تاريخ الإنشاء: ${new Date().toLocaleDateString('ar-EG')}`, 40, 100);
+        
+        // الجدول
+        doc.autoTable({
+            html: '#reportContent table',
+            startY: 120,
+            styles: { fontSize: 10, cellPadding: 3, halign: 'center' },
+            headStyles: { fillColor: [52, 152, 219] }
+        });
+        
+        doc.save('تقرير_المشتريات.pdf');
+    }
+
+    // طباعة التقرير
+    printReport() {
+        if (!this.dom.reportContent || this.dom.reportContent.style.display === 'none') {
+            this.showError('⚠️ يرجى إنشاء التقرير أولاً قبل الطباعة');
+            return;
+        }
+        window.print();
+    }
+
+    // دوال مساعدة للرسائل
+    showError(message) {
+        alert(`❌ ${message}`);
+    }
+
+    showSuccess(message) {
+        alert(`✅ ${message}`);
+    }
+
+    showInfo(message) {
+        alert(`ℹ️ ${message}`);
+    }
+}
+
+// ✅ وظيفة تسجيل الخروج
+async function logout() {
+    if (confirm('هل تريد تسجيل الخروج؟')) {
+        try {
+            if (app && app.supabase) {
+                await app.supabase.auth.signOut();
+            }
+            localStorage.clear();
+            window.location.href = 'index.html'; // الرجوع لصفحة الدخول
+        } catch (error) {
+            console.error('Logout error:', error);
+            localStorage.clear();
+            window.location.href = 'index.html';
+        }
+    }
+}
+
+// تهيئة التطبيق
+const app = new PurchaseReportApp();
+</script>
+</body>
+</html>

@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>🏢 ادخال بيانات المنشأه </title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  body {
+      background-color: #f8f9fa;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+  .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 2rem 0;
+      margin-bottom: 2rem;
+  }
+  .card {
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      border: none;
+      border-radius: 10px;
+  }
+  .table-hover tbody tr:hover {
+      background-color: rgba(0, 123, 255, 0.1);
+  }
+  .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+  }
+  .loading {
+      display: none;
+      text-align: center;
+      padding: 2rem;
+  }
+  .connection-status {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      background: #fff;
+      padding: 8px 12px;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      z-index: 1000;
+      font-size: 12px;
+  }
+  .connection-status.supabase {
+      border-left: 4px solid #28a745;
+  }
+  .connection-status.local {
+      border-left: 4px solid #dc3545;
+  }
+  .loading-spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #fff;
+      border-radius: 50%;
+      border-top-color: transparent;
+      animation: spin 1s linear infinite;
+      margin-left: 8px;
+  }
+  @keyframes spin {
+      to { transform: rotate(360deg); }
+  }
+  .switch-btn {
+      background: #6c757d;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 3px;
+      cursor: pointer;
+      margin-left: 10px;
+      font-size: 12px;
+  }
+  .switch-btn:hover {
+      background: #5a6268;
+  }
+  .search-box {
+      max-width: 300px;
+  }
+  .pagination {
+      margin-top: 1rem;
+  }
+  .page-btn {
+      margin: 0 2px;
+      padding: 5px 10px;
+      border: 1px solid #ddd;
+      background: white;
+      cursor: pointer;
+  }
+  .page-btn.active {
+      background: #007bff;
+      color: white;
+      border-color: #007bff;
+  }
+    :root {
+      --primary: #5d7fe3;
+      --primary-dark: #4a6bd4;
+      --primary-light: #f0f4ff;
+      --secondary: #8a5bd6;
+      --success: #4cc9f0;
+      --warning: #f72585;
+      --light: #f8f9fa;
+      --dark: #212529;
+      --gray: #6c757d;
+      --border: #dee2e6;
+      --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      --transition: all 0.3s ease;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #e6ecff 0%, #f0f4ff 100%);
+      color: var(--dark);
+      line-height: 1.6;
+      padding: 20px;
+      max-width: 1400px;
+      margin: 0 auto;
+      min-height: 100vh;
+    }
+
+    .container {
+      background: white;
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #5d7fe3 0%, #8a5bd6 100%);
+      color: white;
+      padding: 20px 25px;
+      margin-bottom: 0;
+    }
+
+    h2 {
+      font-size: 1.8rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0;
+    }
+
+    .card {
+      background: white;
+      padding: 20px 25px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 15px;
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+      color: var(--dark);
+      font-size: 0.95rem;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.95rem;
+      transition: var(--transition);
+      background-color: var(--light);
+      font-family: inherit;
+    }
+
+    textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(93, 127, 227, 0.2);
+    }
+
+    .error-flash {
+      border-color: var(--warning) !important;
+      box-shadow: 0 0 0 3px rgba(247, 37, 133, 0.2) !important;
+      animation: shake 0.5s ease-in-out;
+    }
+
+    .success-flash {
+      border-color: var(--success) !important;
+      box-shadow: 0 0 0 3px rgba(76, 201, 240, 0.2) !important;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+
+    .error-msg {
+      color: var(--warning);
+      font-size: 0.8rem;
+      margin-top: 4px;
+      font-weight: 500;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .btn-primary {
+      background-color: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background-color: var(--primary-dark);
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      background-color: var(--secondary);
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      background-color: #7a4bc4;
+      transform: translateY(-2px);
+    }
+
+    .btn-outline {
+      background-color: transparent;
+      color: var(--primary);
+      border: 1px solid var(--primary);
+    }
+
+    .btn-outline:hover {
+      background-color: var(--primary);
+      color: white;
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 15px;
+      flex-wrap: wrap;
+    }
+
+    .controls-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding: 15px 25px;
+      background: white;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .search-box {
+      flex-grow: 1;
+      max-width: 400px;
+    }
+
+    .table-container {
+      overflow-x: auto;
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+      margin: 0 25px 25px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: white;
+    }
+
+    th {
+      background-color: var(--primary);
+      color: white;
+      padding: 12px 10px;
+      text-align: right;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    td {
+      padding: 10px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+
+    tr:hover {
+      background-color: rgba(93, 127, 227, 0.05);
+    }
+
+    .actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .actions button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 4px;
+      border-radius: 5px;
+      transition: var(--transition);
+    }
+
+    .actions button:hover {
+      background-color: rgba(0, 0, 0, 0.1);
+      transform: scale(1.1);
+    }
+
+    .pagination {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      margin: 15px 0;
+      flex-wrap: wrap;
+    }
+
+    .page-btn {
+      padding: 6px 12px;
+      border: 1px solid var(--border);
+      background-color: white;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: var(--transition);
+      font-size: 0.9rem;
+    }
+
+    .page-btn.active {
+      background-color: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .page-btn:hover:not(.active) {
+      background-color: var(--light);
+    }
+
+    #companyCount {
+      text-align: center;
+      margin: 10px 0;
+      font-weight: 600;
+      color: var(--gray);
+      font-size: 0.9rem;
+    }
+
+    .export-select {
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background-color: white;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 768px) {
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .controls-row {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      
+      .search-box {
+        max-width: 100%;
+      }
+      
+      .header, .card {
+        padding: 15px 20px;
+      }
+      
+      .controls-row {
+        padding: 15px 20px;
+      }
+      
+      .table-container {
+        margin: 0 20px 20px;
+      }
+    }
+</style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h2>🏢 ادخال بيانات المنشأه</h2>
+    </div>
+
+    <div class="card">
+      <form id="companyForm" autocomplete="off">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="company_id">كود الشركة (اتركه فارغاً لإضافة جديد):</label>
+            <input type="number" id="company_id">
+          </div>
+          
+          <div class="form-group">
+            <label for="company_name">اسم الشركة (عربي):</label>
+            <input type="text" id="company_name" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="company_name_eng">اسم الشركة (إنجليزي):</label>
+            <input type="text" id="company_name_eng">
+          </div>
+          
+          <div class="form-group">
+            <label for="address">العنوان:</label>
+            <input type="text" id="address">
+          </div>
+          
+          <div class="form-group">
+            <label for="city">المدينة:</label>
+            <input type="text" id="city">
+          </div>
+          
+          <div class="form-group">
+            <label for="country">الدولة:</label>
+            <input type="text" id="country">
+          </div>
+          
+          <div class="form-group">
+            <label for="phone">الهاتف:</label>
+            <input type="text" id="phone">
+          </div>
+          
+          <div class="form-group">
+            <label for="phone2">الهاتف 2:</label>
+            <input type="text" id="phone2">
+          </div>
+          
+          <div class="form-group">
+            <label for="fax">الفاكس:</label>
+            <input type="text" id="fax">
+          </div>
+          
+          <div class="form-group">
+            <label for="email">البريد الإلكتروني:</label>
+            <input type="text" id="email">
+          </div>
+          
+          <div class="form-group">
+            <label for="tax_file">الملف الضريبي:</label>
+            <input type="text" id="tax_file">
+          </div>
+          
+          <div class="form-group">
+            <label for="tax_number">الرقم الضريبي:</label>
+            <input type="text" id="tax_number">
+          </div>
+          
+          <div class="form-group">
+            <label for="commercial_reg">السجل التجاري:</label>
+            <input type="text" id="commercial_reg">
+          </div>
+          
+          <div class="form-group">
+            <label for="website">الموقع الإلكتروني:</label>
+            <input type="text" id="website">
+          </div>
+          
+          <div class="form-group">
+            <label for="logo_url">رابط الشعار (Logo):</label>
+            <input type="text" id="logo_url">
+          </div>
+          
+          <div class="form-group">
+            <label for="notes">ملاحظات:</label>
+            <textarea id="notes"></textarea>
+          </div>
+          
+          <div class="form-group">
+            <label for="user_id">رقم المستخدم:</label>
+            <input type="number" id="user_id">
+          </div>
+        </div>
+        
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">💾 حفظ</button>
+          <button type="button" id="importBtn" class="btn btn-secondary">📥 استيراد من ملف</button>
+          <input id="importInput" type="file" accept=".csv,.xls,.xlsx" style="display:none">
+        </div>
+      </form>
+    </div>
+
+    <div class="controls-row">
+      <input type="text" id="searchBox" class="search-box" placeholder="🔎 ابحث عن شركة بالاسم أو الكود...">
+      
+      <div style="display: flex; gap: 8px;">
+        <select id="pageSizeSelector" class="export-select">
+          <option value="10">عرض 10</option>
+          <option value="20" selected>عرض 20</option>
+          <option value="50">عرض 50</option>
+          <option value="all">عرض الكل</option>
+        </select>
+        
+        <select id="exportSelect" class="export-select">
+          <option value="">📤 تصدير...</option>
+          <option value="csv">🧾 CSV</option>
+          <option value="xls">📘 XLS</option>
+          <option value="xlsx">📗 XLSX</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <table id="companyTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>كود</th>
+            <th>الاسم</th>
+            <th>المدينة</th>
+            <th>الدولة</th>
+            <th>الهاتف</th>
+            <th>البريد</th>
+            <th>الرقم الضريبي</th>
+            <th>المستخدم</th>
+            <th>التاريخ</th>
+            <th>الإجراءات</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div id="pagination" class="pagination"></div>
+  </div>
+      <script>
+      // company.js - Frontend for Company Management with Supabase
+      class CompanyApp {
+        constructor() {
+          this.SUPABASE_URL = 'https://rvjacvrrpguehbapvewe.supabase.co';
+          this.SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2amFjdnJycGd1ZWhiYXB2ZXdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwMjUxNTksImV4cCI6MjA3ODYwMTE1OX0.wSavKzxKOF7-56G-pzDMtbXNrCNAbGs0wvadw-cilBg';
+          
+          this.supabase = null;
+          this.state = {
+            companies: [],
+            currentEditId: null,
+            isLoading: false,
+            filters: {
+              search_query: '',
+              page_size: 20,
+              current_page: 1
+            }
+          };
+          this.dom = this._initDOM();
+          this.supabase = this._initSupabase();
+          this._setupEventListeners();
+          this.init();
+        }
+
+        // ======================== 🔌 تهيئة Supabase ========================
+        _initSupabase() {
+          try {
+            return supabase.createClient(this.SUPABASE_URL, this.SUPABASE_KEY);
+          } catch (error) {
+            console.error('❌ Failed to initialize Supabase:', error);
+            return null;
+          }
+        }
+
+        // ======================== 🏗️ تهيئة DOM ========================
+        _initDOM() {
+          const dom = {
+            // النموذج
+            form: document.getElementById("companyForm"),
+            company_id: document.getElementById("company_id"),
+            company_name: document.getElementById("company_name"),
+            company_name_eng: document.getElementById("company_name_eng"),
+            address: document.getElementById("address"),
+            city: document.getElementById("city"),
+            country: document.getElementById("country"),
+            phone: document.getElementById("phone"),
+            phone2: document.getElementById("phone2"),
+            fax: document.getElementById("fax"),
+            email: document.getElementById("email"),
+            tax_file: document.getElementById("tax_file"),
+            tax_number: document.getElementById("tax_number"),
+            commercial_reg: document.getElementById("commercial_reg"),
+            website: document.getElementById("website"),
+            logo_url: document.getElementById("logo_url"),
+            notes: document.getElementById("notes"),
+            user_id: document.getElementById("user_id"),
+            
+            // الأزرار
+            importBtn: document.getElementById("importBtn"),
+            importInput: document.getElementById("importInput"),
+            
+            // البحث والتصفية
+            searchBox: document.getElementById("searchBox"),
+            pageSizeSelector: document.getElementById("pageSizeSelector"),
+            exportSelect: document.getElementById("exportSelect"),
+            
+            // الجدول
+            tableBody: document.querySelector("#companyTable tbody"),
+            pagination: document.getElementById("pagination")
+          };
+
+          return dom;
+        }
+
+        // ======================== 🎯 إعداد مستمعي الأحداث ========================
+        _setupEventListeners() {
+          // النموذج
+          this.dom.form.addEventListener("submit", e => this._saveCompany(e));
+          
+          // الاستيراد
+          this.dom.importBtn.addEventListener("click", () => this.dom.importInput.click());
+          this.dom.importInput.addEventListener("change", (e) => this._importCompanies(e));
+          
+          // البحث والتصفية
+          this.dom.searchBox.addEventListener("input", () => this._handleSearch());
+          this.dom.pageSizeSelector.addEventListener("change", () => this._handlePageSizeChange());
+          this.dom.exportSelect.addEventListener("change", () => this._handleExport());
+          
+          // التنقل بلوحة المفاتيح
+          this.dom.form.addEventListener("keydown", (e) => this._handleKeyNavigation(e));
+        }
+
+        // ======================== 🚀 تهيئة التطبيق ========================
+        async init() {
+          await this._loadCompanies();
+          this._showAlert('✅ تم تهيئة نظام إدارة الشركات', 'success');
+          
+          // التركيز على حقل الكود
+          this.dom.company_id.focus();
+        }
+
+        // ======================== 📥 تحميل الشركات ========================
+        async _loadCompanies() {
+          this._setLoading(true);
+          
+          try {
+            console.log('🔄 جاري جلب الشركات من Supabase');
+            
+            if (!this.supabase) {
+              throw new Error('Supabase client not initialized');
+            }
+            
+            // استخدام اسم الجدول الصحيح: company_info بدلاً من companies
+            const { data, error } = await this.supabase
+              .from('company_info')
+              .select('*')
+              .order('company_id', { ascending: true });
+            
+            if (error) throw error;
+            
+            this.state.companies = data || [];
+            console.log(`✅ تم تحميل ${this.state.companies.length} شركة من Supabase`);
+            
+            this._renderTable();
+            
+          } catch (error) {
+            console.error("❌ Error loading companies:", error);
+            this._showAlert("خطأ في تحميل الشركات من Supabase", "danger");
+            
+            // محاولة بديلة: فحص الجداول المتاحة
+            await this._checkAvailableTables();
+          } finally {
+            this._setLoading(false);
+          }
+        }
+
+        // ======================== 🔍 فحص الجداول المتاحة ========================
+        async _checkAvailableTables() {
+          try {
+            console.log('🔍 فحص الجداول المتاحة في Supabase...');
+            
+            // محاولة الحصول على قائمة الجداول
+            const { data, error } = await this.supabase
+              .from('information_schema.tables')
+              .select('table_name')
+              .eq('table_schema', 'public');
+              
+            if (!error && data) {
+              console.log('📊 الجداول المتاحة:', data.map(t => t.table_name));
+            }
+            
+            // محاولة استخدام أسماء جداول بديلة
+            const possibleTables = ['company_info', 'companies', 'company', 'businesses'];
+            
+            for (const tableName of possibleTables) {
+              try {
+                const { data, error } = await this.supabase
+                  .from(tableName)
+                  .select('*')
+                  .limit(1);
+                  
+                if (!error) {
+                  console.log(`✅ تم العثور على الجدول: ${tableName}`);
+                  this._showAlert(`تم العثور على الجدول: ${tableName}`, 'info');
+                  return;
+                }
+              } catch (e) {
+                // تجاهل الخطأ والمحاولة بالجدول التالي
+              }
+            }
+            
+            console.log('❌ لم يتم العثور على أي جدول للشركات');
+            this._showAlert('لم يتم العثور على جدول الشركات في قاعدة البيانات', 'danger');
+            
+          } catch (error) {
+            console.error('❌ Error checking tables:', error);
+          }
+        }
+
+        // ======================== 🎨 عرض البيانات في الجدول ========================
+        _renderTable() {
+          const companies = this._getFilteredCompanies();
+          const totalPages = Math.ceil(companies.length / (this.state.filters.page_size === "all" ? companies.length || 1 : this.state.filters.page_size));
+          const start = this.state.filters.page_size === "all" ? 0 : (this.state.filters.current_page - 1) * this.state.filters.page_size;
+          const end = this.state.filters.page_size === "all" ? companies.length : start + this.state.filters.page_size;
+          const pageCompanies = companies.slice(start, end);
+
+          this.dom.tableBody.innerHTML = "";
+          
+          if (!pageCompanies || pageCompanies.length === 0) {
+            this.dom.tableBody.innerHTML = `
+              <tr>
+                <td colspan="11" class="text-center text-muted">
+                  <i class="fas fa-inbox me-2"></i>لا توجد بيانات للعرض
+                </td>
+              </tr>
+            `;
+            return;
+          }
+
+          this.dom.tableBody.innerHTML = pageCompanies.map((company, index) => {
+            const serial = (this.state.filters.page_size === "all") ? (index + 1) : (start + index + 1);
+            return `
+              <tr>
+                <td>${serial}</td>
+                <td>${company.company_id || ""}</td>
+                <td>${this._escapeHtml(company.company_name || "")}</td>
+                <td>${this._escapeHtml(company.city || "")}</td>
+                <td>${this._escapeHtml(company.country || "")}</td>
+                <td>${this._escapeHtml(company.phone || "")}</td>
+                <td>${this._escapeHtml(company.email || "")}</td>
+                <td>${this._escapeHtml(company.tax_number || "")}</td>
+                <td>${company.user_id || ""}</td>
+                <td>${company.user_stamp ? new Date(company.user_stamp).toLocaleString("ar-EG") : ""}</td>
+                <td class="actions">
+                  <button class="btn btn-sm btn-outline-primary me-1" onclick="companyApp.editCompany(${company.company_id})">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button class="btn btn-sm btn-outline-danger" onclick="companyApp.deleteCompany(${company.company_id})">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </td>
+              </tr>
+            `;
+          }).join('');
+
+          this._renderPagination(totalPages);
+          this._renderCount(companies.length);
+        }
+
+        // ======================== 🔍 الحصول على الشركات المصفاة ========================
+        _getFilteredCompanies() {
+          const query = (this.dom.searchBox.value || "").toString().trim().toLowerCase();
+          if (!query) return this.state.companies.slice();
+          
+          return this.state.companies.filter(company => {
+            const fields = [
+              company.company_id ? String(company.company_id) : "",
+              company.company_name ? company.company_name : "",
+              company.company_name_eng ? company.company_name_eng : "",
+              company.city ? company.city : "",
+              company.country ? company.country : ""
+            ].map(s => s.toString().toLowerCase());
+            
+            return fields.some(field => field.includes(query));
+          });
+        }
+
+        // ======================== 📄 عرض الترقيم ========================
+        _renderPagination(totalPages) {
+          this.dom.pagination.innerHTML = "";
+          if (this.state.filters.page_size === "all" || totalPages <= 1) return;
+          
+          for (let i = 1; i <= totalPages; i++) {
+            const btn = document.createElement("button");
+            btn.textContent = i;
+            btn.className = "page-btn" + (i === this.state.filters.current_page ? " active" : "");
+            btn.onclick = () => {
+              this.state.filters.current_page = i;
+              this._renderTable();
+            };
+            this.dom.pagination.appendChild(btn);
+          }
+        }
+
+        // ======================== 📊 عرض العدد ========================
+        _renderCount(count) {
+          let countElement = document.getElementById("companyCount");
+          if (!countElement) {
+            countElement = document.createElement("div");
+            countElement.id = "companyCount";
+            countElement.style.cssText = `
+              margin-top: 10px;
+              font-weight: bold;
+              text-align: center;
+              color: #6c757d;
+              font-size: 0.9rem;
+            `;
+            this.dom.pagination.after(countElement);
+          }
+          countElement.textContent = `عدد الشركات المسجلة: ${count}`;
+        }
+
+        // ======================== 💾 حفظ الشركة ========================
+        async _saveCompany(e) {
+          e.preventDefault();
+
+          // التحقق من صحة البيانات
+          if (!this.dom.company_name.value.trim()) {
+            this._showAlert("⚠️ يرجى إدخال اسم الشركة", "warning");
+            this.dom.company_name.focus();
+            return;
+          }
+
+          this._setLoading(true);
+
+          try {
+            const companyData = {
+              company_name: this.dom.company_name.value.trim(),
+              company_name_eng: this.dom.company_name_eng.value.trim() || null,
+              address: this.dom.address.value.trim() || null,
+              city: this.dom.city.value.trim() || null,
+              country: this.dom.country.value.trim() || null,
+              phone: this.dom.phone.value.trim() || null,
+              phone2: this.dom.phone2.value.trim() || null,
+              fax: this.dom.fax.value.trim() || null,
+              email: this.dom.email.value.trim() || null,
+              tax_file: this.dom.tax_file.value.trim() || null,
+              tax_number: this.dom.tax_number.value.trim() || null,
+              commercial_reg: this.dom.commercial_reg.value.trim() || null,
+              website: this.dom.website.value.trim() || null,
+              logo_url: this.dom.logo_url.value.trim() || null,
+              notes: this.dom.notes.value.trim() || null,
+              user_id: this.dom.user_id.value ? parseInt(this.dom.user_id.value) : null
+            };
+
+            let result;
+
+            // استخدام Supabase فقط مع اسم الجدول الصحيح
+            if (!this.supabase) {
+              throw new Error('Supabase client not initialized');
+            }
+
+            if (this.state.currentEditId) {
+              // تعديل
+              const { data, error } = await this.supabase
+                .from('company_info')
+                .update(companyData)
+                .eq('company_id', this.state.currentEditId)
+                .select();
+
+              if (error) throw error;
+              result = { success: true, data: data[0] };
+            } else {
+              // إضافة جديدة
+              const { data, error } = await this.supabase
+                .from('company_info')
+                .insert([companyData])
+                .select();
+
+              if (error) throw error;
+              result = { success: true, data: data[0] };
+            }
+            
+            if (result.success || result) {
+              this._showAlert(
+                this.state.currentEditId ? "تم تعديل بيانات الشركة بنجاح" : "تم إضافة الشركة بنجاح",
+                "success"
+              );
+              
+              this._clearForm();
+              await this._loadCompanies();
+            } else {
+              this._showAlert("خطأ في حفظ البيانات", "danger");
+            }
+          } catch (error) {
+            console.error("❌ Error saving company:", error);
+            this._showAlert("خطأ في حفظ بيانات الشركة", "danger");
+          } finally {
+            this._setLoading(false);
+          }
+        }
+
+        // ======================== ✏️ تعديل الشركة ========================
+        async editCompany(id) {
+          try {
+            let company;
+
+            // استخدام Supabase فقط مع اسم الجدول الصحيح
+            const { data, error } = await this.supabase
+              .from('company_info')
+              .select('*')
+              .eq('company_id', id)
+              .single();
+            
+            if (error) throw error;
+            company = data;
+
+            this.state.currentEditId = id;
+            
+            // تعبئة النموذج
+            const fields = [
+              'company_id', 'company_name', 'company_name_eng', 'address', 'city', 
+              'country', 'phone', 'phone2', 'fax', 'email', 'tax_file', 'tax_number',
+              'commercial_reg', 'website', 'logo_url', 'notes', 'user_id'
+            ];
+            
+            fields.forEach(field => {
+              if (this.dom[field]) {
+                this.dom[field].value = company[field] !== null && company[field] !== undefined ? company[field] : "";
+              }
+            });
+            
+            this._showAlert('✅ جاهز للتعديل', 'info');
+            this.dom.user_id.focus();
+            
+          } catch (error) {
+            console.error("❌ Error editing company:", error);
+            this._showAlert("خطأ في تحميل بيانات الشركة", "danger");
+          }
+        }
+
+        // ======================== 🗑️ حذف الشركة ========================
+        async deleteCompany(id) {
+          if (!confirm("هل أنت متأكد من حذف هذه الشركة؟")) {
+            return;
+          }
+          
+          try {
+            let result;
+
+            // استخدام Supabase فقط مع اسم الجدول الصحيح
+            if (!this.supabase) {
+              throw new Error('Supabase client not initialized');
+            }
+
+            const { error } = await this.supabase
+              .from('company_info')
+              .delete()
+              .eq('company_id', id);
+
+            if (error) throw error;
+            result = { success: true };
+            
+            if (result.success) {
+              this._showAlert("تم حذف الشركة بنجاح", "success");
+              await this._loadCompanies();
+            } else {
+              this._showAlert("خطأ في حذف الشركة", "danger");
+            }
+          } catch (error) {
+            console.error("❌ Error deleting company:", error);
+            this._showAlert("خطأ في حذف الشركة", "danger");
+          }
+        }
+
+        // ======================== 📥 استيراد الشركات ========================
+        async _importCompanies(e) {
+          const file = e.target.files[0];
+          if (!file) return;
+          
+          this.dom.importBtn.disabled = true;
+          this.dom.importBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري الاستيراد...';
+          
+          try {
+            // محاولة استيراد مباشر إلى Supabase
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+              try {
+                const csvData = e.target.result;
+                const rows = csvData.split('\n').slice(1); // تخطي العنوان
+                
+                for (const row of rows) {
+                  if (!row.trim()) continue;
+                  
+                  const columns = row.split(',').map(col => col.trim().replace(/^"|"$/g, ''));
+                  
+                  const companyData = {
+                    company_id: parseInt(columns[0]) || null,
+                    company_name: columns[1] || '',
+                    company_name_eng: columns[2] || null,
+                    city: columns[3] || null,
+                    country: columns[4] || null,
+                    phone: columns[5] || null,
+                    email: columns[6] || null,
+                    tax_number: columns[7] || null,
+                    user_id: parseInt(columns[8]) || null
+                  };
+                  
+                  // إدخال البيانات في Supabase
+                  const { error } = await this.supabase
+                    .from('company_info')
+                    .insert([companyData]);
+                    
+                  if (error) {
+                    console.error('❌ Error importing row:', error);
+                  }
+                }
+                
+                await this._loadCompanies();
+                this._showAlert("✅ تم استيراد الملف بنجاح", "success");
+                
+              } catch (error) {
+                console.error("❌ Error processing import file:", error);
+                this._showAlert("⚠️ حدث خطأ أثناء معالجة الملف", "danger");
+              } finally {
+                this.dom.importInput.value = "";
+                this.dom.importBtn.disabled = false;
+                this.dom.importBtn.innerHTML = '📥 استيراد من ملف';
+              }
+            };
+            
+            reader.readAsText(file);
+            
+          } catch (error) {
+            console.error("❌ Error importing companies:", error);
+            this._showAlert("⚠️ حدث خطأ أثناء الاستيراد", "danger");
+            this.dom.importInput.value = "";
+            this.dom.importBtn.disabled = false;
+            this.dom.importBtn.innerHTML = '📥 استيراد من ملف';
+          }
+        }
+
+        // ======================== 📤 تصدير الشركات ========================
+        async _handleExport() {
+          const format = this.dom.exportSelect.value;
+          if (!format) return;
+          
+          try {
+            const companies = this._getFilteredCompanies();
+            const start = this.state.filters.page_size === "all" ? 0 : (this.state.filters.current_page - 1) * this.state.filters.page_size;
+            const end = this.state.filters.page_size === "all" ? companies.length : start + this.state.filters.page_size;
+            const pageCompanies = companies.slice(start, end);
+            
+            if (!pageCompanies.length) {
+              this._showAlert("لا توجد بيانات للتصدير", "warning");
+              return;
+            }
+
+            const headers = ["#", "company_id", "company_name", "company_name_eng", "city", "country", "phone", "email", "tax_number", "user_id", "user_stamp"];
+            const rows = pageCompanies.map((company, index) => [
+              (this.state.filters.page_size === "all" ? (index + 1) : (start + index + 1)),
+              company.company_id || "",
+              company.company_name || "",
+              company.company_name_eng || "",
+              company.city || "",
+              company.country || "",
+              company.phone || "",
+              company.email || "",
+              company.tax_number || "",
+              company.user_id || "",
+              company.user_stamp || ""
+            ]);
+
+            const csv = [headers, ...rows].map(row => 
+              row.map(cell => {
+                const s = cell === null || cell === undefined ? "" : String(cell);
+                if (/[,"\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+                return s;
+              }).join(",")
+            ).join("\n");
+
+            const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `companies_${new Date().toISOString().slice(0, 19).replace(/[-:T]/g, "")}.${format}`;
+            link.click();
+            
+            this._showAlert("✅ تم التصدير بنجاح", "success");
+            
+          } catch (error) {
+            console.error("❌ Error exporting companies:", error);
+            this._showAlert("خطأ في التصدير", "danger");
+          } finally {
+            this.dom.exportSelect.value = "";
+          }
+        }
+
+        // ======================== 🔍 معالجة البحث ========================
+        _handleSearch() {
+          this.state.filters.current_page = 1;
+          this._renderTable();
+        }
+
+        // ======================== 📄 معالجة تغيير حجم الصفحة ========================
+        _handlePageSizeChange() {
+          this.state.filters.page_size = this.dom.pageSizeSelector.value === "all" ? "all" : parseInt(this.dom.pageSizeSelector.value, 10);
+          this.state.filters.current_page = 1;
+          this._renderTable();
+        }
+
+        // ======================== ⌨️ معالجة التنقل بلوحة المفاتيح ========================
+        _handleKeyNavigation(e) {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            const inputs = Array.from(this.dom.form.querySelectorAll("input, textarea, select"));
+            const idx = inputs.indexOf(e.target);
+            if (idx > -1 && idx < inputs.length - 1) {
+              inputs[idx + 1].focus();
+            } else {
+              this.dom.form.querySelector('button[type="submit"]').focus();
+            }
+          }
+        }
+
+        // ======================== 🔄 إعادة تعيين النموذج ========================
+        _clearForm() {
+          this.state.currentEditId = null;
+          this.dom.form.reset();
+        }
+
+        // ======================== ⏳ تعيين حالة التحميل ========================
+        _setLoading(loading) {
+          this.state.isLoading = loading;
+          const submitBtn = this.dom.form.querySelector('button[type="submit"]');
+          if (submitBtn) {
+            submitBtn.disabled = loading;
+            submitBtn.innerHTML = loading ? 
+              '<i class="fas fa-spinner fa-spin me-2"></i>جاري الحفظ...' : 
+              '💾 حفظ';
+          }
+        }
+
+        // ======================== 💬 عرض التنبيهات ========================
+        _showAlert(message, type) {
+          const oldAlerts = document.querySelectorAll('.alert');
+          oldAlerts.forEach(alert => alert.remove());
+
+          const alertDiv = document.createElement("div");
+          alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+          alertDiv.style.cssText = `
+            position: fixed;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            min-width: 300px;
+            text-align: center;
+          `;
+          alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          `;
+          
+          document.body.appendChild(alertDiv);
+          
+          setTimeout(() => {
+            if (alertDiv.parentElement) {
+              alertDiv.remove();
+            }
+          }, 5000);
+        }
+
+        // ======================== 🛡️ حماية من XSS ========================
+        _escapeHtml(unsafe) {
+          if (!unsafe) return '';
+          return unsafe
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+        }
+      }
+
+      // ======================== 🚀 تشغيل التطبيق ========================
+      let companyApp;
+      document.addEventListener("DOMContentLoaded", function() {
+        companyApp = new CompanyApp();
+      });
+    </script>
+  </body>
+</html>

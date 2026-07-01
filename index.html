@@ -1,0 +1,1672 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>تسجيل الدخول للنظام</title>
+  <link rel="icon" href="data:,">
+  
+  <!-- إضافة Font Awesome للأيقونات -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">   
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+    <style>
+        /* 🔥 إعادة تعيين كاملة للشاشة */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            width: 100%;
+            padding: 20px;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        /* 💎 حاوية الدخول */
+        .login-container {
+            background: linear-gradient(135deg, 
+                rgba(255, 255, 255, 0.12) 0%, 
+                rgba(255, 255, 255, 0.06) 100%);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 16px;
+            box-shadow: 
+                0 8px 20px rgba(0, 0, 0, 0.25),
+                inset 0 1px 0 rgba(255, 255, 255, 0.08),
+                0 0 25px rgba(67, 97, 238, 0.12);
+            width: 100%;
+            max-width: 380px;
+            animation: glassAppear 0.4s ease-out;
+            margin: auto;
+            overflow: hidden;
+        }
+
+        /* 📱 رأس الصفحة */
+        .login-header {
+            background: linear-gradient(135deg, 
+                var(--primary-color) 0%, 
+                var(--primary-dark) 100%);
+            color: white;
+            padding: 20px 15px;
+            text-align: center;
+            border-radius: 16px 16px 0 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        /* 📝 عناوين */
+        .login-header h1 {
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+            font-weight: 700;
+            letter-spacing: -0.05px;
+            line-height: 1.2;
+        }
+
+        .login-header p {
+            font-size: 0.85rem;
+            opacity: 0.85;
+            line-height: 1.4;
+        }
+
+        /* 📋 نموذج الدخول */
+        .login-form {
+            padding: 25px 30px;
+        }
+
+        /* 🎯 حقول الإدخال */
+        .form-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        /* ✨ حقول إدخال */
+        .form-input, .store-select {
+            width: 100%;
+            padding: 14px 16px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(240, 240, 255, 0.08) 100%);
+            border: 1.5px solid rgba(100, 150, 255, 0.3);
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            color: #f0f0f0;
+            direction: ltr;
+            text-align: center;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
+
+        /* ألوان خاصة لكل حقل */
+        #user_id {
+            background: linear-gradient(135deg, rgba(103, 232, 249, 0.1) 0%, rgba(103, 232, 249, 0.05) 100%);
+            border-color: rgba(103, 232, 249, 0.4);
+        }
+
+        #password {
+            background: linear-gradient(135deg, rgba(236, 72, 153, 0.1) 0%, rgba(236, 72, 153, 0.05) 100%);
+            border-color: rgba(236, 72, 153, 0.4);
+        }
+
+        #username {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(139, 92, 246, 0.05) 100%);
+            border-color: rgba(139, 92, 246, 0.4);
+        }
+
+        #store_name, #store_select {
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%);
+            border-color: rgba(34, 197, 94, 0.4);
+        }
+
+        .form-input:focus, .store-select:focus {
+            outline: none;
+            border-color: #4cc9f0;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(220, 240, 255, 0.12) 100%);
+            box-shadow: 0 0 0 3px rgba(76, 201, 240, 0.2);
+            transform: translateY(-1px);
+        }
+
+        /* 👁️ زر كلمة المرور */
+        .password-toggle {
+            position: absolute;
+            left: 12px;
+            top: 42px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--primary-light);
+            font-size: 1rem;
+            padding: 0;
+            width: 24px;
+            height: 24px;
+            touch-action: manipulation;
+            z-index: 10;
+        }
+
+        /* ✅ تذكرني */
+        .remember-me {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 15px 0;
+            color: rgba(255, 255, 255, 0.75);
+            font-size: 0.85rem;
+        }
+
+        .remember-me input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            margin: 0;
+        }
+
+        /* 🚪 أزرار */
+        .login-btn, .signup-btn {
+            padding: 14px;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            margin-top: 5px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+            letter-spacing: 0.2px;
+            width: 100%;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            min-height: 50px;
+        }
+
+        .login-btn {
+            background: linear-gradient(135deg, #4361ee 0%, #3a56d4 100%);
+            color: white;
+        }
+
+        .signup-btn {
+            background: linear-gradient(135deg, #7209b7 0%, #5e0a9c 100%);
+            color: white;
+        }
+
+        .login-btn:hover, .signup-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 22px rgba(0, 0, 0, 0.3);
+        }
+
+        .login-btn:hover {
+            background: linear-gradient(135deg, #3a56d4 0%, #2f4bb8 100%);
+        }
+
+        .signup-btn:hover {
+            background: linear-gradient(135deg, #5e0a9c 0%, #4c087e 100%);
+        }
+
+        .login-btn:disabled, .signup-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* ✂️ فاصل */
+        .divider {
+            margin: 10px 0;
+            color: rgba(148, 114, 114, 0.5);
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        .divider span {
+            padding: 0 10px;
+            font-size: 0.75rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+
+        /* 📍 معلومات النظام */
+        .system-info {
+            margin-top: 20px;
+            padding-top: 15px;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.55);
+            line-height: 1.3;
+            text-align: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .system-info p:first-child {
+            margin-bottom: 5px;
+        }
+
+        /* 🆘 إشعار خاص */
+        .special-notice {
+            padding: 10px 12px;
+            font-size: 0.8rem;
+            border-radius: 8px;
+            margin-top: 8px;
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            color: #fbbf24;
+            display: none;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* ======================================== */
+        /* 📱 إصلاحات خاصة للموبايل */
+        /* ======================================== */
+
+        /* 📱 الهواتف (أقل من 768px) */
+        @media (max-width: 767px) {
+            body {
+                padding: 15px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 100vh;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            .login-container {
+                max-width: 100%;
+                border-radius: 20px;
+                margin: 0;
+                align-self: center;
+                min-height: auto;
+            }
+            
+            .login-header {
+                padding: 25px 20px;
+                border-radius: 20px 20px 0 0;
+            }
+            
+            .login-header h1 {
+                font-size: 1.4rem;
+                margin-bottom: 10px;
+            }
+            
+            .login-header p {
+                font-size: 0.9rem;
+                line-height: 1.3;
+            }
+            
+            .login-form {
+                padding: 25px 20px;
+                min-height: auto;
+            }
+            
+            .form-group {
+                margin-bottom: 20px;
+            }
+            
+            .form-group label {
+                font-size: 0.9rem;
+                margin-bottom: 8px;
+            }
+            
+            .form-input, .store-select {
+                padding: 14px 16px;
+                font-size: 16px;
+                min-height: 40px;
+                border-radius: 10px;
+            }
+            
+            .login-btn, .signup-btn {
+                padding: 16px;
+                font-size: 16px;
+                min-height: 50px;
+                border-radius: 10px;
+                margin: 6px 0;
+                cursor: pointer !important;
+            }
+            
+            /* ✅ إصلاح خاص لزر التسجيل على الموبايل */
+            .signup-btn {
+                background: linear-gradient(135deg, #7209b7 0%, #5e0a9c 100%);
+                color: white;
+                border: none;
+                position: relative;
+                overflow: hidden;
+            }
+            
+            .signup-btn:active {
+                background: linear-gradient(135deg, #5e0a9c 0%, #4c087e 100%);
+                transform: translateY(1px);
+            }
+            
+            .signup-btn::after {
+                content: '';
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                width: 5px;
+                height: 5px;
+                background: rgba(255, 255, 255, 0.5);
+                opacity: 0;
+                border-radius: 100%;
+                transform: scale(1, 1) translate(-50%);
+                transform-origin: 50% 50%;
+            }
+            
+            .signup-btn:focus:not(:active)::after {
+                animation: ripple 1s ease-out;
+            }
+            
+            @keyframes ripple {
+                0% {
+                    transform: scale(0, 0);
+                    opacity: 0.5;
+                }
+                100% {
+                    transform: scale(20, 20);
+                    opacity: 0;
+                }
+            }
+            
+            .password-toggle {
+                top: 42px;
+                width: 30px;
+                height: 30px;
+                font-size: 1.1rem;
+                min-height: 44px;
+                min-width: 44px;
+            }
+            
+            .remember-me {
+                margin: 15px 0;
+                font-size: 0.9rem;
+            }
+            
+            .remember-me input[type="checkbox"] {
+                width: 20px;
+                height: 20px;
+                min-height: 44px;
+                min-width: 44px;
+            }
+            
+            .system-info {
+                margin-top: 25px;
+                padding-top: 15px;
+                font-size: 0.85rem;
+            }
+            
+            .buttons-container {
+                gap: 10px;
+                margin-top: 15px;
+            }
+            
+            /* ✅ تحسين تجربة اللمس */
+            button, input, select, .form-input, .store-select {
+                touch-action: manipulation;
+                -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+                cursor: pointer;
+            }
+            
+            /* ✅ منع التكبير على iOS */
+            input, textarea, select {
+                font-size: 16px;
+            }
+        }
+
+        /* 📱 هواتف صغيرة (أقل من 480px) */
+        @media (max-width: 479px) {
+            body {
+                padding: 10px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 100vh;
+            }
+            
+            .login-container {
+                border-radius: 18px;
+                max-width: 100%;
+                margin: 0 auto;
+            }
+            
+            .login-header {
+                padding: 20px 15px;
+                border-radius: 18px 18px 0 0;
+            }
+            
+            .login-form {
+                padding: 20px 15px;
+            }
+            
+            .form-input, .store-select {
+                padding: 12px 14px;
+                min-height: 48px;
+                font-size: 16px;
+            }
+            
+            .login-btn, .signup-btn {
+                padding: 14px;
+                min-height: 52px;
+                font-size: 16px;
+            }
+            
+            .login-header h1 {
+                font-size: 1.3rem;
+            }
+            
+            /* ✅ إصلاح إضافي لزر التسجيل */
+            .signup-btn {
+                position: relative;
+                z-index: 1;
+            }
+        }
+
+        /* 📱 هواتف صغيرة جداً (أقل من 360px) */
+        @media (max-width: 359px) {
+            body {
+                padding: 8px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            .login-header {
+                padding: 18px 12px;
+            }
+            
+            .login-header h1 {
+                font-size: 1.2rem;
+            }
+            
+            .login-form {
+                padding: 18px 12px;
+            }
+            
+            .form-input, .store-select {
+                padding: 11px 12px;
+                min-height: 46px;
+                font-size: 16px;
+            }
+            
+            .login-btn, .signup-btn {
+                padding: 12px;
+                min-height: 50px;
+                font-size: 15px;
+            }
+            
+            .password-toggle {
+                top: 40px;
+                width: 28px;
+                height: 28px;
+                left: 8px;
+            }
+        }
+
+        /* 📱 الوضع الأفقي على الهواتف */
+        @media (max-height: 600px) and (orientation: landscape) {
+            body {
+                padding: 10px;
+                display: flex;
+                align-items: flex-start;
+                justify-content: center;
+                overflow-y: auto;
+                min-height: 100vh;
+            }
+            
+            .login-container {
+                max-width: 90%;
+                max-height: 90vh;
+                overflow-y: auto;
+                margin: 10px auto;
+                align-self: flex-start;
+            }
+            
+            .login-header {
+                padding: 15px 20px;
+            }
+            
+            .login-header h1 {
+                font-size: 1.2rem;
+                margin-bottom: 5px;
+            }
+            
+            .login-form {
+                padding: 15px 20px;
+                max-height: 65vh;
+                overflow-y: auto;
+            }
+            
+            .form-group {
+                margin-bottom: 12px;
+            }
+            
+            .form-input, .store-select {
+                padding: 10px 12px;
+                min-height: 44px;
+            }
+            
+            .login-btn, .signup-btn {
+                padding: 12px;
+                min-height: 48px;
+            }
+        }
+
+        /* 💻 أجهزة الكمبيوتر */
+        @media (min-width: 768px) {
+            body {
+                padding: 30px;
+            }
+            
+            .login-container {
+                max-width: 400px;
+            }
+            
+            .login-btn, .signup-btn {
+                cursor: pointer;
+            }
+        }
+
+        /* 💻 شاشات كبيرة */
+        @media (min-width: 1200px) {
+            .login-container {
+                max-width: 420px;
+            }
+            
+            .login-header {
+                padding: 25px;
+            }
+            
+            .login-form {
+                padding: 30px 35px;
+            }
+        }
+
+        /* ======================================== */
+        /* 🎯 تحسينات نهائية */
+        /* ======================================== */
+
+        .shake {
+            animation: shake 0.4s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+            20%, 40%, 60%, 80% { transform: translateX(4px); }
+        }
+        
+        /* 🔄 مؤشر تحميل */
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ======================================== */
+        /* 🎨 رسائل التوست */
+        /* ======================================== */
+        .toast-message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            color: white;
+            font-size: 0.9rem;
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: slideInRight 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            max-width: 90vw;
+            word-wrap: break-word;
+        }
+
+        .toast-message.toast-error {
+            border-left: 4px solid #ef4444;
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(30, 41, 59, 0.95) 100%);
+        }
+
+        .toast-message.toast-success {
+            border-left: 4px solid #22c55e;
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(30, 41, 59, 0.95) 100%);
+        }
+
+        .toast-message.toast-info {
+            border-left: 4px solid #3b82f6;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(30, 41, 59, 0.95) 100%);
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        /* ======================================== */
+        /* 🔧 إصلاحات خاصة للأجهزة التي تعمل باللمس */
+        /* ======================================== */
+        
+        /* تحسين تجربة اللمس لجميع الأجهزة */
+        @media (hover: none) and (pointer: coarse) {
+            .login-btn, .signup-btn {
+                min-height: 56px;
+                font-size: 16px;
+                padding: 16px;
+                cursor: pointer !important;
+            }
+            
+            .form-input, .store-select {
+                min-height: 56px;
+                font-size: 16px;
+                padding: 16px;
+            }
+            
+            .password-toggle {
+                min-height: 44px;
+                min-width: 44px;
+            }
+            
+            .remember-me input[type="checkbox"] {
+                min-height: 44px;
+                min-width: 44px;
+            }
+            
+            /* تحسين الاستجابة للضغط */
+            .login-btn:active, .signup-btn:active {
+                transform: scale(0.98);
+                transition: transform 0.1s;
+            }
+        }
+        
+        /* منع التكبير على iOS */
+        input, textarea, select {
+            font-size: 16px !important;
+        }
+        
+        /* تحسين المؤشر للأجهزة التي تعمل باللمس */
+        button, a, input[type="submit"], input[type="button"] {
+            cursor: pointer;
+        }
+        
+        /* تحسين تجربة التركيز للأجهزة التي تعمل باللمس */
+        .login-btn:focus, .signup-btn:focus {
+            outline: 2px solid rgba(76, 201, 240, 0.5);
+            outline-offset: 2px;
+        }
+    </style>
+</head>
+<body>
+  <!-- 🎆 خلفية متحركة -->
+  
+  
+  <div class="login-container">
+    <!-- 📱 رأس الصفحة -->
+    <div class="login-header">
+      <h1>نظام جسر المتكامل</h1>
+      <p>إدارة المؤسسات والشركات</p>
+      <p>Designed by Yousry</p>
+    </div>
+
+    <!-- 📋 نموذج الدخول -->
+      <div class="login-form">
+          <form id="loginForm" onsubmit="return false;" autocomplete="off">
+              <!-- كود المستخدم -->
+              <div class="form-group">
+                  <label for="user_id">
+                      <i class="fas fa-user"></i>
+                      كود المستخدم
+                  </label>
+                  <input type="text" 
+                        id="user_id" 
+                        name="user_id" 
+                        class="form-input" 
+                        required 
+                        placeholder="أدخل كود المستخدم"
+                        inputmode="numeric"
+                        autocomplete="off"
+                        autofocus
+                        autocapitalize="off"
+                        autocorrect="off"
+                        spellcheck="false">
+                  <div id="specialNotice" class="special-notice"></div>
+              </div>
+
+              <!-- اسم المستخدم -->
+              <div class="form-group">
+                  <label for="username">
+                      <i class="fas fa-id-card"></i>
+                      اسم المستخدم
+                  </label>
+                  <input type="text" 
+                        id="username" 
+                        name="username" 
+                        class="form-input" 
+                        readonly 
+                        placeholder="سيظهر تلقائياً"
+                        autocomplete="off"
+                        autocapitalize="off"
+                        autocorrect="off"
+                        spellcheck="false">
+              </div>
+
+              <!-- حقل اختيار المخزن -->
+              <div class="store-select-container" id="storeSelectGroup" style="display: none;">
+                  <label for="store_select">
+                      <i class="fas fa-store"></i>
+                      اختر المخزن
+                  </label>
+                  <select id="store_select" 
+                          name="store_select" 
+                          class="store-select"
+                          autocomplete="off">
+                      <option value="">-- اختر المخزن --</option>
+                  </select>
+              </div>
+
+              <!-- حقل المخزن العادي -->
+              <div class="form-group" id="storeNameGroup">
+                  <label for="store_name">
+                      <i class="fas fa-building"></i>
+                      الفرع
+                  </label>
+                  <input type="text" 
+                        id="store_name" 
+                        name="store_name" 
+                        class="form-input" 
+                        readonly 
+                        placeholder="سيظهر تلقائياً"
+                        autocomplete="off"
+                        autocapitalize="off"
+                        autocorrect="off"
+                        spellcheck="false">
+              </div>
+
+              <!-- كلمة المرور -->
+              <div class="form-group">
+                  <label for="password">
+                      <i class="fas fa-lock"></i>
+                      كلمة المرور
+                  </label>
+                  <div style="position: relative;">
+                      <input type="password" 
+                            id="password" 
+                            name="password" 
+                            class="form-input" 
+                            required 
+                            placeholder="أدخل كلمة المرور"
+                            autocomplete="new-password"
+                            autocapitalize="off"
+                            autocorrect="off"
+                            spellcheck="false">
+                      <button type="button" class="password-toggle" onclick="togglePassword()">
+                          <i class="fas fa-eye"></i>
+                      </button>
+                  </div>
+              </div>
+
+              <!-- تذكرني -->
+              <div class="remember-me">
+                  <input type="checkbox" id="rememberMe" autocomplete="off">
+                  <label for="rememberMe" style="margin: 0; cursor: pointer;">
+                      <i class="fas fa-save"></i>
+                      تذكر بيانات الدخول
+                  </label>
+              </div>
+
+              <!-- أزرار الدخول والتسجيل -->
+              <div class="buttons-container">
+                  <!-- زر الدخول -->
+                  <button type="button" 
+                          class="login-btn" 
+                          onclick="handleLogin()" 
+                          id="loginButton"
+                          autocomplete="off">
+                      <i class="fas fa-sign-in-alt"></i>
+                      دخول النظام
+                  </button>
+                  
+                  <!-- فاصل -->
+                  <div class="divider">
+                      <span>أو</span>
+                  </div>
+                  
+                  <!-- زر التسجيل الجديد -->
+                  <button type="button" 
+                          class="signup-btn" 
+                          onclick="goToSignup()" 
+                          id="signupButton"
+                          autocomplete="off">
+                      <i class="fas fa-user-plus"></i>
+                      سجل حساباً جديداً
+                  </button>
+              </div>
+          </form>
+
+          <!-- معلومات النظام -->
+          <div class="system-info">
+              <p><i class="fas fa-code"></i> الإصدار 2.1.0 | <i class="far fa-copyright"></i> 2024 نظام جسر</p>
+              <p style="margin-top: 10px; font-size: 0.85rem; opacity: 0.7;">
+                  <i class="fas fa-info-circle"></i>
+                  يدعم الأرقام العربية والإنجليزية
+              </p>
+          </div>
+      </div>
+  </div>
+
+  <script>
+    // 📱 دالة لتحويل الأرقام العربية والفارسية إلى الإنجليزية
+    function convertArabicToEnglishNumbers(input) {
+        if (!input || typeof input !== 'string') return input;
+        
+        const numberMaps = [
+            { arabic: '٠', persian: '۰', english: '0' },
+            { arabic: '١', persian: '۱', english: '1' },
+            { arabic: '٢', persian: '۲', english: '2' },
+            { arabic: '٣', persian: '۳', english: '3' },
+            { arabic: '٤', persian: '۴', english: '4' },
+            { arabic: '٥', persian: '۵', english: '5' },
+            { arabic: '٦', persian: '۶', english: '6' },
+            { arabic: '٧', persian: '۷', english: '7' },
+            { arabic: '٨', persian: '۸', english: '8' },
+            { arabic: '٩', persian: '۹', english: '9' }
+        ];
+        
+        let result = input;
+        
+        numberMaps.forEach(map => {
+            // تحويل الأرقام العربية
+            result = result.replace(new RegExp(map.arabic, 'g'), map.english);
+            // تحويل الأرقام الفارسية
+            result = result.replace(new RegExp(map.persian, 'g'), map.english);
+        });
+        
+        return result;
+    }
+
+    // 📱 دالة للتحقق من وجود أرقام عربية
+    function hasArabicNumbers(input) {
+        if (!input) return false;
+        const arabicNumbers = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+        const persianNumbers = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+        
+        for (let char of input) {
+            if (arabicNumbers.includes(char) || persianNumbers.includes(char)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // ✅ دالة للتحقق من مدة صلاحية المستخدم (30 يوم) - بدون رسائل
+    async function checkUserValidity(userData) {
+        try {
+            // إذا كان المستخدم دائم، لا توجد صلاحية محددة
+            if (!userData.is_trial) {
+                console.log('👤 مستخدم دائم - لا توجد صلاحية محددة');
+                return { isValid: true, daysRemaining: Infinity, expiryDate: null };
+            }
+            
+            // التحقق من تاريخ انتهاء الصلاحية
+            const trialExpiry = userData.trial_expiry;
+            if (!trialExpiry) {
+                console.log('⚠️ مستخدم تجريبي بدون تاريخ انتهاء');
+                return { isValid: true, daysRemaining: 0, expiryDate: null };
+            }
+            
+            const expiryDate = new Date(trialExpiry);
+            const currentDate = new Date();
+            
+            // حساب الأيام المتبقية
+            const daysRemaining = Math.ceil((expiryDate - currentDate) / (1000 * 60 * 60 * 24));
+            const isValid = daysRemaining > 0;
+            
+            console.log(`🔍 صلاحية المستخدم: ${isValid ? 'سارية' : 'انتهت'} - ${daysRemaining} يوم متبقي`);
+            
+            return {
+                isValid: isValid,
+                daysRemaining: daysRemaining,
+                expiryDate: expiryDate.toLocaleDateString('ar-SA'),
+                isTrial: true
+            };
+            
+        } catch (error) {
+            console.error('❌ خطأ في التحقق من صلاحية المستخدم:', error);
+            // في حالة الخطأ، نسمح بالدخول (fail-open)
+            return { isValid: true, daysRemaining: 0, expiryDate: null };
+        }
+    }
+
+    // 🎨 إنشاء خلفية متحركة
+    function createBackgroundAnimation() {
+      const animationContainer = document.getElementById('backgroundAnimation');
+      const colors = ['#4361ee', '#4cc9f0', '#f72585', '#7209b7'];
+      
+      for (let i = 0; i < 15; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+        
+        // أبعاد عشوائية
+        const size = Math.random() * 150 + 50;
+        particle.style.width = `${size}px`;
+        particle.style.height = `${size}px`;
+        
+        // مواضع عشوائية
+        particle.style.left = `${Math.random() * 100}%`;
+        particle.style.top = `${Math.random() * 100}%`;
+        
+        // لون عشوائي
+        particle.style.background = `radial-gradient(circle, ${colors[Math.floor(Math.random() * colors.length)]}, transparent)`;
+        
+        // توقيتات مختلفة للحركة
+        particle.style.animationDuration = `${Math.random() * 20 + 10}s`;
+        particle.style.animationDelay = `${Math.random() * 5}s`;
+        particle.style.opacity = Math.random() * 0.1 + 0.05;
+        
+        animationContainer.appendChild(particle);
+      }
+    }
+
+    // 🔧 إعداد Supabase
+    const supabaseUrl = 'https://rvjacvrrpguehbapvewe.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2amFjdnJycGd1ZWhiYXB2ZXdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwMjUxNTksImV4cCI6MjA3ODYwMTE1OX0.wSavKzxKOF7-56G-pzDMtbXNrCNAbGs0wvadw-cilBg';
+    
+    // إنشاء عميل Supabase
+    let supabaseClient;
+    try {
+        supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+        console.log('✅ Supabase جاهز');
+    } catch (error) {
+        console.error('❌ خطأ في تهيئة Supabase:', error);
+    }
+
+    // 🔄 متغيرات لتحسين الأداء
+    let fetchTimeout;
+    let lastFetchedUserId = '';
+    let isFetching = false;
+
+    // 👁️ تبديل عرض كلمة المرور
+    function togglePassword() {
+      const passwordInput = document.getElementById('password');
+      const toggleIcon = document.querySelector('.password-toggle i');
+      
+      if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        toggleIcon.className = 'fas fa-eye-slash';
+        // تأثير الاهتزاز
+        toggleIcon.parentElement.classList.add('shake');
+        setTimeout(() => toggleIcon.parentElement.classList.remove('shake'), 500);
+      } else {
+        passwordInput.type = 'password';
+        toggleIcon.className = 'fas fa-eye';
+      }
+    }
+
+    // 🆕 دالة التوجيه لصفحة التسجيل - محسنة للموبايل
+    function goToSignup() {
+      const signupBtn = document.getElementById('signupButton');
+      const originalHtml = signupBtn.innerHTML;
+      
+      // تأثير تحميل على الزر
+      signupBtn.innerHTML = `
+        <span class="loading-spinner"></span>
+        جاري التوجيه لصفحة التسجيل...
+      `;
+      signupBtn.disabled = true;
+      
+      // تأثير انتقال سلس
+      document.querySelector('.login-container').style.animation = 'glassAppear 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) reverse';
+      
+      showToast('🚀 جاري توجيهك لصفحة التسجيل...', 'info');
+      
+      // ✅ إصلاح خاص للموبايل: استخدام setTimeout مع تأخير مناسب
+      setTimeout(() => {
+        // ✅ التأكد من التوجيه لـ signup.html
+        window.location.href = 'signup.html';
+      }, 1000);
+    }
+
+    // 🔍 جلب بيانات المستخدم مع تحسين الأداء
+    async function fetchUserInfo() {
+        const userId = document.getElementById("user_id").value.trim();
+        
+        // التحقق من عدم تكرار الطلب لنفس المستخدم
+        if (!userId || userId === lastFetchedUserId || isFetching) {
+            return;
+        }
+        
+        // إضافة تأثير تحميل للحقل
+        const userIdInput = document.getElementById("user_id");
+        userIdInput.classList.add('loading');
+        
+        isFetching = true;
+        lastFetchedUserId = userId;
+        
+        try {
+            console.log('🔍 جلب بيانات المستخدم:', userId);
+            
+            // ✅ التحقق أولاً من وجود المستخدم في قاعدة البيانات
+            const { data: userData, error } = await supabaseClient
+                .from('users')
+                .select(`
+                    user_id,
+                    username,
+                    store_id,
+                    is_trial,
+                    trial_expiry,
+                    stores:store_id (store_name, store_id)
+                `)
+                .eq('user_id', userId)
+                .single();
+
+            if (error) {
+                if (error.code === 'PGRST116') {
+                    showToast("❌ المستخدم غير موجود في قاعدة البيانات", "error");
+                    // تأثير اهتزاز للحقل
+                    userIdInput.classList.add('shake');
+                    setTimeout(() => userIdInput.classList.remove('shake'), 500);
+                    resetForm();
+                    return;
+                }
+                throw new Error(`خطأ في قاعدة البيانات: ${error.message}`);
+            }
+
+            if (!userData) {
+                showToast("❌ المستخدم غير موجود في قاعدة البيانات", "error");
+                resetForm();
+                return;
+            }
+
+            const userInfo = {
+                user_id: userData.user_id,
+                username: userData.username || "",
+                store_id: userData.store_id,
+                store_name: userData.stores?.store_name || "",
+                is_trial: userData.is_trial || false,
+                trial_expiry: userData.trial_expiry || null,
+                stores: userData.stores ? [userData.stores] : []
+            };
+
+            console.log('📊 بيانات المستخدم:', userInfo);
+            
+            // ✅ التحقق: إذا كان store_id = '9999' يعطي صلاحيات كاملة
+            if (userInfo.store_id === '9999') {
+                console.log('🎯 المستخدم لديه صلاحيات كاملة');
+                await handleSpecialUser(userInfo.username);
+            } else {
+                updateUserInterface(userInfo, false);
+            }
+            
+            showToast(`مرحباً ${userInfo.username}`, 'success');
+            
+        } catch (error) {
+            console.error("❌ خطأ في جلب البيانات:", error);
+            showToast(error.message || "حدث خطأ في النظام", 'error');
+            resetForm();
+        } finally {
+            // إزالة تأثير التحميل
+            userIdInput.classList.remove('loading');
+            isFetching = false;
+        }
+    }
+
+    // 👑 معالجة المستخدم ذو الصلاحيات الكاملة
+    async function handleSpecialUser(username = "مشرف النظام") {
+        const storeSelectGroup = document.getElementById('storeSelectGroup');
+        const storeNameGroup = document.getElementById('storeNameGroup');
+        
+        // تأثير الظهور
+        storeSelectGroup.style.display = 'block';
+        setTimeout(() => storeSelectGroup.style.opacity = '1', 10);
+        
+        storeNameGroup.style.display = 'none';
+        
+        document.getElementById("username").value = username;
+        document.getElementById("user_id").classList.add("special-user");
+        document.getElementById("specialNotice").innerHTML = `
+            <i class="fas fa-crown"></i>
+            صلاحية وصول كاملة إلى جميع المخازن
+        `;
+        document.getElementById("specialNotice").style.display = "flex";
+        
+        await loadAllStores();
+        
+        // ✅ إضافة خيار "جميع المخازن" كخيار افتراضي
+        const storeSelect = document.getElementById("store_select");
+        if (storeSelect.options.length > 1) {
+            storeSelect.selectedIndex = 1;
+        }
+    }
+
+    // 🏪 جلب جميع المخازن
+    async function loadAllStores() {
+        try {
+            const { data, error } = await supabaseClient
+                .from('stores')
+                .select('store_id, store_name')
+                .order('store_name', { ascending: true });
+
+            if (error) throw error;
+
+            const allStores = data || [];
+            const storeSelect = document.getElementById("store_select");
+            storeSelect.innerHTML = '<option value="">-- اختر المخزن --</option>';
+            
+            allStores.forEach(store => {
+                const option = document.createElement("option");
+                option.value = store.store_id;
+                option.textContent = store.store_name;
+                storeSelect.appendChild(option);
+            });
+            
+            console.log(`🏪 تم تحميل ${allStores.length} مخزن`);
+            
+        } catch (error) {
+            console.error("❌ خطأ في جلب المخازن:", error);
+            showToast("تعذر تحميل قائمة المخازن", "error");
+        }
+    }
+
+    // 📱 تحديث واجهة المستخدم
+    function updateUserInterface(userData, isSpecial = false) {
+        document.getElementById("username").value = userData.username || "";
+
+        if (isSpecial) {
+            document.getElementById("store_name").value = "جميع المخازن";
+            document.getElementById("user_id").classList.add("special-user");
+            document.getElementById("specialNotice").innerHTML = `
+                <i class="fas fa-crown"></i>
+                صلاحية وصول كاملة
+            `;
+            document.getElementById("specialNotice").style.display = "flex";
+        } else {
+            const storeName = userData.stores?.store_name || userData.store_name || "";
+            document.getElementById("store_name").value = storeName;
+            document.getElementById("storeNameGroup").style.display = "block";
+            document.getElementById("storeSelectGroup").style.display = "none";
+            document.getElementById("user_id").classList.remove("special-user");
+            document.getElementById("specialNotice").style.display = "none";
+        }
+    }
+
+    // 🔄 إعادة تعيين النموذج
+    function resetForm() {
+        document.getElementById("username").value = "";
+        document.getElementById("store_name").value = "";
+        document.getElementById("store_select").value = "";
+        document.getElementById("password").value = "";
+        document.getElementById("storeNameGroup").style.display = "block";
+        document.getElementById("storeSelectGroup").style.display = "none";
+        document.getElementById("user_id").classList.remove("special-user");
+        document.getElementById("specialNotice").style.display = "none";
+        document.getElementById("user_id").focus();
+    }
+
+    // ✅ دالة لتسجيل الدخول في نظام المراقبة
+    async function logUserLogin(userId, storeId, storeName) {
+        try {
+            const { error } = await supabaseClient
+                .from('activity_log')
+                .insert({
+                    user_id: userId,
+                    store_id: storeId,
+                    login_time: new Date(),
+                    action_type: 'login',
+                    screen_name: 'تسجيل دخول'
+                });
+            
+            if (error) {
+                console.error('❌ خطأ في تسجيل الدخول:', error);
+                return false;
+            }
+            
+            console.log('✅ تم تسجيل دخول المستخدم في نظام المراقبة');
+            return true;
+        } catch (error) {
+            console.error('❌ خطأ في تسجيل الدخول:', error);
+            return false;
+        }
+    }
+
+    // 🔐 معالجة عملية الدخول مع دعم الصلاحية (30 يوم)
+    async function handleLogin() {
+        try {
+            let userCode = document.getElementById('user_id').value.trim();
+            let password = document.getElementById('password').value;
+            const username = document.getElementById('username').value;
+            
+            // 🔧 تحويل الأرقام العربية إلى الإنجليزية
+            userCode = convertArabicToEnglishNumbers(userCode);
+            password = convertArabicToEnglishNumbers(password);
+            
+            console.log('🔍 بعد التحويل - كود المستخدم:', userCode);
+            console.log('🔍 بعد التحويل - كلمة المرور:', password);
+            
+            // التحقق السريع من البيانات
+            if (!userCode || !password || !username) {
+                showToast("يرجى إكمال جميع البيانات", "error");
+                document.getElementById('loginButton').classList.add('shake');
+                setTimeout(() => document.getElementById('loginButton').classList.remove('shake'), 500);
+                return;
+            }
+            
+            const loginBtn = document.getElementById('loginButton');
+            const originalHtml = loginBtn.innerHTML;
+            loginBtn.innerHTML = `
+                <span class="loading-spinner"></span>
+                جاري الدخول والتحقق...
+            `;
+            loginBtn.disabled = true;
+            
+            // التحقق من وجود المستخدم في قاعدة البيانات
+            const { data: userData, error } = await supabaseClient
+                .from('users')
+                .select('*')
+                .eq('user_id', userCode)
+                .eq('password', password)
+                .single();
+            
+            if (error || !userData) {
+                loginBtn.innerHTML = originalHtml;
+                loginBtn.disabled = false;
+                showToast("❌ بيانات الدخول غير صحيحة أو المستخدم غير موجود", "error");
+                loginBtn.classList.add('shake');
+                setTimeout(() => loginBtn.classList.remove('shake'), 500);
+                return;
+            }
+            
+            console.log('✅ تمت المصادقة بنجاح:', userData);
+            
+            // ✅ التحقق من صلاحية المستخدم (30 يوم) - بدون عرض رسائل للمستخدم
+            const validityCheck = await checkUserValidity(userData);
+            
+            // إذا انتهت الصلاحية، تحديث حالة المستخدم إلى غير نشط
+            if (!validityCheck.isValid && validityCheck.isTrial) {
+                console.log('❌ صلاحية المستخدم انتهت - تحديث الحالة إلى غير نشط');
+                
+                // ✅ تحديث حالة المستخدم بعد انتهاء الصلاحية
+                await supabaseClient
+                    .from('users')
+                    .update({ active: false })
+                    .eq('user_id', userData.user_id);
+                    
+                loginBtn.innerHTML = originalHtml;
+                loginBtn.disabled = false;
+                showToast("❌ انتهت فترة صلاحية حسابك", "error");
+                loginBtn.classList.add('shake');
+                setTimeout(() => loginBtn.classList.remove('shake'), 500);
+                return;
+            }
+            
+            // ✅ التحقق من نوع المستخدم
+            const hasFullAccess = (userData.store_id === '9999');
+            
+            let storeId, storeName;
+            
+            if (hasFullAccess) {
+                const storeSelect = document.getElementById('store_select');
+                const selectedStoreId = storeSelect.value;
+                
+                if (!selectedStoreId) {
+                    storeId = '9999';
+                    storeName = 'جميع المخازن';
+                    console.log('👑 دخول كمشرف شامل (بدون مخزن محدد)');
+                } else {
+                    storeId = selectedStoreId;
+                    storeName = storeSelect.options[storeSelect.selectedIndex].text;
+                    console.log('👑 دخول كمشرف شامل للمخزن:', storeName);
+                }
+            } else {
+                storeId = userData.store_id || '001';
+                storeName = document.getElementById('store_name').value || 'المخزن';
+            }
+            
+            // ✅ تسجيل الدخول في نظام المراقبة
+            const loginLogged = await logUserLogin(userCode, storeId, storeName);
+            if (!loginLogged) {
+                console.warn('⚠️ لم يتم تسجيل الدخول في نظام المراقبة، لكن سيتم المتابعة');
+            }
+            
+            // ✅ حفظ البيانات في الجلسة فقط
+            sessionStorage.setItem('user_id', userCode);
+            sessionStorage.setItem('username', userData.username || 'مستخدم');
+            sessionStorage.setItem('full_access', hasFullAccess ? 'true' : 'false');
+            sessionStorage.setItem('is_trial', userData.is_trial ? 'true' : 'false');
+            sessionStorage.setItem('trial_expiry', userData.trial_expiry || '');
+            
+            // ✅ حفظ بيانات الصلاحية (للاستخدام الداخلي فقط)
+            sessionStorage.setItem('user_validity', JSON.stringify({
+                isValid: validityCheck.isValid,
+                daysRemaining: validityCheck.daysRemaining,
+                expiryDate: validityCheck.expiryDate,
+                isTrial: validityCheck.isTrial
+            }));
+            
+            if (hasFullAccess) {
+                sessionStorage.setItem('store_id', storeId);
+                sessionStorage.setItem('store_name', storeName);
+                console.log('👑 منح صلاحيات كاملة - المخزن:', storeName);
+            } else {
+                sessionStorage.setItem('store_id', storeId);
+                sessionStorage.setItem('store_name', storeName);
+                console.log('👤 دخول عادي - المخزن:', storeName);
+            }
+            
+            // ✅ تحميل المخازن (إن لزم)
+            if (hasFullAccess) {
+                await loadAllStores();
+            }
+            
+            showToast(`✅ مرحباً ${userData.username}!`, "success");
+            
+            // تأثيرات قبل التوجيه
+            loginBtn.innerHTML = `<i class="fas fa-check"></i> تم الدخول بنجاح!`;
+            loginBtn.style.background = 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)';
+            
+            setTimeout(() => {
+                // تأثير اختفاء
+                document.querySelector('.login-container').style.animation = 'glassAppear 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) reverse';
+                setTimeout(() => {
+                    window.location.href = 'main.html';
+                }, 800);
+            }, 1500);
+            
+        } catch (error) {
+            console.error('❌ خطأ في الدخول:', error);
+            showToast("حدث خطأ في النظام", "error");
+            
+            const loginBtn = document.getElementById('loginButton');
+            if (loginBtn) {
+                loginBtn.innerHTML = `
+                    <i class="fas fa-sign-in-alt"></i>
+                    دخول النظام
+                `;
+                loginBtn.disabled = false;
+                loginBtn.classList.add('shake');
+                setTimeout(() => loginBtn.classList.remove('shake'), 500);
+            }
+        }
+    }
+
+    // 💬 عرض رسائل التوست
+    function showToast(message, type = 'info') {
+        const existingToasts = document.querySelectorAll('.toast-message');
+        existingToasts.forEach(toast => {
+            toast.style.animation = 'slideInRight 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55) reverse';
+            setTimeout(() => toast.remove(), 400);
+        });
+        
+        const toast = document.createElement('div');
+        const typeClass = type === 'error' ? 'toast-error' : 
+                         type === 'success' ? 'toast-success' : 'toast-info';
+        
+        toast.className = `toast-message ${typeClass}`;
+        
+        const icon = type === 'error' ? 
+            '<i class="fas fa-exclamation-triangle"></i>' : 
+            type === 'success' ? '<i class="fas fa-check-circle"></i>' :
+            '<i class="fas fa-info-circle"></i>';
+        
+        toast.innerHTML = `
+            ${icon}
+            <span>${message}</span>
+        `;
+        
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.style.animation = 'slideInRight 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55) reverse';
+            setTimeout(() => toast.remove(), 400);
+        }, 4000);
+    }
+
+    // 🔍 كود التحقق من وجود المستخدم المسجل
+    function checkExistingUser() {
+        const savedUserId = sessionStorage.getItem('user_id');
+        const savedUsername = sessionStorage.getItem('username');
+        
+        if (savedUserId && savedUsername) {
+            console.log('📋 تم العثور على مستخدم مسجل مسبقاً:', savedUsername);
+            
+            const welcomeMessage = `مرحباً بعودتك ${savedUsername}!`;
+            
+            // تعبئة الحقول تلقائياً
+            document.getElementById('user_id').value = savedUserId;
+            fetchUserInfo();
+        }
+    }
+
+    // 🚀 تهيئة الصفحة مع تحسينات الأداء
+    document.addEventListener("DOMContentLoaded", function() {
+        // إنشاء الخلفية المتحركة
+        createBackgroundAnimation();
+        
+        // ✅ تنظيف بيانات الجلسة القديمة
+        const clearOldSession = sessionStorage.getItem('last_activity');
+        if (clearOldSession) {
+            const lastActivity = JSON.parse(clearOldSession);
+            const oneHourAgo = Date.now() - (60 * 60 * 1000);
+            
+            if (lastActivity.timestamp < oneHourAgo) {
+                sessionStorage.clear();
+                console.log('🧹 تم تنظيف جلسة قديمة');
+            }
+        }
+        
+        // حفظ وقت النشاط الحالي
+        sessionStorage.setItem('last_activity', JSON.stringify({
+            timestamp: Date.now()
+        }));
+        
+        // التحقق إذا كان المستخدم مسجلاً مسبقاً
+        const savedUserId = sessionStorage.getItem('user_id');
+        if (savedUserId) {
+            document.getElementById('user_id').value = savedUserId;
+            fetchUserInfo();
+        } else {
+            // التركيز على حقل كود المستخدم
+            const userIdInput = document.getElementById("user_id");
+            if (userIdInput) {
+                userIdInput.focus();
+                userIdInput.select();
+            }
+        }
+        
+        // 🔄 تحويل الأرقام العربية تلقائياً أثناء الكتابة
+        const userIdInput = document.getElementById('user_id');
+        const passwordInput = document.getElementById('password');
+        
+        [userIdInput, passwordInput].forEach(input => {
+            input.addEventListener('input', function() {
+                const originalValue = this.value;
+                const convertedValue = convertArabicToEnglishNumbers(originalValue);
+                
+                // إذا كانت هناك أرقام عربية، قم بتحويلها تلقائياً
+                if (originalValue !== convertedValue) {
+                    this.value = convertedValue;
+                    
+                    // عرض رسالة توست للتحويل
+                    if (hasArabicNumbers(originalValue)) {
+                        showToast("تم تحويل الأرقام العربية إلى الإنجليزية تلقائياً", "info");
+                    }
+                }
+            });
+        });
+        
+        // 🔄 أحداث لوحة المفاتيح مع Debouncing
+        document.getElementById("user_id").addEventListener("input", function() {
+            const userId = this.value.trim();
+            
+            // إعادة تعيين إذا كان الحقل فارغاً
+            if (!userId) {
+                resetForm();
+                return;
+            }
+            
+            // Debouncing: الانتظار 500 مللي ثانية قبل البحث
+            clearTimeout(fetchTimeout);
+            fetchTimeout = setTimeout(() => {
+                if (userId.length >= 3) { // فقط إذا كان 3 أحرف على الأقل
+                    fetchUserInfo().then(() => {
+                        document.getElementById("password").focus();
+                    });
+                }
+            }, 500);
+        });
+
+        document.getElementById("user_id").addEventListener("keydown", e => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                clearTimeout(fetchTimeout);
+                fetchUserInfo().then(() => {
+                    document.getElementById("password").focus();
+                });
+            }
+        });
+
+        document.getElementById("password").addEventListener("keydown", e => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                handleLogin();
+            }
+        });
+
+        document.getElementById("user_id").addEventListener("blur", function() {
+            if (this.value.trim()) {
+                clearTimeout(fetchTimeout);
+                fetchUserInfo();
+            } else {
+                resetForm();
+            }
+        });
+        
+        // تأثيرات الكتابة على الحقول
+        const inputs = document.querySelectorAll('.form-input');
+        inputs.forEach(input => {
+            input.addEventListener('input', function() {
+                if (this.value) {
+                    this.classList.add('has-value');
+                } else {
+                    this.classList.remove('has-value');
+                }
+            });
+        });
+        
+        // ✅ إصلاح خاص لزر التسجيل على الموبايل
+        const signupBtn = document.getElementById('signupButton');
+        
+        // إضافة حدث اللمس
+        signupBtn.addEventListener('touchstart', function(e) {
+            // منع السلوك الافتراضي
+            e.preventDefault();
+            // إضافة تأثير اللمس
+            this.classList.add('active');
+        }, { passive: false });
+        
+        signupBtn.addEventListener('touchend', function(e) {
+            // إزالة تأثير اللمس
+            this.classList.remove('active');
+            // استدعاء الدالة بعد تأخير بسيط
+            setTimeout(() => {
+                goToSignup();
+            }, 50);
+        });
+        
+        // التأكد من أن الزر يعمل بالنقر أيضاً
+        signupBtn.addEventListener('click', function(e) {
+            goToSignup();
+        });
+        
+        // تأثير للأزرار عند التحويم
+        const loginBtn = document.getElementById('loginButton');
+        
+        [loginBtn, signupBtn].forEach(btn => {
+            btn.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-3px)';
+            });
+            
+            btn.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0)';
+            });
+        });
+        
+        // كود التحقق من وجود المستخدم المسجل
+        checkExistingUser();
+        
+        // تحسين أداء اللمس للأجهزة المحمولة
+        if ('ontouchstart' in window) {
+            document.body.classList.add('touch-device');
+            document.querySelectorAll('button, input, select').forEach(el => {
+                el.classList.add('cursor-pointer');
+            });
+            
+            // منع التكبير بالقرصة
+            document.addEventListener('gesturestart', function(e) {
+                e.preventDefault();
+            });
+            
+            // تحسين تجربة اللمس
+            document.querySelectorAll('input, button, select').forEach(el => {
+                el.style.touchAction = 'manipulation';
+            });
+            
+            // ✅ إصلاح خاص لأجهزة iOS
+            document.addEventListener('touchstart', function() {}, {passive: true});
+            
+            // ✅ التأكد من ظهور المحتوى كاملاً
+            setTimeout(function() {
+                window.scrollTo(0, 0);
+            }, 100);
+            
+            // ✅ منع التمرير على الشاشة
+            document.body.style.overflow = 'hidden';
+            document.addEventListener('touchmove', function(e) {
+                if (e.target.type === 'range') {
+                    return;
+                }
+                e.preventDefault();
+            }, { passive: false });
+        }
+    });
+  </script>
+</body>
+</html>

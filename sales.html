@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <title>🧾 شاشة المبيعات</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="styleSales.css">
+    <style>
+        /* شريط حالة الاتصال المبسط */
+        .connection-status {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: #28a745;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1000;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-left: 4px solid #1e7e34;
+        }
+        
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            background: #1e7e34;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.8; }
+            50% { opacity: 0.4; }
+            100% { opacity: 0.8; }
+        }
+        
+        /* قائمة منسدلة للبحث */
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .search-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .search-item:hover {
+            background-color: #f5f5f5;
+        }
+        
+        .search-item.active {
+            background-color: #e3f2fd;
+        }
+        
+        .item-code {
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .item-name {
+            color: #666;
+        }
+        
+        /* تحسينات للجوال */
+        @media (max-width: 768px) {
+            body {
+                padding: 5px;
+                font-size: 14px;
+            }
+            
+            .container {
+                width: 100%;
+                max-width: 100%;
+                margin: 0 auto;
+                border-radius: 8px;
+            }
+            
+            .connection-status {
+                position: relative;
+                top: 0;
+                left: 0;
+                margin: 0 0 10px 0;
+                width: 100%;
+                justify-content: center;
+                border-radius: 0;
+                box-shadow: none;
+                border-left: none;
+                border-bottom: 3px solid #1e7e34;
+            }
+            
+            .search-results {
+                max-height: 150px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- شريط حالة الاتصال المبسط -->
+    <div id="connectionStatus" class="connection-status">
+        <div class="status-indicator"></div>
+        <span id="statusText">🌐 متصل بـ Supabase</span>
+    </div>
+
+    <!-- معلومات المستخدم -->
+    <div id="userInfo" class="user-info" style="position: fixed; top: 10px; right: 10px; background: rgba(255,255,255,0.95); padding: 8px 12px; border-radius: 5px; font-weight: bold; z-index: 1000; border: 1px solid #ccc;"></div>
+
+    <div class="container">
+        <header>
+            <h1>🛒 نظام المبيعات - إدارة المبيعات</h1>
+            <div class="header-info">
+                <span id="currentUser">المستخدم: --</span>
+                <span id="storeInfo">الفرع: --</span>
+                <span id="dateInfo">التاريخ: --</span>
+                <span id="invoiceInfo">فاتورة رقم: <span id="invoiceNumber">-</span></span>
+            </div>
+        </header>
+
+        <form id="salesForm" class="sales-form" autocomplete="off">
+            <!-- الصف الأول: تاريخ البيع + الفرع -->
+            <div class="form-row" style="grid-column: 1 / -1;">
+                <div class="form-group" style="grid-column: span 1;">
+                    <label>تاريخ البيع</label>
+                    <input type="datetime-local" id="tran_date" required>
+                </div>
+                <div class="form-group" style="grid-column: span 1;">
+                    <label>الفرع</label>
+                    <select id="store_id">
+                        <option value="">اختر الفرع</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- الصف الثاني: العميل، رقم الفاتورة، نوع البيع، نوع السعر، نوع الوحدة -->
+            <div class="form-row" style="grid-column: 1 / -1;">
+                <div class="form-group" style="grid-column: span 2;">
+                    <label>العميل</label>
+                    <select id="customer_id">
+                        <option value="">-- نقدي --</option>
+                    </select>
+                </div>
+                <div class="form-group" style="grid-column: span 1;">
+                    <label>رقم الفاتورة</label>
+                    <input type="text" id="invoice_id" required>
+                </div>
+                <!-- نوع البيع (مخفي) -->
+                <div class="form-group" style="grid-column: span 1; display: none;">
+                    <label>نوع البيع</label>
+                    <select id="sale_type" required>
+                        <option value="بيع">بيع</option>
+                        <option value="مرتجع">مرتجع</option>
+                        <option value="عينة">عينة</option>
+                        <option value="مسودة">مسودة</option>
+                    </select>
+                </div>
+                <!-- نوع السعر (مخفي) -->
+                <div class="form-group" style="grid-column: span 1; display: none;">
+                    <label>نوع السعر</label>
+                    <select id="price_type" required>
+                        <option value="سعر1">سعر1</option>
+                        <option value="سعر2">سعر2</option>
+                        <option value="سعر3">سعر3</option>
+                    </select>
+                </div>
+                <div class="form-group" style="grid-column: span 1;">
+                    <label>نوع الوحدة</label>
+                    <select id="unit_type">
+                        <option value="قطعة">قطعة</option>
+                        <option value="علبة">علبة</option>
+                        <option value="كرتونة">كرتونة</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- الصف الثالث: كود الصنف (منتصف) -->
+            <div class="form-row" style="grid-column: 1 / -1; justify-content: center;">
+                <div class="form-group" style="grid-column: span 2;">
+                    <label>كود الصنف / الباركود</label>
+                    <div class="search-container" style="position: relative;">
+                        <input type="text" id="item_id" placeholder="أدخل كود الصنف أو الباركود" required>
+                        <div id="searchResults" class="search-results" style="display:none"></div>
+                    </div>
+                </div>
+            </div>
+
+            
+
+            <!-- معلومات المخزون (تظهر عند اختيار صنف) -->
+            <div id="inventoryInfo" style="display:none;grid-column:1/-1;padding:8px;background:#f8fcff;border-radius:8px">
+                <strong>📊 معلومات المخزون:</strong>
+                <span id="stockInfo">الرصيد: -</span> |
+                <span id="batchInfo">تشغيلة: -</span> |
+                <span id="expiryInfo">صلاحية: -</span>
+            </div>
+            
+            <!-- جدول الأصناف المضافة -->
+            <div class="items-grid" style="grid-column:1/-1">
+                <h4>📋 الأصناف المضافة</h4>
+                <div class="items-header" style="display: grid; grid-template-columns: 40px 1fr 100px 80px 90px 100px 100px 80px; align-items: center; gap: 8px; padding: 8px; background: #f5f5f5; border-radius: 4px;">
+                    <div>#</div>
+                    <div>الصنف</div>
+                    <div>الوحدة</div>
+                    <div>الكمية</div>
+                    <div>السعر</div>
+                    <div>الإجمالي</div>
+                    <div>الخصم</div>
+                    <div>إجراءات</div>
+                </div>
+                <div id="itemsList"></div>
+                <div style="display: grid; grid-template-columns: 40px 1fr 100px 80px 90px 100px 100px 80px; align-items: center; gap: 8px; padding: 8px; background: #eaf3ff; font-weight: 800;">
+                    <div></div>
+                    <div>المجموع الكلي</div>
+                    <div></div>
+                    <div id="sumQty">0</div>
+                    <div id="sumPrice">0.00</div>
+                    <div id="sumTotal">0.00</div>
+                    <div id="sumDiscount">0.00</div>
+                    <div></div>
+                </div>
+            </div>
+
+            <!-- ملخص الدفع (مخفي) -->
+            <div class="form-row" style="grid-column:1/-1; background: #f9f9f9; padding: 15px; border-radius: 8px; display: none;">
+                <div class="form-group">
+                    <label>الخصم الإجمالي</label>
+                    <input type="number" id="discountAll" step="0.01" min="0" value="0">
+                </div>
+                <div class="form-group">
+                    <label>المبلغ المدفوع</label>
+                    <input type="number" id="paid_amount" step="0.01" min="0" value="0">
+                </div>
+                <div class="form-group">
+                    <label>الباقي</label>
+                    <input type="text" id="changeAmount" value="0.00" readonly style="background: #f0f0f0;">
+                </div>
+                <div class="form-group-large">
+                    <label>ملاحظات</label>
+                    <textarea id="remarks" rows="2" placeholder="ملاحظات..."></textarea>
+                </div>
+            </div>
+
+            <!-- أزرار التحكم -->
+            <div class="actions" style="grid-column:1/-1; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 15px 0;">
+                <button type="button" id="newInvoiceBtn" class="btn-secondary">🆕 فاتورة جديدة</button>
+                <button type="button" id="saveDraftBtn" class="btn-secondary">💾 حفظ مسودة</button>
+                <button type="submit" id="completeSaleBtn" class="btn-primary">✅ إتمام البيع</button>
+                <button type="button" id="printInvoiceBtn" class="btn-secondary" style="display:none">🖨️ طباعة</button>
+                <button type="button" id="cancelSaleBtn" class="btn-danger">❌ إلغاء</button>
+
+                <!-- استيراد وتصدير -->
+                <input type="file" id="importInput" accept=".xlsx,.xls" style="display: none;">
+                <button type="button" id="exportBtn" class="btn-secondary">📤 تصدير</button>
+                <button type="button" onclick="document.getElementById('importInput').click()" class="btn-secondary">📥 استيراد</button>
+
+                <!-- إعدادات الطباعة -->
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <label>نوع الورق:</label>
+                    <select id="paper_type">
+                        <option value="58">58 mm</option>
+                        <option value="80">80 mm</option>
+                    </select>
+
+                    <label>الطابعة:</label>
+                    <select id="printer_name"></select>
+                </div>
+            </div>
+        </form>
+
+        <div id="toast" class="toast"></div>
+        <div id="alertBox" class="alert-box"></div>
+    </div>
+
+    <!-- قائمة البحث المنسدلة -->
+    <div id="search-dropdown" class="dropdown-list"></div>
+
+    <!-- نافذة الدفع -->
+    <div id="paymentModal" class="pay-modal">
+        <div class="pay-box">
+            <h2>تأكيد الدفع</h2>
+            <div class="pay-row">
+                <label>الصافي بعد الخصم</label>
+                <div id="finalAmount" class="pay-display"></div>
+            </div>
+            <div class="pay-row">
+                <label>المبلغ المدفوع</label>
+                <input type="number" id="modalPaid" class="pay-input" placeholder="0.00">
+            </div>
+            <div class="pay-row">
+                <label>المتبقي</label>
+                <div id="modalRemaining" class="pay-display"></div>
+            </div>
+            <div class="pay-btns">
+                <button class="pay-confirm" id="confirmPaymentBtn">تأكيد</button>
+                <button class="pay-cancel" onclick="document.getElementById('paymentModal').style.display='none'">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- المكتبات -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qz-tray/2.1.0/qz-tray.js"></script>
+    
+    <!-- كود JavaScript الخاص بالبحث -->
+    <script>
+        // وظيفة مساعدة لعرض رسائل Toast
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            if (toast) {
+                toast.textContent = message;
+                toast.className = `toast ${type}`;
+                toast.style.display = 'block';
+                
+                setTimeout(() => {
+                    toast.style.display = 'none';
+                }, 3000);
+            }
+        }
+        
+        // تفعيل حقل البحث للتركيز التلقائي
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                const itemInput = document.getElementById('item_id');
+                if (itemInput) {
+                    itemInput.focus();
+                    showToast('✅ جاهز للبدء، اكتب كود الصنف', 'success');
+                }
+            }, 1000);
+        });
+    </script>
+    
+    <!-- ملف JavaScript الرئيسي -->
+    <script src="./sales.js"></script>
+</body>
+</html>

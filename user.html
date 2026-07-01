@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>👥 إدارة المستخدمين</title>
+  <style>
+    :root {
+      --primary: #5d7fe3;
+      --primary-dark: #4a6bd4;
+      --primary-light: #f0f4ff;
+      --secondary: #8a5bd6;
+      --success: #4cc9f0;
+      --warning: #f72585;
+      --light: #f8f9fa;
+      --dark: #212529;
+      --gray: #6c757d;
+      --border: #dee2e6;
+      --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      --transition: all 0.3s ease;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #e6ecff 0%, #f0f4ff 100%);
+      color: var(--dark);
+      line-height: 1.6;
+      padding: 15px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #5d7fe3 0%, #8a5bd6 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 12px 12px 0 0;
+      margin-bottom: 0;
+      text-align: center;
+    }
+
+    h2 {
+      font-size: 1.6rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin: 0;
+    }
+
+    .main-content {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 20px;
+      margin-top: 20px;
+    }
+
+    @media (max-width: 1024px) {
+      .main-content {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      padding: 20px;
+      transition: var(--transition);
+    }
+
+    .card:hover {
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .form-group {
+      margin-bottom: 10px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 600;
+      color: var(--dark);
+      font-size: 0.9rem;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      transition: var(--transition);
+      background-color: var(--light);
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(93, 127, 227, 0.2);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      width: 100%;
+      margin-bottom: 8px;
+    }
+
+    .btn-primary {
+      background-color: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background-color: var(--primary-dark);
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      background-color: var(--secondary);
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      background-color: #7a4bc4;
+      transform: translateY(-2px);
+    }
+
+    .btn-outline {
+      background-color: transparent;
+      color: var(--primary);
+      border: 1px solid var(--primary);
+    }
+
+    .btn-outline:hover {
+      background-color: var(--primary);
+      color: white;
+    }
+
+    .form-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 15px;
+    }
+
+    .table-container {
+      overflow-x: auto;
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: white;
+      min-width: 600px;
+    }
+
+    th {
+      background-color: var(--primary);
+      color: white;
+      padding: 12px 10px;
+      text-align: right;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+
+    td {
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.85rem;
+    }
+
+    tr:hover {
+      background-color: rgba(93, 127, 227, 0.05);
+    }
+
+    .actions {
+      display: flex;
+      gap: 5px;
+      justify-content: center;
+    }
+
+    .actions button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+      padding: 4px 6px;
+      border-radius: 5px;
+      transition: var(--transition);
+    }
+
+    .actions button:hover {
+      background-color: rgba(0, 0, 0, 0.1);
+      transform: scale(1.1);
+    }
+
+    .status-active {
+      color: #28a745;
+      font-weight: bold;
+    }
+
+    .status-inactive {
+      color: #dc3545;
+      font-weight: bold;
+    }
+
+    /* شريط حالة الاتصال */
+    .connection-status {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      background: #28a745;
+      color: white;
+      padding: 8px 12px;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      z-index: 1000;
+      font-size: 12px;
+      border-left: 4px solid #1e7e34;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .status-indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #1e7e34;
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0% { opacity: 0.8; }
+      50% { opacity: 0.4; }
+      100% { opacity: 0.8; }
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 10px;
+      }
+      
+      .header {
+        padding: 15px;
+      }
+      
+      h2 {
+        font-size: 1.4rem;
+      }
+      
+      .card {
+        padding: 15px;
+      }
+      
+      .main-content {
+        gap: 15px;
+      }
+      
+      th, td {
+        padding: 8px 6px;
+        font-size: 0.8rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .header {
+        border-radius: 8px 8px 0 0;
+      }
+      
+      h2 {
+        font-size: 1.2rem;
+      }
+      
+      .card {
+        padding: 12px;
+        border-radius: 8px;
+      }
+      
+      input, select {
+        padding: 8px 10px;
+      }
+      
+      .btn {
+        padding: 8px 12px;
+        font-size: 0.85rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- شريط حالة الاتصال -->
+  <div id="connectionStatus" class="connection-status">
+    <div class="status-indicator"></div>
+    <span id="statusText">🌐 جاري الاتصال بـ Supabase...</span>
+  </div>
+
+  <div class="container">
+    <div class="header">
+      <h2>👥 إدارة المستخدمين</h2>
+    </div>
+
+    <div class="main-content">
+      <div class="card">
+        <form id="userForm">
+          <input type="hidden" id="user_id">
+          
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="username">اسم المستخدم:</label>
+              <input type="text" id="username" required>
+            </div>
+            
+            <div class="form-group">
+              <label for="password">كلمة المرور:</label>
+              <input type="password" id="password" required>
+            </div>
+            
+            <div class="form-group">
+              <label for="full_name">الاسم الكامل:</label>
+              <input type="text" id="full_name">
+            </div>
+            
+            <div class="form-group">
+              <label for="role">الدور:</label>
+              <select id="role" required>
+                <option value="">اختر الدور...</option>
+                <option value="admin">مدير</option>
+                <option value="user">مستخدم</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="store_id">رقم الفرع:</label>
+              <input type="number" id="store_id" placeholder="أدخل رقم الفرع">
+            </div>
+            
+            <div class="form-group">
+              <label for="store_list">اختر الفرع:</label>
+              <select id="store_list">
+                <option value="">اختر الفرع...</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="active">نشط؟</label>
+              <select id="active">
+                <option value="true">نعم</option>
+                <option value="false">لا</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="form-actions">
+            <button type="button" onclick="saveUser()" class="btn btn-primary">💾 حفظ</button>
+            <button type="button" onclick="resetForm()" class="btn btn-outline">🧹 جديد</button>
+            <button type="button" onclick="loadUsers()" class="btn btn-secondary">🔄 تحديث القائمة</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card">
+        <div class="table-container">
+          <table id="usersTable">
+            <thead>
+              <tr>
+                <th>الكود</th>
+                <th>اسم المستخدم</th>
+                <th>الاسم الكامل</th>
+                <th>الدور</th>
+                <th>الفرع</th>
+                <th>نشط</th>
+                <th>الإجراءات</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    // ✅ تكوين Supabase - نفس بيانات الاتصال
+    const SUPABASE_URL = 'https://rvjacvrrpguehbapvewe.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2amFjdnJycGd1ZWhiYXB2ZXdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwMjUxNTksImV4cCI6MjA3ODYwMTE1OX0.wSavKzxKOF7-56G-pzDMtbXNrCNAbGs0wvadw-cilBg';
+    
+    // إزالة تعريف supabase هنا واستخدام window.supabase مباشرة
+    let currentUser = null;
+
+    // 🟢 تهيئة Supabase
+    async function initSupabase() {
+      try {
+        // استخدام window.supabase مباشرة
+        window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        
+        // التحقق من الاتصال
+        const { data, error } = await window.supabaseClient
+          .from('users')
+          .select('count', { count: 'exact', head: true })
+          .limit(1);
+        
+        if (error) throw error;
+        
+        updateConnectionStatus(true);
+        console.log("✅ تم الاتصال بـ Supabase بنجاح");
+        return true;
+      } catch (error) {
+        console.error("❌ فشل الاتصال بـ Supabase:", error);
+        updateConnectionStatus(false);
+        alert("❌ فشل الاتصال بقاعدة البيانات. تأكد من اتصال الإنترنت.");
+        return false;
+      }
+    }
+
+    // 🟢 تحديث حالة الاتصال
+    function updateConnectionStatus(connected) {
+      const statusEl = document.getElementById('statusText');
+      const connectionStatus = document.getElementById('connectionStatus');
+      
+      if (connected) {
+        statusEl.textContent = "🌐 متصل بـ Supabase";
+        connectionStatus.style.background = "#28a745";
+        connectionStatus.style.borderLeftColor = "#1e7e34";
+      } else {
+        statusEl.textContent = "🌐 غير متصل";
+        connectionStatus.style.background = "#dc3545";
+        connectionStatus.style.borderLeftColor = "#c0392b";
+      }
+    }
+
+    // 🟢 تحميل أسماء الفروع من Supabase
+    async function loadStores() {
+      try {
+        if (!window.supabaseClient) {
+          const connected = await initSupabase();
+          if (!connected) return;
+        }
+        
+        const { data, error } = await window.supabaseClient
+          .from('stores')
+          .select('store_id, store_name')
+          .order('store_id');
+        
+        if (error) throw error;
+        
+        const select = document.getElementById("store_list");
+        select.innerHTML = '<option value="">اختر الفرع...</option>';
+        
+        if (data && data.length > 0) {
+          data.forEach(s => {
+            const opt = document.createElement("option");
+            opt.value = s.store_id;
+            opt.textContent = `${s.store_id} - ${s.store_name}`;
+            select.appendChild(opt);
+          });
+          console.log(`✅ تم تحميل ${data.length} فرع`);
+        } else {
+          console.warn("⚠️ لم يتم العثور على فروع في قاعدة البيانات");
+        }
+      } catch (error) {
+        console.error("❌ خطأ في تحميل الفروع:", error);
+        alert("⚠️ تعذر تحميل قائمة الفروع.");
+      }
+    }
+
+    // 🟢 تحميل المستخدمين من Supabase - معدل
+    async function loadUsers() {
+      try {
+        if (!window.supabaseClient) {
+          const connected = await initSupabase();
+          if (!connected) return;
+        }
+        
+        // أولاً: جلب المستخدمين
+        const { data: users, error: usersError } = await window.supabaseClient
+          .from('users')
+          .select('*')
+          .order('user_id');
+        
+        if (usersError) throw usersError;
+        
+        const tbody = document.querySelector("#usersTable tbody");
+        tbody.innerHTML = "";
+        
+        if (users && users.length > 0) {
+          // ثانياً: جلب أسماء المخازن
+          const storeIds = users.map(u => u.store_id).filter(id => id);
+          const uniqueStoreIds = [...new Set(storeIds)];
+          
+          let storesMap = {};
+          
+          if (uniqueStoreIds.length > 0) {
+            const { data: stores, error: storesError } = await window.supabaseClient
+              .from('stores')
+              .select('store_id, store_name')
+              .in('store_id', uniqueStoreIds);
+            
+            if (!storesError && stores) {
+              // إنشاء خريطة للمخازن
+              stores.forEach(s => {
+                storesMap[s.store_id] = s.store_name;
+              });
+            }
+          }
+          
+          // عرض المستخدمين
+          users.forEach(u => {
+            const storeName = storesMap[u.store_id] || u.store_id || "";
+            
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+              <td>${u.user_id}</td>
+              <td>${u.username}</td>
+              <td>${u.full_name || ""}</td>
+              <td>${u.role || ""}</td>
+              <td>${storeName}</td>
+              <td class="${u.active ? 'status-active' : 'status-inactive'}">
+                ${u.active ? "✅ نعم" : "❌ لا"}
+              </td>
+              <td class="actions">
+                <button onclick="editUser(${u.user_id})" title="تعديل">✏️</button>
+                <button onclick="deleteUser(${u.user_id})" title="حذف">🗑️</button>
+              </td>
+            `;
+            tbody.appendChild(tr);
+          });
+          
+          console.log(`✅ تم تحميل ${users.length} مستخدم`);
+        } else {
+          console.warn("⚠️ لم يتم العثور على مستخدمين في قاعدة البيانات");
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="7" style="text-align:center; padding:20px; color:#6c757d;">
+                لا توجد بيانات للمستخدمين
+              </td>
+            </tr>
+          `;
+        }
+      } catch (error) {
+        console.error("❌ خطأ في تحميل المستخدمين:", error);
+        alert("⚠️ تعذر تحميل قائمة المستخدمين.");
+      }
+    }
+
+    // 🟢 إضافة أو تعديل مستخدم في Supabase
+    async function saveUser() {
+      const user = {
+        username: document.getElementById("username").value,
+        password: document.getElementById("password").value,
+        full_name: document.getElementById("full_name").value,
+        role: document.getElementById("role").value,
+        store_id: document.getElementById("store_id").value || document.getElementById("store_list").value,
+        active: document.getElementById("active").value === "true"
+      };
+
+      if (!user.username || !user.password) {
+        alert("⚠️ أدخل اسم المستخدم وكلمة المرور.");
+        return;
+      }
+
+      try {
+        if (!window.supabaseClient) {
+          const connected = await initSupabase();
+          if (!connected) return;
+        }
+        
+        const userId = document.getElementById("user_id").value;
+        let result;
+        
+        if (userId) {
+          // تحديث مستخدم موجود
+          const { data, error } = await window.supabaseClient
+            .from('users')
+            .update(user)
+            .eq('user_id', userId)
+            .select()
+            .single();
+          
+          if (error) throw error;
+          result = data;
+        } else {
+          // إضافة مستخدم جديد
+          const { data, error } = await window.supabaseClient
+            .from('users')
+            .insert([user])
+            .select()
+            .single();
+          
+          if (error) throw error;
+          result = data;
+        }
+        
+        alert("✅ تم حفظ المستخدم بنجاح");
+        resetForm();
+        loadUsers();
+      } catch (error) {
+        console.error("❌ خطأ في حفظ المستخدم:", error);
+        alert(`⚠️ حدث خطأ أثناء حفظ المستخدم: ${error.message}`);
+      }
+    }
+
+    // 🟢 تحميل بيانات مستخدم للتعديل
+    async function editUser(id) {
+      try {
+        if (!window.supabaseClient) {
+          const connected = await initSupabase();
+          if (!connected) return;
+        }
+        
+        const { data, error } = await window.supabaseClient
+          .from('users')
+          .select('*')
+          .eq('user_id', id)
+          .single();
+        
+        if (error) throw error;
+        
+        if (data) {
+          document.getElementById("user_id").value = data.user_id;
+          document.getElementById("username").value = data.username;
+          document.getElementById("password").value = data.password;
+          document.getElementById("full_name").value = data.full_name || "";
+          document.getElementById("role").value = data.role || "";
+          document.getElementById("store_id").value = data.store_id || "";
+          document.getElementById("store_list").value = data.store_id || "";
+          document.getElementById("active").value = data.active ? "true" : "false";
+          document.getElementById("username").focus();
+          
+          console.log(`✅ تم تحميل بيانات المستخدم ${data.username}`);
+        }
+      } catch (error) {
+        console.error("❌ خطأ في تحميل بيانات المستخدم:", error);
+        alert("⚠️ تعذر تحميل بيانات المستخدم.");
+      }
+    }
+
+    // 🟢 حذف مستخدم من Supabase
+    async function deleteUser(id) {
+      if (!confirm("هل تريد حذف المستخدم؟")) return;
+      
+      try {
+        if (!window.supabaseClient) {
+          const connected = await initSupabase();
+          if (!connected) return;
+        }
+        
+        const { error } = await window.supabaseClient
+          .from('users')
+          .delete()
+          .eq('user_id', id);
+        
+        if (error) throw error;
+        
+        alert("✅ تم حذف المستخدم بنجاح");
+        loadUsers();
+      } catch (error) {
+        console.error("❌ خطأ في حذف المستخدم:", error);
+        alert("⚠️ حدث خطأ أثناء حذف المستخدم.");
+      }
+    }
+
+    // 🟢 إعادة تعيين النموذج
+    function resetForm() {
+      document.getElementById("user_id").value = "";
+      document.getElementById("username").value = "";
+      document.getElementById("password").value = "";
+      document.getElementById("full_name").value = "";
+      document.getElementById("role").value = "";
+      document.getElementById("store_id").value = "";
+      document.getElementById("store_list").value = "";
+      document.getElementById("active").value = "true";
+      document.getElementById("username").focus();
+    }
+
+    // 🟢 إدخال رقم الفرع يعرض الاسم في القائمة
+    document.getElementById("store_id").addEventListener("change", () => {
+      const id = document.getElementById("store_id").value;
+      document.getElementById("store_list").value = id;
+    });
+
+    // 🟢 اختيار الفرع من القائمة يعبئ رقم الفرع
+    document.getElementById("store_list").addEventListener("change", () => {
+      const id = document.getElementById("store_list").value;
+      document.getElementById("store_id").value = id;
+    });
+
+    // 🟢 التنقل بمفتاح Enter
+    document.addEventListener("keydown", e => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const inputs = [...document.querySelectorAll("input, select")];
+        const i = inputs.indexOf(document.activeElement);
+        if (i >= 0 && i < inputs.length - 1) {
+          inputs[i + 1].focus();
+        } else if (i === inputs.length - 1) {
+          saveUser();
+        }
+      }
+    });
+
+    // 🟢 التحميل الأولي للصفحة
+    document.addEventListener("DOMContentLoaded", async () => {
+      // تهيئة Supabase أولاً
+      await initSupabase();
+      
+      // تحميل البيانات
+      loadStores();
+      loadUsers();
+      
+      // التركيز على حقل اسم المستخدم
+      document.getElementById("username").focus();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>👥 إدارة الموردين</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    .connection-status {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        background: #fff;
+        padding: 8px 12px;
+        border-radius: 5px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        z-index: 1000;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .connection-status.supabase {
+        border-left: 4px solid #28a745;
+    }
+    .connection-status.offline {
+        border-left: 4px solid #dc3545;
+    }
+    .connection-status .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+    .status-dot.connected {
+        background-color: #28a745;
+    }
+    .status-dot.disconnected {
+        background-color: #dc3545;
+    }
+    .loading-spinner {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid #fff;
+        border-radius: 50%;
+        border-top-color: transparent;
+        animation: spin 1s linear infinite;
+        margin-left: 8px;
+    }
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    /* مؤشر التحميل */
+    .loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.8);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10;
+        border-radius: 8px;
+    }
+    .spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #5d7fe3;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    
+    .error-message {
+        background-color: #ffebee;
+        color: #c62828;
+        padding: 12px;
+        border-radius: 8px;
+        margin: 15px 0;
+        text-align: center;
+        border-left: 4px solid #f44336;
+        display: none;
+    }
+  
+    :root {
+      --primary: #5d7fe3;
+      --primary-dark: #4a6bd4;
+      --primary-light: #f0f4ff;
+      --secondary: #8a5bd6;
+      --success: #4cc9f0;
+      --warning: #f72585;
+      --light: #f8f9fa;
+      --dark: #212529;
+      --gray: #6c757d;
+      --border: #dee2e6;
+      --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      --transition: all 0.3s ease;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #e6ecff 0%, #f0f4ff 100%);
+      color: var(--dark);
+      line-height: 1.6;
+      padding: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+      min-height: 100vh;
+    }
+
+    .container {
+      background: white;
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #5d7fe3 0%, #8a5bd6 100%);
+      color: white;
+      padding: 20px 25px;
+      margin-bottom: 0;
+    }
+
+    h2 {
+      font-size: 1.8rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0;
+    }
+
+    .card {
+      background: white;
+      padding: 20px 25px;
+      position: relative;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 15px;
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+      color: var(--dark);
+      font-size: 0.95rem;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.95rem;
+      transition: var(--transition);
+      background-color: var(--light);
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(93, 127, 227, 0.2);
+    }
+
+    .error-flash {
+      border-color: var(--warning) !important;
+      box-shadow: 0 0 0 3px rgba(247, 37, 133, 0.2) !important;
+      animation: shake 0.5s ease-in-out;
+    }
+
+    .success-flash {
+      border-color: var(--success) !important;
+      box-shadow: 0 0 0 3px rgba(76, 201, 240, 0.2) !important;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+
+    .error-msg {
+      color: var(--warning);
+      font-size: 0.8rem;
+      margin-top: 4px;
+      font-weight: 500;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .btn-primary {
+      background-color: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background-color: var(--primary-dark);
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      background-color: var(--secondary);
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      background-color: #7a4bc4;
+      transform: translateY(-2px);
+    }
+
+    .btn-outline {
+      background-color: transparent;
+      color: var(--primary);
+      border: 1px solid var(--primary);
+    }
+
+    .btn-outline:hover {
+      background-color: var(--primary);
+      color: white;
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 15px;
+      flex-wrap: wrap;
+    }
+
+    .controls-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding: 15px 25px;
+      background: white;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .search-box {
+      flex-grow: 1;
+      max-width: 400px;
+    }
+
+    .table-container {
+      overflow-x: auto;
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+      margin: 0 25px 25px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: white;
+    }
+
+    th {
+      background-color: var(--primary);
+      color: white;
+      padding: 12px 10px;
+      text-align: right;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    td {
+      padding: 10px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+
+    tr:hover {
+      background-color: rgba(93, 127, 227, 0.05);
+    }
+
+    .actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .actions button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 4px;
+      border-radius: 5px;
+      transition: var(--transition);
+    }
+
+    .actions button:hover {
+      background-color: rgba(0, 0, 0, 0.1);
+      transform: scale(1.1);
+    }
+
+    .pagination {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      margin: 15px 0;
+      flex-wrap: wrap;
+    }
+
+    .page-btn {
+      padding: 6px 12px;
+      border: 1px solid var(--border);
+      background-color: white;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: var(--transition);
+      font-size: 0.9rem;
+    }
+
+    .page-btn.active {
+      background-color: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .page-btn:hover:not(.active) {
+      background-color: var(--light);
+    }
+
+    #supplierCount {
+      text-align: center;
+      margin: 10px 0;
+      font-weight: 600;
+      color: var(--gray);
+      font-size: 0.9rem;
+    }
+
+    .export-select {
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background-color: white;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    /* تنسيق الموبايل */
+    @media (max-width: 768px) {
+        .connection-status {
+            position: relative;
+            top: 0;
+            left: 0;
+            margin: 0 0 10px 0;
+            width: 100%;
+            border-radius: 0;
+            border-left: none;
+            border-bottom: 3px solid #28a745;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+        }
+        
+        .connection-status.offline {
+            border-bottom: 3px solid #dc3545;
+            border-left: none;
+        }
+        
+        .connection-status.supabase {
+            border-bottom: 3px solid #28a745;
+            border-left: none;
+        }
+
+        body {
+            padding: 10px;
+            font-size: 14px;
+        }
+
+        .container {
+            border-radius: 12px;
+        }
+
+        .header {
+            padding: 15px 20px;
+        }
+
+        h2 {
+            font-size: 1.4rem;
+            justify-content: center;
+        }
+
+        .card {
+            padding: 15px 20px;
+        }
+
+        .form-grid {
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 10px;
+        }
+
+        input, select {
+            padding: 12px 14px;
+            font-size: 16px; /* لمنع التكبير في iOS */
+        }
+
+        .btn {
+            padding: 12px 16px;
+            font-size: 16px;
+            width: 100%;
+        }
+
+        .form-actions {
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .controls-row {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+            padding: 15px 20px;
+        }
+
+        .search-box {
+            max-width: 100%;
+        }
+
+        .table-container {
+            margin: 0 15px 15px;
+            border-radius: 8px;
+        }
+
+        table {
+            font-size: 14px;
+            min-width: 600px;
+        }
+
+        th, td {
+            padding: 8px;
+        }
+
+        .actions {
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .pagination {
+            gap: 4px;
+            margin: 10px 0;
+        }
+
+        .page-btn {
+            padding: 8px 12px;
+            font-size: 14px;
+        }
+
+        .loading-overlay {
+            border-radius: 12px;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .connection-status {
+            flex-direction: column;
+            gap: 8px;
+            padding: 8px 10px;
+        }
+
+        body {
+            padding: 5px;
+        }
+
+        .header {
+            padding: 12px 15px;
+        }
+
+        h2 {
+            font-size: 1.2rem;
+        }
+
+        .card {
+            padding: 12px 15px;
+        }
+
+        .controls-row {
+            padding: 12px 15px;
+        }
+
+        .table-container {
+            margin: 0 10px 10px;
+        }
+
+        .btn {
+            padding: 14px 16px;
+        }
+
+        .pagination {
+            flex-wrap: wrap;
+        }
+
+        .page-btn {
+            flex: 1;
+            min-width: 40px;
+            text-align: center;
+        }
+    }
+
+    @media (max-width: 360px) {
+        .connection-status {
+            padding: 6px 8px;
+        }
+
+        .header {
+            padding: 10px 12px;
+        }
+
+        h2 {
+            font-size: 1.1rem;
+        }
+
+        .card {
+            padding: 10px 12px;
+        }
+
+        input, select {
+            padding: 10px 12px;
+        }
+
+        .btn {
+            padding: 12px 14px;
+            font-size: 14px;
+        }
+    }
+  </style>
+</head>
+<body>
+  <!-- شريط حالة الاتصال -->
+  <div class="connection-status offline" id="connectionStatus">
+    <span class="status-dot disconnected"></span>
+    <span id="statusText">جارٍ الاتصال...</span>
+  </div>
+
+  <div class="container">
+    <div class="header">
+      <h2>👥 إدارة الموردين</h2>
+    </div>
+
+    <div class="card">
+      <!-- مؤشر التحميل -->
+      <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+        <div class="spinner"></div>
+      </div>
+      
+      <!-- رسالة الخطأ -->
+      <div id="errorMessage" class="error-message"></div>
+      
+      <form id="supplierForm">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="supplierid">كود المورد:</label>
+            <input type="text" id="supplierid" maxlength="11" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="supplier_name">اسم المورد:</label>
+            <input type="text" id="supplier_name" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="phone">الهاتف:</label>
+            <input type="text" id="phone">
+          </div>
+          
+          <div class="form-group">
+            <label for="address">العنوان:</label>
+            <input type="text" id="address">
+          </div>
+          
+          <div class="form-group">
+            <label for="email">البريد الإلكتروني:</label>
+            <input type="email" id="email">
+          </div>
+          
+          <div class="form-group">
+            <label for="user_id">رقم المستخدم:</label>
+            <input type="number" id="user_id">
+          </div>
+        </div>
+        
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary" id="saveBtn">
+            <i class="fas fa-save"></i> حفظ
+          </button>
+          <button type="button" id="importBtn" class="btn btn-secondary">
+            <i class="fas fa-download"></i> استيراد
+          </button>
+          <input id="importInput" type="file" accept=".csv,.xls,.xlsx" style="display:none">
+          <button type="button" id="clearBtn" class="btn btn-outline">
+            <i class="fas fa-eraser"></i> مسح
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <div class="controls-row">
+      <input type="text" id="searchBox" class="search-box" placeholder="🔎 ابحث عن مورد...">
+      
+      <div style="display: flex; gap: 8px;">
+        <select id="pageSizeSelector" class="export-select">
+          <option value="10">عرض 10</option>
+          <option value="20" selected>عرض 20</option>
+          <option value="50">عرض 50</option>
+          <option value="all">عرض الكل</option>
+        </select>
+        
+        <button id="exportBtn" class="btn btn-outline">
+          <i class="fas fa-file-export"></i> تصدير
+        </button>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <table id="suppliersTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>الكود</th>
+            <th>الاسم</th>
+            <th>الهاتف</th>
+            <th>العنوان</th>
+            <th>البريد</th>
+            <th>المستخدم</th>
+            <th>التاريخ</th>
+            <th>إجراءات</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div id="pagination" class="pagination"></div>
+    <div id="supplierCount"></div>
+  </div>
+
+  <script>
+    // 🔧 تكوين Supabase - استخدام const بدلاً من var
+    const SUPABASE_CONFIG = {
+      url: 'https://rvjacvrrpguehbapvewe.supabase.co',
+      key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2amFjdnJycGd1ZWhiYXB2ZXdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwMjUxNTksImV4cCI6MjA3ODYwMTE1OX0.wSavKzxKOF7-56G-pzDMtbXNrCNAbGs0wvadw-cilBg'
+    };
+
+    // تهيئة عميل Supabase مع التحقق من عدم التحميل المزدوج
+    var supabaseClient;
+    
+    // دالة لتهيئة Supabase مع التحقق من التحميل المسبق
+    function initSupabase() {
+      try {
+        // تحقق إذا كانت مكتبة Supabase محملة
+        if (typeof window.supabase !== 'undefined') {
+          // استخدم كائن Supabase الموجود بدلاً من إنشاء متغير جديد
+          supabaseClient = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.key);
+          console.log('✅ Supabase initialized successfully');
+          return supabaseClient;
+        } else {
+          console.error('❌ Supabase library not loaded');
+          return null;
+        }
+      } catch (error) {
+        console.error('❌ Failed to initialize Supabase:', error);
+        return null;
+      }
+    }
+
+    class SuppliersManager {
+      constructor() {
+        this.currentData = [];
+        this.isOnline = false;
+        this.currentPage = 1;
+        this.itemsPerPage = 20;
+        this.supabase = null;
+        this.init();
+      }
+
+      async init() {
+        // تهيئة Supabase
+        this.supabase = initSupabase();
+        if (!this.supabase) {
+          this.showError('❌ فشل في تهيئة الاتصال بقاعدة البيانات');
+          return;
+        }
+        
+        await this.checkConnection();
+        this.setupEventListeners();
+        this.setupEnterNavigation();
+        await this.loadSuppliers();
+        document.getElementById("supplierid").focus();
+      }
+
+      async checkConnection() {
+        const statusElement = document.getElementById('connectionStatus');
+        const statusText = document.getElementById('statusText');
+        
+        try {
+          if (!this.supabase) {
+            throw new Error('عميل Supabase غير مهيئ');
+          }
+          
+          // اختبار الاتصال بـ Supabase
+          const { data, error } = await this.supabase
+            .from('suppliers')
+            .select('supplierid')
+            .limit(1);
+          
+          if (!error) {
+            this.isOnline = true;
+            statusElement.className = 'connection-status supabase';
+            statusElement.querySelector('.status-dot').className = 'status-dot connected';
+            statusText.textContent = 'متصل بـ Supabase';
+          } else {
+            throw error;
+          }
+        } catch (error) {
+          this.isOnline = false;
+          statusElement.className = 'connection-status offline';
+          statusElement.querySelector('.status-dot').className = 'status-dot disconnected';
+          statusText.textContent = 'غير متصل';
+          console.error('الاتصال بـ Supabase فشل:', error);
+        }
+      }
+
+      // عرض/إخفاء مؤشر التحميل
+      setLoading(loading) {
+        const overlay = document.getElementById('loadingOverlay');
+        const btn = document.getElementById('saveBtn');
+        
+        if (loading) {
+          overlay.style.display = 'flex';
+          btn.innerHTML = '<div class="loading-spinner"></div> جارٍ الحفظ...';
+          btn.disabled = true;
+        } else {
+          overlay.style.display = 'none';
+          btn.innerHTML = '<i class="fas fa-save"></i> حفظ';
+          btn.disabled = false;
+        }
+      }
+
+      // عرض رسالة خطأ
+      showError(message) {
+        const errorElement = document.getElementById('errorMessage');
+        errorElement.textContent = message;
+        errorElement.style.display = 'block';
+      }
+
+      // إخفاء رسالة الخطأ
+      hideError() {
+        document.getElementById('errorMessage').style.display = 'none';
+      }
+
+      setupEventListeners() {
+        const form = document.getElementById("supplierForm");
+        const importBtn = document.getElementById("importBtn");
+        const importInput = document.getElementById("importInput");
+        const searchBox = document.getElementById("searchBox");
+        const pageSizeSelector = document.getElementById("pageSizeSelector");
+        const exportBtn = document.getElementById("exportBtn");
+        const clearBtn = document.getElementById("clearBtn");
+
+        form.addEventListener("submit", (e) => this.handleSubmit(e));
+        importBtn.addEventListener("click", () => importInput.click());
+        importInput.addEventListener("change", () => this.handleImport());
+        searchBox.addEventListener("input", () => this.renderTable());
+        pageSizeSelector.addEventListener("change", () => this.handlePageSizeChange());
+        exportBtn.addEventListener("click", () => this.exportToExcel());
+        clearBtn.addEventListener("click", () => this.clearForm());
+      }
+
+      setupEnterNavigation() {
+        const fields = [
+          'supplierid', 'supplier_name', 'phone', 'address', 'email', 'user_id'
+        ];
+
+        fields.forEach(fieldId => {
+          const field = document.getElementById(fieldId);
+          if (field) {
+            field.addEventListener('keydown', (e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                this.moveToNextField(fieldId);
+              }
+            });
+          }
+        });
+      }
+
+      moveToNextField(currentFieldId) {
+        const fieldOrder = [
+          'supplierid', 'supplier_name', 'phone', 'address', 'email', 'user_id'
+        ];
+
+        const currentIndex = fieldOrder.indexOf(currentFieldId);
+        if (currentIndex === -1 || currentIndex === fieldOrder.length - 1) {
+          // إذا كان آخر حقل، انتقل لزر الحفظ
+          document.getElementById('saveBtn').focus();
+          return;
+        }
+
+        const nextFieldId = fieldOrder[currentIndex + 1];
+        const nextField = document.getElementById(nextFieldId);
+        if (nextField) {
+          nextField.focus();
+        }
+      }
+
+      async loadSuppliers() {
+        try {
+          if (!this.supabase) {
+            throw new Error('عميل Supabase غير مهيئ');
+          }
+          
+          const { data, error } = await this.supabase
+            .from('suppliers')
+            .select('*')
+            .order('supplierid');
+          
+          if (error) throw error;
+          
+          this.currentData = data || [];
+          this.renderTable();
+        } catch (error) {
+          console.error('Error loading suppliers:', error);
+          this.showError('❌ حدث خطأ في تحميل قائمة الموردين');
+          this.currentData = [];
+          this.renderTable();
+        }
+      }
+
+      filteredSuppliers() {
+        const q = document.getElementById('searchBox').value.trim().toLowerCase();
+        if (!q) return this.currentData;
+        return this.currentData.filter(s =>
+          s.supplierid?.toLowerCase().includes(q) ||
+          s.supplier_name?.toLowerCase().includes(q) ||
+          s.phone?.toLowerCase().includes(q) ||
+          s.email?.toLowerCase().includes(q)
+        );
+      }
+
+      renderTable() {
+        const suppliers = this.filteredSuppliers();
+        const totalPages = Math.ceil(suppliers.length / (this.itemsPerPage === "all" ? suppliers.length : this.itemsPerPage));
+        const start = this.itemsPerPage === "all" ? 0 : (this.currentPage - 1) * this.itemsPerPage;
+        const end = this.itemsPerPage === "all" ? suppliers.length : start + this.itemsPerPage;
+        const pageSuppliers = suppliers.slice(start, end);
+
+        const tbody = document.querySelector("#suppliersTable tbody");
+        tbody.innerHTML = "";
+        
+        if (suppliers.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px; color: #7f8c8d;">لا توجد بيانات</td></tr>';
+        } else {
+          pageSuppliers.forEach((s, i) => {
+            const serial = (this.itemsPerPage === "all") ? (i + 1) : (start + i + 1);
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+              <td>${serial}</td>
+              <td><strong>${s.supplierid}</strong></td>
+              <td>${s.supplier_name}</td>
+              <td>${s.phone || ""}</td>
+              <td>${s.address || ""}</td>
+              <td>${s.email || ""}</td>
+              <td>${s.user_id || ""}</td>
+              <td>${s.user_stamp ? new Date(s.user_stamp).toLocaleString("ar-EG") : ""}</td>
+              <td class="actions">
+                <button onclick="suppliersManager.editSupplier('${s.supplierid}')" title="تعديل">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button onclick="suppliersManager.deleteSupplier('${s.supplierid}')" title="حذف">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </td>`;
+            tbody.appendChild(tr);
+          });
+        }
+
+        this.renderPagination(totalPages);
+        this.renderCount(suppliers.length);
+      }
+
+      renderPagination(totalPages) {
+        const pagination = document.getElementById("pagination");
+        pagination.innerHTML = "";
+        if (this.itemsPerPage === "all" || totalPages <= 1) return;
+        
+        for (let i = 1; i <= totalPages; i++) {
+          const btn = document.createElement("button");
+          btn.textContent = i;
+          btn.className = "page-btn" + (i === this.currentPage ? " active" : "");
+          btn.onclick = () => { 
+            this.currentPage = i; 
+            this.renderTable(); 
+          };
+          pagination.appendChild(btn);
+        }
+      }
+
+      renderCount(count) {
+        let div = document.getElementById("supplierCount");
+        if (!div) {
+          div = document.createElement("div");
+          div.id = "supplierCount";
+          const pagination = document.getElementById("pagination");
+          if (pagination) {
+            pagination.after(div);
+          }
+        }
+        div.textContent = `عدد الموردين المسجلين: ${count}`;
+      }
+
+      async handleSubmit(e) {
+        e.preventDefault();
+        this.setLoading(true);
+        this.hideError();
+
+        const data = {
+          supplierid: document.getElementById('supplierid').value.trim(),
+          supplier_name: document.getElementById('supplier_name').value.trim(),
+          phone: document.getElementById('phone').value.trim(),
+          address: document.getElementById('address').value.trim(),
+          email: document.getElementById('email').value.trim(),
+          user_id: document.getElementById('user_id').value.trim() || null
+        };
+
+        if (!data.supplierid || !data.supplier_name) {
+          this.showError("⚠️ يرجى إدخال كود واسم المورد");
+          this.setLoading(false);
+          return;
+        }
+
+        try {
+          if (!this.supabase) {
+            throw new Error('عميل Supabase غير مهيئ');
+          }
+          
+          // التحقق من وجود المورد
+          const { data: existingSupplier, error: checkError } = await this.supabase
+            .from('suppliers')
+            .select('supplierid')
+            .eq('supplierid', data.supplierid)
+            .single();
+
+          if (existingSupplier) {
+            // تحديث المورد الموجود
+            const { error } = await this.supabase
+              .from('suppliers')
+              .update(data)
+              .eq('supplierid', data.supplierid);
+            
+            if (error) throw error;
+          } else {
+            // إضافة مورد جديد
+            const { error } = await this.supabase
+              .from('suppliers')
+              .insert([data]);
+            
+            if (error) throw error;
+          }
+
+          this.clearForm();
+          await this.loadSuppliers();
+          document.getElementById('supplierid').focus();
+          
+        } catch (error) {
+          console.error('❌ خطأ أثناء الحفظ:', error);
+          this.showError(`❌ حدث خطأ أثناء الحفظ: ${error.message}`);
+        } finally {
+          this.setLoading(false);
+        }
+      }
+
+      async editSupplier(id) {
+        try {
+          if (!this.supabase) {
+            throw new Error('عميل Supabase غير مهيئ');
+          }
+          
+          const { data, error } = await this.supabase
+            .from('suppliers')
+            .select('*')
+            .eq('supplierid', id)
+            .single();
+          
+          if (error) throw error;
+          
+          document.getElementById('supplierid').value = data.supplierid;
+          document.getElementById('supplier_name').value = data.supplier_name;
+          document.getElementById('phone').value = data.phone || "";
+          document.getElementById('address').value = data.address || "";
+          document.getElementById('email').value = data.email || "";
+          document.getElementById('user_id').value = data.user_id || "";
+          document.getElementById('supplierid').focus();
+        } catch (error) {
+          console.error('Error editing supplier:', error);
+          this.showError('❌ حدث خطأ في تحميل بيانات المورد');
+        }
+      }
+
+      async deleteSupplier(id) {
+        if (!confirm("هل تريد حذف هذا المورد؟")) return;
+        
+        try {
+          if (!this.supabase) {
+            throw new Error('عميل Supabase غير مهيئ');
+          }
+          
+          const { error } = await this.supabase
+            .from('suppliers')
+            .delete()
+            .eq('supplierid', id);
+          
+          if (error) throw error;
+          
+          await this.loadSuppliers();
+        } catch (error) {
+          console.error('Error deleting supplier:', error);
+          this.showError('❌ حدث خطأ أثناء حذف المورد');
+        }
+      }
+
+      async handleImport() {
+        const file = document.getElementById('importInput').files[0];
+        if (!file) return;
+        
+        // يمكن إضافة منطق الاستيراد هنا
+        alert('ميزة الاستيراد تحت التطوير');
+        document.getElementById('importInput').value = "";
+      }
+
+      exportToExcel() {
+        if (this.currentData.length === 0) {
+          alert('⚠️ لا توجد بيانات للتصدير');
+          return;
+        }
+
+        const headers = [
+          'كود المورد', 'اسم المورد', 'الهاتف', 'العنوان', 'البريد الإلكتروني', 'رقم المستخدم', 'تاريخ التسجيل'
+        ];
+
+        const data = this.currentData.map(row => [
+          row.supplierid,
+          row.supplier_name,
+          row.phone || '',
+          row.address || '',
+          row.email || '',
+          row.user_id || '',
+          row.user_stamp ? new Date(row.user_stamp).toLocaleString("ar-EG") : ''
+        ]);
+
+        let csvContent = '\uFEFF'; // BOM للتعرف على الأحرف العربية
+        csvContent += headers.join(',') + '\n';
+        
+        data.forEach(row => {
+          csvContent += row.map(field => `"${field}"`).join(',') + '\n';
+        });
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        
+        link.setAttribute('href', url);
+        link.setAttribute('download', `الموردين_${new Date().toISOString().slice(0,10)}.csv`);
+        link.style.visibility = 'hidden';
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+
+      handlePageSizeChange() {
+        const val = document.getElementById('pageSizeSelector').value;
+        this.itemsPerPage = val === "all" ? "all" : parseInt(val);
+        this.currentPage = 1;
+        this.renderTable();
+      }
+
+      clearForm() {
+        document.getElementById('supplierForm').reset();
+        this.hideError();
+        document.getElementById('supplierid').focus();
+      }
+    }
+
+    // تهيئة المدير عند تحميل الصفحة
+    var suppliersManager;
+    document.addEventListener("DOMContentLoaded", function() {
+      suppliersManager = new SuppliersManager();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,1375 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ادخال الأصناف اول مرة</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    /* 🎨 ألوان عصرية */
+    :root {
+      --primary: #4361ee;
+      --primary-dark: #3a56d4;
+      --secondary: #7209b7;
+      --success: #06d6a0;
+      --warning: #ffd166;
+      --danger: #ef476f;
+      --dark: #2b2d42;
+      --light: #f8f9fa;
+      --gray: #6c757d;
+      --gradient-primary: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
+      --gradient-secondary: linear-gradient(135deg, #7209b7 0%, #560bad 100%);
+      --gradient-success: linear-gradient(135deg, #06d6a0 0%, #04a380 100%);
+      --shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      --shadow-lg: 0 4px 20px rgba(0, 0, 0, 0.15);
+      --border-radius: 10px;
+      --border-radius-lg: 15px;
+    }
+
+    /* 🔧 تصميم متجاوب للشاشات المختلفة */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html {
+      font-size: 16px;
+    }
+
+    body {
+      font-family: 'Cairo', sans-serif;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      min-height: 100vh;
+      padding: 12px;
+      color: var(--dark);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .app-container {
+      max-width: 100%;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    /* شريط العنوان */
+    .header-section {
+      background: var(--gradient-primary);
+      color: white;
+      padding: 20px 15px;
+      border-radius: var(--border-radius-lg);
+      box-shadow: var(--shadow-lg);
+      text-align: center;
+    }
+
+    .header-section h1 {
+      font-size: 1.4rem;
+      margin-bottom: 6px;
+      font-weight: 700;
+    }
+
+    .header-section h2 {
+      font-size: 0.9rem;
+      opacity: 0.9;
+      font-weight: 500;
+    }
+
+    /* قسم النموذج */
+    .form-section {
+      background: white;
+      border-radius: var(--border-radius-lg);
+      padding: 20px 15px;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .form-header {
+      background: var(--gradient-primary);
+      color: white;
+      padding: 15px;
+      border-radius: var(--border-radius);
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .form-header h3 {
+      margin: 0;
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .form-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    label {
+      margin-bottom: 6px;
+      font-weight: 600;
+      color: var(--dark);
+      font-size: 0.9rem;
+    }
+
+    input, select, textarea {
+      padding: 14px 12px;
+      border: 2px solid #e9ecef;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-family: 'Cairo', sans-serif;
+      transition: all 0.3s ease;
+      background: white;
+      width: 100%;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+    }
+
+    /* أزرار التحكم */
+    .form-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 2px solid #e9ecef;
+    }
+
+    button {
+      padding: 16px 20px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-family: 'Cairo', sans-serif;
+      font-weight: 600;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      min-height: 54px;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    .btn-primary {
+      background: var(--gradient-primary);
+      color: white;
+    }
+
+    .btn-secondary {
+      background: var(--gradient-secondary);
+      color: white;
+    }
+
+    .btn-success {
+      background: var(--gradient-success);
+      color: white;
+    }
+
+    .btn-warning {
+      background: linear-gradient(135deg, #ffd166 0%, #ffb700 100%);
+      color: var(--dark);
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, #ef476f 0%, #d90429 100%);
+      color: white;
+    }
+
+    /* قسم البحث والتحكم */
+    .controls-section {
+      background: white;
+      border-radius: var(--border-radius);
+      padding: 15px;
+      box-shadow: var(--shadow);
+    }
+
+    .search-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    .search-container input {
+      flex: 1;
+    }
+
+    .filters-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .filter-group {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .export-select {
+      padding: 12px;
+      border: 2px solid #e9ecef;
+      border-radius: 8px;
+      font-family: 'Cairo', sans-serif;
+      background: white;
+      flex: 1;
+    }
+
+    /* قسم الجدول */
+    .table-section {
+      background: white;
+      border-radius: var(--border-radius-lg);
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .table-header {
+      background: var(--gradient-primary);
+      color: white;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: center;
+      text-align: center;
+    }
+
+    .table-header h3 {
+      margin: 0;
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+
+    .table-stats {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .table-container {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      max-height: 50vh;
+    }
+
+    /* تخصيص scrollbar للجدول */
+    .table-container::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    .table-container::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 10px;
+    }
+
+    .table-container::-webkit-scrollbar-thumb {
+      background: var(--primary);
+      border-radius: 10px;
+    }
+
+    .table-container::-webkit-scrollbar-thumb:hover {
+      background: var(--primary-dark);
+    }
+
+    table {
+      width: 100%;
+      min-width: 600px;
+      border-collapse: collapse;
+    }
+
+    th {
+      background: var(--gradient-primary);
+      color: white;
+      padding: 14px 12px;
+      text-align: center;
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      white-space: nowrap;
+      font-size: 0.85rem;
+    }
+
+    td {
+      padding: 12px 10px;
+      text-align: center;
+      border-bottom: 1px solid #e9ecef;
+      background: white;
+      white-space: nowrap;
+      font-size: 0.85rem;
+    }
+
+    tr:active td {
+      background: #f8f9fa;
+    }
+
+    tr:nth-child(even) td {
+      background: #f8f9fa;
+    }
+
+    .actions-cell {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .action-btn {
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      min-width: auto;
+      min-height: auto;
+    }
+
+    /* شريط حالة الاتصال */
+    .connection-status {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      background: white;
+      padding: 10px 14px;
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow-lg);
+      z-index: 1000;
+      font-size: 0.8rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      max-width: calc(100vw - 40px);
+      border-right: 4px solid var(--success);
+    }
+
+    .connection-status.error {
+      border-right-color: var(--danger);
+      color: var(--danger);
+    }
+
+    .connection-status.warning {
+      border-right-color: var(--warning);
+      color: var(--warning);
+    }
+
+    .loading {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid currentColor;
+      border-radius: 50%;
+      border-top-color: transparent;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* تأثيرات إضافية */
+    .pulse {
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.02); }
+      100% { transform: scale(1); }
+    }
+
+    .fade-in {
+      animation: fadeIn 0.5s ease-in;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* رسائل الخطأ والنجاح */
+    .error-msg {
+      color: var(--danger);
+      font-size: 0.8rem;
+      margin-top: 4px;
+      font-weight: 600;
+    }
+
+    .error-flash {
+      border-color: var(--danger) !important;
+      animation: errorFlash 0.8s ease;
+    }
+
+    .success-flash {
+      border-color: var(--success) !important;
+      animation: successFlash 0.8s ease;
+    }
+
+    @keyframes errorFlash {
+      0%, 100% { border-color: var(--danger); }
+      50% { border-color: transparent; }
+    }
+
+    @keyframes successFlash {
+      0%, 100% { border-color: var(--success); }
+      50% { border-color: transparent; }
+    }
+
+    /* الترقيم */
+    .pagination {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 15px 0;
+      padding: 10px;
+    }
+
+    .page-btn {
+      padding: 8px 12px;
+      border: 2px solid var(--primary);
+      background: white;
+      color: var(--primary);
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      min-width: 40px;
+    }
+
+    .page-btn.active {
+      background: var(--gradient-primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .page-btn:active {
+      transform: scale(0.95);
+    }
+
+    /* عدادات */
+    .count-display {
+      text-align: center;
+      font-weight: 600;
+      color: var(--primary);
+      margin: 10px 0;
+      padding: 10px;
+      background: white;
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow);
+    }
+
+    /* تحسينات للشاشات المتوسطة والكبيرة */
+    @media (min-width: 768px) {
+      html {
+        font-size: 17px;
+      }
+
+      body {
+        padding: 20px;
+      }
+
+      .app-container {
+        gap: 20px;
+        max-width: 1200px;
+      }
+
+      .header-section {
+        padding: 25px 20px;
+      }
+
+      .header-section h1 {
+        font-size: 1.8rem;
+      }
+
+      .form-section {
+        padding: 25px 20px;
+      }
+
+      .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+      }
+
+      .form-actions {
+        flex-direction: row;
+        flex-wrap: wrap;
+      }
+
+      .form-actions button {
+        flex: 1;
+        min-width: 160px;
+      }
+
+      .search-container {
+        flex-direction: row;
+        align-items: center;
+      }
+
+      .filters-container {
+        flex-direction: row;
+        justify-content: space-between;
+      }
+
+      .table-header {
+        flex-direction: row;
+        justify-content: space-between;
+        text-align: right;
+      }
+
+      .actions-cell {
+        flex-direction: row;
+      }
+    }
+
+    @media (min-width: 1024px) {
+      .form-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    /* تحسينات للشاشات الصغيرة جداً */
+    @media (max-width: 360px) {
+      html {
+        font-size: 15px;
+      }
+
+      body {
+        padding: 8px;
+      }
+
+      .header-section {
+        padding: 15px 12px;
+      }
+
+      .header-section h1 {
+        font-size: 1.2rem;
+      }
+
+      .form-section {
+        padding: 15px 12px;
+      }
+
+      button {
+        padding: 14px 16px;
+        min-height: 50px;
+      }
+
+      th, td {
+        padding: 10px 8px;
+        font-size: 0.8rem;
+      }
+    }
+
+    /* تحسينات للأجهزة التي تدعم hover */
+    @media (hover: hover) {
+      button:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow);
+      }
+
+      .page-btn:hover {
+        background: var(--primary);
+        color: white;
+      }
+    }
+
+    /* منع التكبير التلقائي على iOS */
+    input, select, textarea {
+      font-size: 16px;
+    }
+
+    /* تحسين مظهر الأزرار في iOS */
+    button {
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- شريط حالة الاتصال -->
+    <div id="connectionStatus" class="connection-status fade-in">
+      <i class="fas fa-sync-alt loading"></i>
+      <span id="statusText">جاري التحميل...</span>
+    </div>
+
+    <!-- شريط العنوان -->
+    <div class="header-section fade-in">
+      <h1><i class="fas fa-boxes"></i> نظام إدارة الأصناف</h1>
+      <h2>إدخال وتعديل بيانات الأصناف الأساسية</h2>
+    </div>
+
+    <!-- قسم النموذج -->
+    <div class="form-section fade-in">
+      <div class="form-header">
+        <h3><i class="fas fa-edit"></i> إضافة / تعديل الصنف</h3>
+      </div>
+      
+      <form id="itemForm">
+        <div class="form-grid">
+          <div class="form-group">
+            <label><i class="fas fa-barcode"></i> كود الصنف</label>
+            <input type="text" id="item_id" required>
+          </div>
+          
+          <div class="form-group">
+            <label><i class="fas fa-tag"></i> اسم الصنف</label>
+            <input type="text" id="item_nm" required>
+          </div>
+          
+          <div class="form-group">
+            <label><i class="fas fa-language"></i> الاسم بالإنجليزية</label>
+            <input type="text" id="item_nm_eng" required>
+          </div>
+          
+          <div class="form-group">
+            <label><i class="fas fa-industry"></i> كود الشركه</label>
+            <input type="number" id="item_factory" required>
+          </div>
+          
+          <div class="form-group">
+            <label><i class="fas fa-ruler"></i> الوحدة</label>
+            <input type="number" id="item_unit" required>
+          </div>
+          
+          <div class="form-group">
+            <label><i class="fas fa-money-bill-wave"></i> سعر البيع</label>
+            <input type="number" id="sale_price1" step="0.01" required>
+          </div>
+        </div>
+        
+        <!-- أزرار التحكم -->
+        <div class="form-actions">
+          <button type="submit" class="btn-primary pulse">
+            <i class="fas fa-save"></i> حفظ
+          </button>
+          <button type="button" id="clearBtn" class="btn-secondary">
+            <i class="fas fa-eraser"></i> مسح النموذج
+          </button>
+          <button type="button" id="refreshBtn" class="btn-success">
+            <i class="fas fa-sync-alt"></i> تحديث البيانات
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- قسم البحث والتحكم -->
+    <div class="controls-section fade-in">
+      <div class="search-container">
+        <input type="text" id="searchBox" placeholder="🔍 ابحث عن صنف بالاسم أو الكود...">
+      </div>
+      
+      <div class="filters-container">
+        <div class="filter-group">
+          <select id="pageSizeSelector" class="export-select">
+            <option value="10">10 صفوف</option>
+            <option value="20" selected>20 صف</option>
+            <option value="50">50 صف</option>
+            <option value="all">عرض الكل</option>
+          </select>
+        </div>
+        
+        <div class="filter-group">
+          <select id="exportSelect" class="export-select">
+            <option value="">📤 تصدير...</option>
+            <option value="csv">🧾 CSV</option>
+            <option value="xls">📘 Excel</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- قسم الجدول -->
+    <div class="table-section fade-in">
+      <div class="table-header">
+        <h3><i class="fas fa-table"></i> قائمة الأصناف</h3>
+        <div class="table-stats">
+          <span><i class="fas fa-database"></i> العدد: <span id="itemsCount">0</span></span>
+        </div>
+      </div>
+      
+      <div class="table-container">
+        <table id="itemsTable">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th><i class="fas fa-barcode"></i> الكود</th>
+              <th><i class="fas fa-tag"></i> الاسم</th>
+              <th><i class="fas fa-industry"></i> المصنع</th>
+              <th><i class="fas fa-ruler"></i> الوحدة</th>
+              <th><i class="fas fa-money-bill-wave"></i> السعر</th>
+              <th><i class="fas fa-cog"></i> الإجراءات</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- الترقيم -->
+    <div id="pagination" class="pagination"></div>
+    
+    <!-- العداد -->
+    <div class="count-display">
+      <i class="fas fa-box"></i> عدد الأصناف المسجلة: <span id="itemCount">0</span>
+    </div>
+  </div>
+
+  <script>
+    // ======================== 🔧 إعدادات Supabase ========================
+    const SUPABASE_CONFIG = {
+      URL: 'https://rvjacvrrpguehbapvewe.supabase.co',
+      KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2amFjdnJycGd1ZWhiYXB2ZXdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwMjUxNTksImV4cCI6MjA3ODYwMTE1OX0.wSavKzxKOF7-56G-pzDMtbXNrCNAbGs0wvadw-cilBg'
+    };
+
+    // ======================== 📋 تهيئة المتغيرات ========================
+    let supabaseClient = null;
+    let allItems = [];
+    let currentPage = 1;
+    let itemsPerPage = 20;
+    let isEditing = false;
+    let originalItemId = null;
+    let isConnected = false;
+
+    // ======================== 🔌 دالة لتهيئة Supabase ========================
+    function initSupabase() {
+      try {
+        // تحقق إذا كانت مكتبة Supabase محملة من الصفحة الرئيسية
+        if (typeof window.supabase !== 'undefined') {
+          supabaseClient = window.supabase.createClient(SUPABASE_CONFIG.URL, SUPABASE_CONFIG.KEY);
+          console.log('✅ Online initialized successfully');
+          return supabaseClient;
+        } else {
+          console.error('❌ Supabase library not loaded');
+          return null;
+        }
+      } catch (error) {
+        console.error('❌ Failed to initialize Supabase:', error);
+        return null;
+      }
+    }
+
+    // ======================== 🔄 تحديث حالة الاتصال ========================
+    function updateConnectionStatus(text, type = 'success') {
+      const statusDiv = document.getElementById('connectionStatus');
+      const statusText = document.getElementById('statusText');
+      
+      statusText.textContent = text;
+      statusDiv.className = 'connection-status fade-in';
+      
+      if (type === 'error') {
+        statusDiv.classList.add('error');
+      } else if (type === 'warning') {
+        statusDiv.classList.add('warning');
+      }
+    }
+
+    // ======================== 🚀 تهيئة التطبيق ========================
+    document.addEventListener("DOMContentLoaded", async () => {
+      console.log('📦 بدء تحميل صفحة الأصناف...');
+      
+      try {
+        // تحديث حالة الاتصال
+        updateConnectionStatus('🔄 جاري الاتصال بـ Online...', 'warning');
+        
+        // تهيئة Supabase
+        supabaseClient = initSupabase();
+        if (!supabaseClient) {
+          throw new Error('فشل في تهيئة Online');
+        }
+        
+        // اختبار الاتصال
+        const { data, error } = await supabaseClient
+          .from('items')
+          .select('count')
+          .limit(1);
+        
+        if (error) throw error;
+        
+        isConnected = true;
+        updateConnectionStatus('✅ متصل بـ Online');
+        console.log('✅ الاتصال بـ Online ناجح');
+        
+        // تحميل البيانات
+        await loadItems();
+        
+        // إعداد مستمعي الأحداث
+        setupEventListeners();
+        
+        // التركيز على أول حقل
+        focusItemId();
+        
+      } catch (error) {
+        console.error('❌ فشل في تهيئة التطبيق:', error);
+        updateConnectionStatus('❌ فشل الاتصال بـ Online', 'error');
+        alert('⚠️ فشل في الاتصال بقاعدة البيانات. يتم استخدام بيانات تجريبية.');
+        loadSampleItems();
+      }
+    });
+
+    // ======================== 🎯 إعداد مستمعي الأحداث ========================
+    function setupEventListeners() {
+      const form = document.getElementById("itemForm");
+      const searchBox = document.getElementById("searchBox");
+      const exportSelect = document.getElementById("exportSelect");
+      const pageSizeSelector = document.getElementById("pageSizeSelector");
+      const clearBtn = document.getElementById("clearBtn");
+      const refreshBtn = document.getElementById("refreshBtn");
+
+      // منع Enter من الحفظ التلقائي
+      form.addEventListener("keydown", e => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          const active = document.activeElement;
+          const nextSibling = active && active.nextElementSibling;
+          
+          if (nextSibling && nextSibling.classList && nextSibling.classList.contains("error-msg")) {
+            active.classList.add("error-flash");
+            setTimeout(() => active.classList.remove("error-flash"), 800);
+            active.focus();
+            return;
+          }
+          
+          if (isEditing) return;
+          
+          const formElements = Array.from(form.querySelectorAll("input, button, select"));
+          const index = formElements.indexOf(e.target);
+          const next = formElements[index + 1];
+          
+          if (next) next.focus();
+        }
+      });
+
+      // حدث البحث
+      searchBox.addEventListener("input", () => {
+        currentPage = 1;
+        renderTable();
+      });
+
+      // حدث التصدير
+      exportSelect.addEventListener("change", () => {
+        const fmt = exportSelect.value;
+        if (!fmt) return;
+        exportItems(fmt);
+        exportSelect.value = "";
+      });
+
+      // حدث تغيير عدد الصفوف
+      pageSizeSelector.addEventListener("change", () => {
+        const val = pageSizeSelector.value;
+        itemsPerPage = val === "all" ? "all" : parseInt(val, 10);
+        currentPage = 1;
+        renderTable();
+      });
+
+      // حدث مسح النموذج
+      clearBtn.addEventListener("click", clearForm);
+
+      // حدث تحديث البيانات
+      refreshBtn.addEventListener("click", async () => {
+        await loadItems();
+      });
+
+      // حدث حفظ الصنف
+      form.addEventListener("submit", handleSubmit);
+
+      // التحقق من صحة الحقول
+      attachFieldValidation();
+    }
+
+    // ======================== 👁️ التركيز على حقل الكود ========================
+    function focusItemId() {
+      const input = document.getElementById("item_id");
+      if (input && !isEditing) {
+        input.focus();
+        input.select();
+      }
+    }
+
+    // ======================== 🧾 تحميل الأصناف ========================
+    async function loadItems() {
+      try {
+        updateConnectionStatus('🔄 جاري تحميل الأصناف...', 'warning');
+        
+        if (!supabaseClient) {
+          throw new Error('عميل Supabase غير مهيئ');
+        }
+
+        const { data, error } = await supabaseClient
+          .from('items')
+          .select('*')
+          .order('item_id');
+        
+        if (error) throw error;
+        
+        allItems = data || [];
+        console.log(`✅ تم تحميل ${allItems.length} صنف من Online`);
+        updateConnectionStatus(`✅ متصل - ${allItems.length} صنف`);
+        
+        renderTable();
+        focusItemId();
+        
+      } catch (error) {
+        console.error("❌ خطأ في تحميل الأصناف:", error);
+        updateConnectionStatus('❌ فشل في تحميل البيانات', 'error');
+        alert("⚠️ فشل في تحميل البيانات. يتم استخدام بيانات تجريبية.");
+        loadSampleItems();
+      }
+    }
+
+    // ======================== 📋 تحميل بيانات تجريبية ========================
+    function loadSampleItems() {
+      allItems = [
+        {
+          item_id: '001',
+          item_nm: 'منتج تجريبي 1',
+          item_nm_eng: 'Test Product 1',
+          item_factory: 1001,
+          item_unit: 1,
+          sale_price1: 50.00
+        },
+        {
+          item_id: '002',
+          item_nm: 'منتج تجريبي 2',
+          item_nm_eng: 'Test Product 2',
+          item_factory: 1002,
+          item_unit: 2,
+          sale_price1: 75.00
+        },
+        {
+          item_id: '003',
+          item_nm: 'منتج تجريبي 3',
+          item_nm_eng: 'Test Product 3',
+          item_factory: 1003,
+          item_unit: 3,
+          sale_price1: 100.00
+        }
+      ];
+      
+      console.log('📋 استخدام بيانات تجريبية:', allItems.length, 'صنف');
+      renderTable();
+    }
+
+    // ======================== ✅ التحقق من صحة الحقول ========================
+    function attachFieldValidation() {
+      const requiredFields = [
+        { id: "item_id", name: "كود الصنف" },
+        { id: "item_nm", name: "اسم الصنف" },
+        { id: "item_nm_eng", name: "الاسم بالإنجليزية" },
+        { id: "item_factory", name: "كود المصنع" },
+        { id: "item_unit", name: "الوحدة" },
+        { id: "sale_price1", name: "سعر البيع" }
+      ];
+
+      requiredFields.forEach(field => {
+        const el = document.getElementById(field.id);
+
+        el.addEventListener("blur", async () => {
+          const newActive = document.activeElement;
+          const movingToInsideForm = document.getElementById("itemForm").contains(newActive);
+
+          removeInlineError(el);
+
+          const val = (el.value || "").toString().trim();
+
+          if (!val) {
+            el.classList.add("error-flash");
+            setTimeout(() => el.classList.remove("error-flash"), 1000);
+            if (field.id === "item_id" && movingToInsideForm) el.focus();
+            return;
+          }
+
+          if (field.id === "item_id") {
+            if (isEditing && val === originalItemId) return;
+
+            try {
+              if (!supabaseClient) {
+                throw new Error('عميل Supabase غير مهيئ');
+              }
+
+              // التحقق من وجود الكود
+              const { data, error } = await supabaseClient
+                .from('items')
+                .select('item_id')
+                .eq('item_id', val)
+                .single();
+              
+              removeInlineError(el);
+
+              if (data) {
+                showInlineError(el, "❌ هذا الكود مسجل مسبقًا");
+                if (movingToInsideForm) {
+                  setTimeout(() => el.focus(), 30);
+                }
+              } else {
+                el.classList.add("success-flash");
+                setTimeout(() => el.classList.remove("success-flash"), 800);
+              }
+            } catch (error) {
+              console.error("خطأ أثناء التحقق من الكود:", error);
+              el.classList.add("error-flash");
+              setTimeout(() => el.classList.remove("error-flash"), 800);
+            }
+          }
+        });
+      });
+    }
+
+    function showInlineError(input, message) {
+      removeInlineError(input);
+      const msg = document.createElement("div");
+      msg.className = "error-msg";
+      msg.textContent = message;
+      input.classList.add("error-flash");
+      input.insertAdjacentElement("afterend", msg);
+    }
+    
+    function removeInlineError(input) {
+      input.classList.remove("error-flash", "success-flash");
+      const next = input.nextElementSibling;
+      if (next && next.classList.contains("error-msg")) next.remove();
+    }
+
+    // ======================== 💾 معالجة الحفظ ========================
+    async function handleSubmit(e) {
+      e.preventDefault();
+
+      const data = {
+        item_id: (document.getElementById("item_id").value || "").toString().trim(),
+        item_nm: (document.getElementById("item_nm").value || "").toString().trim(),
+        item_nm_eng: (document.getElementById("item_nm_eng").value || "").toString().trim(),
+        item_factory: parseInt(document.getElementById("item_factory").value) || 0,
+        item_unit: parseInt(document.getElementById("item_unit").value) || 0,
+        sale_price1: parseFloat(document.getElementById("sale_price1").value) || 0
+      };
+
+      // التحقق من البيانات
+      if (!data.item_id) {
+        showInlineError(document.getElementById("item_id"), "⚠️ كود الصنف مطلوب");
+        setTimeout(() => removeInlineError(document.getElementById("item_id")), 1500);
+        document.getElementById("item_id").focus();
+        return;
+      }
+
+      try {
+        if (!supabaseClient) {
+          throw new Error('عميل Supabase غير مهيئ');
+        }
+
+        // التحقق من وجود الكود
+        const { data: existingItem, error: checkError } = await supabaseClient
+          .from('items')
+          .select('item_id')
+          .eq('item_id', data.item_id)
+          .single();
+
+        if (isEditing) {
+          // التحديث
+          const { error } = await supabaseClient
+            .from('items')
+            .update(data)
+            .eq('item_id', data.item_id);
+          
+          if (error) throw error;
+          
+          // تحديث البيانات المحلية
+          const idx = allItems.findIndex(i => String(i.item_id) === data.item_id);
+          if (idx > -1) allItems[idx] = data;
+          
+          console.log('✅ تم تحديث الصنف:', data.item_id);
+        } else {
+          // الإضافة
+          if (existingItem) {
+            showInlineError(document.getElementById("item_id"), "❌ هذا الكود مسجل مسبقًا");
+            document.getElementById("item_id").focus();
+            return;
+          }
+          
+          const { error } = await supabaseClient
+            .from('items')
+            .insert([data]);
+          
+          if (error) throw error;
+          
+          // إضافة للبيانات المحلية
+          allItems.push(data);
+          
+          console.log('✅ تم إضافة الصنف:', data.item_id);
+        }
+
+        // إعادة تعيين النموذج
+        clearForm();
+        
+        // إعادة تحميل البيانات
+        await loadItems();
+        
+        // رسالة النجاح
+        alert("✅ تم حفظ بيانات الصنف بنجاح");
+        
+      } catch (error) {
+        console.error("❌ خطأ أثناء الحفظ:", error);
+        alert("❌ حدث خطأ أثناء الحفظ: " + error.message);
+      }
+    }
+
+    // ======================== ✏️ تعديل صنف ========================
+    async function editItem(id) {
+      try {
+        if (!supabaseClient) {
+          throw new Error('عميل Supabase غير مهيئ');
+        }
+
+        const { data, error } = await supabaseClient
+          .from('items')
+          .select('*')
+          .eq('item_id', id)
+          .single();
+        
+        if (error) throw error;
+        
+        document.getElementById("item_id").value = data.item_id;
+        document.getElementById("item_nm").value = data.item_nm;
+        document.getElementById("item_nm_eng").value = data.item_nm_eng || "";
+        document.getElementById("item_factory").value = data.item_factory || "";
+        document.getElementById("item_unit").value = data.item_unit || "";
+        document.getElementById("sale_price1").value = data.sale_price1 || "";
+        
+        isEditing = true;
+        originalItemId = String(data.item_id);
+        
+        document.getElementById("item_id").focus();
+        document.getElementById("item_id").select();
+        
+      } catch (error) {
+        console.error('❌ خطأ في التعديل:', error);
+        alert('❌ فشل في تحميل بيانات الصنف');
+      }
+    }
+
+    // ======================== 🗑️ حذف صنف ========================
+    async function deleteItem(id) {
+      if (!confirm("هل تريد حذف هذا الصنف؟")) return;
+      
+      try {
+        if (!supabaseClient) {
+          throw new Error('عميل Supabase غير مهيئ');
+        }
+
+        const { error } = await supabaseClient
+          .from('items')
+          .delete()
+          .eq('item_id', id);
+        
+        if (error) throw error;
+        
+        // حذف من البيانات المحلية
+        allItems = allItems.filter(i => String(i.item_id) !== String(id));
+        
+        console.log('✅ تم حذف الصنف:', id);
+        renderTable();
+        alert('✅ تم حذف الصنف بنجاح');
+        
+      } catch (error) {
+        console.error('❌ خطأ في الحذف:', error);
+        alert('❌ فشل في حذف الصنف');
+      }
+    }
+
+    // ======================== 🧹 مسح النموذج ========================
+    function clearForm() {
+      document.getElementById("itemForm").reset();
+      isEditing = false;
+      originalItemId = null;
+      focusItemId();
+    }
+
+    // ======================== 🔍 فلترة الأصناف ========================
+    function filteredItems() {
+      const q = (document.getElementById("searchBox").value || "").toString().trim().toLowerCase();
+      if (!q) return allItems.slice();
+
+      return allItems.filter(i => {
+        const fields = [
+          (i.item_id !== undefined && i.item_id !== null) ? String(i.item_id) : "",
+          (i.item_nm !== undefined && i.item_nm !== null) ? String(i.item_nm) : "",
+          (i.item_nm_eng !== undefined && i.item_nm_eng !== null) ? String(i.item_nm_eng) : "",
+          (i.item_factory !== undefined && i.item_factory !== null) ? String(i.item_factory) : "",
+          (i.item_unit !== undefined && i.item_unit !== null) ? String(i.item_unit) : "",
+          (i.sale_price1 !== undefined && i.sale_price1 !== null) ? String(i.sale_price1) : ""
+        ];
+        return fields.some(f => f.toLowerCase().includes(q));
+      });
+    }
+
+    // ======================== 📄 عرض الجدول ========================
+    function renderTable() {
+      const items = filteredItems();
+      const totalPages = Math.ceil(items.length / (itemsPerPage === "all" ? items.length : itemsPerPage));
+      const start = itemsPerPage === "all" ? 0 : (currentPage - 1) * itemsPerPage;
+      const end = itemsPerPage === "all" ? items.length : start + itemsPerPage;
+      const pageItems = items.slice(start, end);
+
+      const tbody = document.querySelector("#itemsTable tbody");
+      tbody.innerHTML = "";
+      
+      if (items.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" style="text-align: center; padding: 40px; color: #666;">
+              <i>لا توجد أصناف مسجلة</i>
+            </td>
+          </tr>
+        `;
+      } else {
+        pageItems.forEach((item, index) => {
+          const tr = document.createElement("tr");
+          const serial = (itemsPerPage === "all") ? (index + 1) : (start + index + 1);
+          tr.innerHTML = `
+            <td>${serial}</td>
+            <td><strong>${item.item_id}</strong></td>
+            <td>${item.item_nm}</td>
+            <td>${item.item_factory || ""}</td>
+            <td>${item.item_unit || ""}</td>
+            <td>${item.sale_price1 || ""}</td>
+            <td>
+              <div class="actions-cell">
+                <button onclick="editItem('${item.item_id}')" class="action-btn btn-warning" title="تعديل">
+                  <i class="fas fa-edit"></i> تعديل
+                </button>
+                <button onclick="deleteItem('${item.item_id}')" class="action-btn btn-danger" title="حذف">
+                  <i class="fas fa-trash"></i> حذف
+                </button>
+              </div>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      renderPagination(totalPages);
+      renderCount(items.length);
+    }
+
+    // ======================== 📄 عرض الترقيم ========================
+    function renderPagination(totalPages) {
+      const pagination = document.getElementById("pagination");
+      pagination.innerHTML = "";
+      if (itemsPerPage === "all" || totalPages <= 1) return;
+      
+      // زر السابق
+      const prevBtn = document.createElement("button");
+      prevBtn.textContent = "السابق";
+      prevBtn.className = "page-btn";
+      prevBtn.onclick = () => {
+        if (currentPage > 1) {
+          currentPage--;
+          renderTable();
+        }
+      };
+      if (currentPage === 1) prevBtn.disabled = true;
+      pagination.appendChild(prevBtn);
+      
+      // أرقام الصفحات
+      for (let i = 1; i <= totalPages; i++) {
+        const btn = document.createElement("button");
+        btn.textContent = i;
+        btn.className = "page-btn" + (i === currentPage ? " active" : "");
+        btn.onclick = () => {
+          currentPage = i;
+          renderTable();
+        };
+        pagination.appendChild(btn);
+      }
+      
+      // زر التالي
+      const nextBtn = document.createElement("button");
+      nextBtn.textContent = "التالي";
+      nextBtn.className = "page-btn";
+      nextBtn.onclick = () => {
+        if (currentPage < totalPages) {
+          currentPage++;
+          renderTable();
+        }
+      };
+      if (currentPage === totalPages) nextBtn.disabled = true;
+      pagination.appendChild(nextBtn);
+    }
+
+    // ======================== 📊 عرض العداد ========================
+    function renderCount(count) {
+      document.getElementById("itemCount").textContent = count;
+      document.getElementById("itemsCount").textContent = count;
+    }
+
+    // ======================== 📤 تصدير البيانات ========================
+    function exportItems(format) {
+      const items = filteredItems();
+      const start = itemsPerPage === "all" ? 0 : (currentPage - 1) * itemsPerPage;
+      const end = itemsPerPage === "all" ? items.length : start + itemsPerPage;
+      const pageItems = items.slice(start, end);
+
+      if (!pageItems.length) {
+        alert("لا توجد أصناف لتصديرها!");
+        return;
+      }
+
+      const headers = ["#", "كود الصنف", "اسم الصنف", "كود الشركه", "الوحدة", "سعر البيع"];
+      const rows = pageItems.map((item, i) => [
+        (itemsPerPage === "all" ? (i + 1) : (start + i + 1)),
+        item.item_id,
+        item.item_nm,
+        item.item_factory || "",
+        item.item_unit || "",
+        item.sale_price1 || ""
+      ]);
+
+      const data = [headers, ...rows];
+      const csv = data.map(r => r.map(cell => {
+        const s = (cell === null || cell === undefined) ? "" : String(cell);
+        if (/[,"\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+        return s;
+      }).join(",")).join("\n");
+
+      const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, "");
+      link.href = URL.createObjectURL(blob);
+      link.download = `items_${timestamp}.${format}`;
+      link.click();
+    }
+
+    // ======================== 🌍 جعل الدوال متاحة عالمياً ========================
+    window.editItem = editItem;
+    window.deleteItem = deleteItem;
+  </script>
+</body>
+</html>

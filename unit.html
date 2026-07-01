@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة الوحدات</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        .card {
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: none;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .card-header {
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+            font-weight: bold;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+        }
+        .table-hover tbody tr:hover {
+            background-color: rgba(102, 126, 234, 0.1);
+        }
+        .status-active {
+            color: #28a745;
+        }
+        .status-inactive {
+            color: #dc3545;
+        }
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h1><i class="fas fa-ruler-combined me-3"></i>إدارة الوحدات</h1>
+                    <p class="lead mb-0">إدارة وأنظمة تحويل الوحدات المختلفة</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <button class="btn btn-light btn-lg" onclick="unitsUI.showUnitForm()">
+                        <i class="fas fa-plus me-2"></i>إضافة وحدة جديدة
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Search and Filter Section -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-search"></i></span>
+                            <input type="text" id="searchInput" class="form-control" placeholder="ابحث في الوحدات...">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <select id="typeFilter" class="form-select">
+                            <option value="">جميع الأنواع</option>
+                            <option value="طول">طول</option>
+                            <option value="وزن">وزن</option>
+                            <option value="حجم">حجم</option>
+                            <option value="مساحة">مساحة</option>
+                            <option value="حرارة">حرارة</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <select id="statusFilter" class="form-select">
+                            <option value="">جميع الحالات</option>
+                            <option value="true">نشط</option>
+                            <option value="false">غير نشط</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Units Table -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-list me-2"></i>قائمة الوحدات</h5>
+                <span class="badge bg-primary" id="unitsCount">0 وحدة</span>
+            </div>
+            <div class="card-body">
+                <div class="loading-spinner" id="loadingSpinner">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">جاري التحميل...</span>
+                    </div>
+                    <p class="mt-2">جاري تحميل البيانات...</p>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover" id="unitsTable">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>اسم الوحدة</th>
+                                <th>نوع الوحدة</th>
+                                <th>معامل التحويل</th>
+                                <th>الوحدة الأساسية</th>
+                                <th>الحالة</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="unitsTableBody">
+                            <!-- البيانات سيتم إضافتها ديناميكياً -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Unit Modal -->
+    <div class="modal fade" id="unitModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">إضافة وحدة جديدة</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="unitForm">
+                        <input type="hidden" id="unitId">
+                        <div class="mb-3">
+                            <label for="unitName" class="form-label">اسم الوحدة</label>
+                            <input type="text" class="form-control" id="unitName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="unitType" class="form-label">نوع الوحدة</label>
+                            <select class="form-select" id="unitType" required>
+                                <option value="">اختر النوع</option>
+                                <option value="طول">طول</option>
+                                <option value="وزن">وزن</option>
+                                <option value="حجم">حجم</option>
+                                <option value="مساحة">مساحة</option>
+                                <option value="حرارة">حرارة</option>
+                                <option value="أخرى">أخرى</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="conversionFactor" class="form-label">معامل التحويل</label>
+                            <input type="number" class="form-control" id="conversionFactor" step="0.0001" value="1" required>
+                            <div class="form-text">معامل التحويل بالنسبة للوحدة الأساسية</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="baseUnit" class="form-label">الوحدة الأساسية</label>
+                            <input type="text" class="form-control" id="baseUnit">
+                            <div class="form-text">اتركه فارغاً إذا كانت هذه هي الوحدة الأساسية</div>
+                        </div>
+                        <div class="mb-3 form-check form-switch">
+                            <input type="checkbox" class="form-check-input" id="isActive" checked>
+                            <label class="form-check-label" for="isActive">الحالة نشطة</label>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="button" class="btn btn-primary" onclick="unitsUI.saveUnit()">حفظ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="unit.js"></script>
+</body>
+</html>

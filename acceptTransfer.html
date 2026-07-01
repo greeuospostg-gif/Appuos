@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>قبول التحويلات بين الفروع</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- تحميل ملفات الإعداد أولاً -->
+    <script src="./config-env.js"></script>
+    <script src="./config.js"></script>
+    <!-- إضافة Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="styleAccptT.css">
+    <style>
+        /* تصميم متجاوب للشاشات المختلفة */
+        .container {
+            max-width: 100%;
+            padding: 15px;
+        }
+        
+        .main-content {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .section {
+            flex: 1 1 500px;
+            min-width: 300px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .user-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        
+        .transfers-list, .items-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 10px;
+        }
+        
+        .transfer-item, .item-row {
+            padding: 10px;
+            border-bottom: 1px solid #dee2e6;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .transfer-item:hover, .item-row:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .transfer-item.selected {
+            background-color: #e7f3ff;
+            border-left: 4px solid #007bff;
+        }
+        
+        .action-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .action-buttons .btn {
+            flex: 1;
+            min-width: 120px;
+        }
+        
+        .connection-status {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: #fff;
+            padding: 8px 12px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1000;
+            font-size: 12px;
+        }
+        .connection-status.supabase {
+            border-left: 4px solid #28a745;
+        }
+        .connection-status.local {
+            border-left: 4px solid #dc3545;
+        }
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+            margin-left: 8px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .switch-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            margin-left: 10px;
+            font-size: 12px;
+        }
+        .switch-btn:hover {
+            background: #5a6268;
+        }
+        .search-box {
+            max-width: 300px;
+        }
+        .pagination {
+            margin-top: 1rem;
+        }
+        .page-btn {
+            margin: 0 2px;
+            padding: 5px 10px;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+        }
+        .page-btn.active {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        
+        /* تصميم متجاوب للشاشات الصغيرة */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .user-info {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .section {
+                flex: 1 1 100%;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .action-buttons .btn {
+                width: 100%;
+            }
+            
+            .connection-status {
+                position: relative;
+                top: auto;
+                left: auto;
+                margin-bottom: 15px;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .section-title {
+                font-size: 1.2rem;
+            }
+            
+            .transfer-item, .item-row {
+                padding: 8px 5px;
+                font-size: 0.9rem;
+            }
+            
+            .form-control {
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- شريط حالة الاتصال -->
+    <div id="connectionStatus" class="connection-status">
+        🔄 جاري التحميل...
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>✅ قبول التحويلات بين الفروع</h1>
+            <p>إدارة التحويلات الواردة للفرع</p>
+        </div>
+        
+        <div class="user-info">
+            <div id="userInfo">مرحباً: </div>
+            <div>
+                <button class="btn btn-info" onclick="window.location.href='main.html'">🏠 القائمة الرئيسية</button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- قسم اختيار الفرع والتحويلات الواردة -->
+            <div class="section">
+                <div class="section-title">🏪 اختيار الفرع</div>
+                
+                <div class="form-group">
+                    <label for="storeSelect">الفرع الهدف:</label>
+                    <select id="storeSelect" class="form-control">
+                        <option value="">اختر الفرع</option>
+                    </select>
+                </div>
+                
+                <div class="section-title">📥 التحويلات الواردة</div>
+                <div id="incomingTransfersList" class="transfers-list">
+                    <div class="no-data">⏳ اختر الفرع لعرض التحويلات الواردة</div>
+                </div>
+            </div>
+
+            <!-- قسم تفاصيل التحويل -->
+            <div class="section">
+                <div id="transferDetailsSection" style="display: none;">
+                    <div class="section-title">📋 تفاصيل التحويل</div>
+                    
+                    <div id="transferHeaderInfo" class="transfer-header-info">
+                        <!-- سيتم تعبئتها بالبيانات -->
+                    </div>
+                    
+                    <div class="section-title">🛒 الأصناف المرسلة</div>
+                    <div id="transferItemsList" class="items-list">
+                        <!-- سيتم تعبئتها بالبيانات -->
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="acceptRemarks">ملاحظات القبول:</label>
+                        <textarea id="acceptRemarks" class="form-control" rows="2" placeholder="ملاحظات اختيارية..."></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="rejectReason">سبب الرفض (في حالة الرفض):</label>
+                        <textarea id="rejectReason" class="form-control" rows="2" placeholder="سبب الرفض..."></textarea>
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <button class="btn btn-success" onclick="acceptTransferApp.acceptTransfer()">✅ قبول كامل</button>
+                        <button class="btn btn-warning" onclick="acceptTransferApp.partialAcceptTransfer()">⚠️ قبول جزئي</button>
+                        <button class="btn btn-danger" onclick="acceptTransferApp.rejectTransfer()">❌ رفض التحويل</button>
+                    </div>
+                </div>
+                
+                <div id="noTransferSelected" class="no-data">
+                    📝 اختر تحويلاً من القائمة لعرض التفاصيل
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="acceptTransfer.js"></script>
+</body>
+</html>

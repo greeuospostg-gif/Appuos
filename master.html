@@ -1,0 +1,2638 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>📦 إدارة حركة الفروع - نظام الوحدات</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="stylemast.css">  
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    .connection-status {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      background: #fff;
+      padding: 8px 12px;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      z-index: 1000;
+      font-size: 12px;
+    }
+    .connection-status.supabase {
+      border-left: 4px solid #28a745;
+    }
+    .connection-status.local {
+      border-left: 4px solid #dc3545;
+    }
+    .loading {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #fff;
+      border-radius: 50%;
+      border-top-color: transparent;
+      animation: spin 1s linear infinite;
+      margin-left: 8px;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .switch-btn {
+      background: #6c757d;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 3px;
+      cursor: pointer;
+      margin-left: 10px;
+      font-size: 12px;
+    }
+    .switch-btn:hover {
+      background: #5a6268;
+    }
+    
+    /* ✅ شريط المستخدم المحسن */
+    #userInfoBar {
+        animation: slideDown 0.5s ease;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 15px 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        border: 2px solid rgba(255,255,255,0.2);
+    }
+
+    .user-info-display {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+
+    .user-avatar {
+        background: white;
+        color: #667eea;
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 20px;
+        border: 2px solid rgba(255,255,255,0.3);
+    }
+
+    .user-details {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .user-name {
+        font-weight: bold;
+        font-size: 18px;
+    }
+
+    .user-store {
+        font-size: 14px;
+        opacity: 0.9;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .special-user-badge {
+        background: gold;
+        color: black;
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .logout-btn {
+        background: rgba(255,255,255,0.2);
+        border: 1px solid rgba(255,255,255,0.3);
+        color: white;
+        padding: 8px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+    }
+
+    .logout-btn:hover {
+        background: rgba(255,255,255,0.3);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+
+    /* ✅ منتقي المخازن للمستخدم الخاص */
+    #storeSelector {
+        animation: fadeIn 0.5s ease;
+        background: linear-gradient(135deg, #fff8e1 0%, #fff3cd 100%);
+        padding: 15px;
+        border-radius: 10px;
+        margin: 15px 0;
+        border-right: 4px solid #ffb300;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .store-selector-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+        color: #5d4037;
+        font-weight: bold;
+        font-size: 16px;
+    }
+
+    .store-selector-controls {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+
+    .store-select {
+        padding: 10px 15px;
+        border: 2px solid #ffb300;
+        border-radius: 8px;
+        min-width: 250px;
+        font-size: 14px;
+        background: white;
+    }
+
+    .store-btn {
+        background: #ffb300;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s;
+    }
+
+    .store-btn:hover {
+        background: #ff9800;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(255, 152, 0, 0.3);
+    }
+
+    .store-btn.view-all {
+        background: #4caf50;
+    }
+
+    .store-btn.view-all:hover {
+        background: #388e3c;
+    }
+
+    #storeChangeMessage {
+        margin-top: 10px;
+        padding: 10px;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+    }
+
+    .message-success {
+        background: #e8f5e9;
+        color: #2e7d32;
+        border: 1px solid #c8e6c9;
+    }
+
+    .message-error {
+        background: #ffebee;
+        color: #c62828;
+        border: 1px solid #ffcdd2;
+    }
+
+    .message-info {
+        background: #e3f2fd;
+        color: #1565c0;
+        border: 1px solid #bbdefb;
+    }
+
+    /* ✅ زر عرض كل المخازن في شريط التحكم */
+    .view-all-stores-btn {
+        background: #4caf50;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 4px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-weight: 600;
+        transition: all 0.3s;
+    }
+
+    .view-all-stores-btn:hover {
+        background: #388e3c;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
+    }
+
+    /* ✅ تنسيق لحقول الإدخال الإجبارية */
+    .required-field {
+        border: 2px solid #ff9800 !important;
+        background-color: #fff8e1 !important;
+    }
+    
+    .required-field:focus {
+        border-color: #ff5722 !important;
+        box-shadow: 0 0 0 0.2rem rgba(255, 87, 34, 0.25) !important;
+    }
+    
+    .required-field-empty {
+        border: 2px solid #f44336 !important;
+        background-color: #ffebee !important;
+        animation: shake 0.5s;
+    }
+    
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+        20%, 40%, 60%, 80% { transform: translateX(5px); }
+    }
+    
+    .required-label::after {
+        content: " *";
+        color: #f44336;
+        font-weight: bold;
+    }
+
+    @keyframes slideDown {
+        from { opacity: 0; transform: translateY(-20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    div:has(#sale_price1_piece) {
+      display: none !important;
+    }
+  </style>
+  <script>
+    // ================ التحقق من تسجيل الدخول ================
+    
+    // ================ التحقق من تسجيل الدخول ================
+    document.addEventListener('DOMContentLoaded', function() {
+        // التحقق من وجود بيانات المستخدم
+        const userId = localStorage.getItem('user_id');
+        if (!localStorage.getItem('store_id')) {
+            localStorage.setItem('store_id', '1');
+        }
+        
+        if (!userId) {
+           // window.location.href = 'index.html';
+            return;
+        }
+        
+        // **إصلاح: التحقق إذا كان المستخدم 9999**
+        const storeId = localStorage.getItem('store_id');
+        if (storeId === '9999') {
+            localStorage.setItem('is_special_user', 'true');
+            localStorage.setItem('full_access', 'true');
+        }
+        
+        // عرض بيانات المستخدم
+        displayUserInfo();
+        
+        // إعداد خاص للمستخدم 9999
+        const isSpecialUser = localStorage.getItem('is_special_user') === 'true';
+        if (isSpecialUser) {
+            setupSpecialUserFeatures();
+        }
+    });
+
+    // ✅ إعدادات خاصة للمستخدم 9999
+    function setupSpecialUserFeatures() {
+        console.log('👑 إعداد ميزات المستخدم الخاص...');
+        
+        // 1. إضافة منتقي المخازن للمستخدم الخاص
+        addStoreSelector();
+        
+        // 2. تحميل كل المخازن في القائمة المنسدلة
+        loadAllStores();
+        
+        // 3. إضافة خيار عرض كل المخازن
+        addViewAllStoresOption();
+    }
+
+    // ✅ إضافة منتقي المخازن
+    function addStoreSelector() {
+        if (document.getElementById('storeSelector')) return;
+        
+        const currentStoreId = localStorage.getItem('store_id');
+        const currentStoreName = localStorage.getItem('store_name') || 'المخزن الحالي';
+        const isSpecialUser = localStorage.getItem('is_special_user') === 'true';
+        
+        if (!isSpecialUser) return; // فقط للمستخدم الخاص
+        
+        const selectorHtml = `
+            <div id="storeSelector">
+                <div class="store-selector-header">
+                    <i class="fas fa-store"></i>
+                    اختيار المخزن المعروض
+                </div>
+                <div class="store-selector-controls">
+                    <select id="dynamicStoreSelect" class="store-select">
+                        <option value="">جاري تحميل المخازن...</option>
+                    </select>
+                    <button class="store-btn" onclick="changeCurrentStore()">
+                        <i class="fas fa-sync-alt"></i>
+                        تغيير المخزن
+                    </button>
+                    <button class="store-btn view-all" onclick="viewAllStores()">
+                        <i class="fas fa-eye"></i>
+                        عرض كل المخازن
+                    </button>
+                </div>
+                <div id="storeChangeMessage" class="message-info">
+                    المخزن الحالي: ${currentStoreName} (${currentStoreId || 'غير محدد'})
+                </div>
+            </div>
+        `;
+        
+        const userBar = document.getElementById('userInfoBar');
+        if (userBar) {
+            userBar.insertAdjacentHTML('afterend', selectorHtml);
+        }
+    }
+
+    // ✅ تحميل كل المخازن للمستخدم الخاص
+    async function loadAllStores() {
+        try {
+            console.log('🔄 جاري تحميل قائمة المخازن للمستخدم الخاص...');
+            
+            // استخدام Supabase لجلب المخازن
+            const SUPABASE_URL = 'https://rvjacvrrpguehbapvewe.supabase.co';
+            const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2amFjdnJycGd1ZWhiYXB2ZXdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwMjUxNTksImV4cCI6MjA3ODYwMTE1OX0.wSavKzxKOF7-56G-pzDMtbXNrCNAbGs0wvadw-cilBg';
+            
+            const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            
+            const { data, error } = await supabase
+                .from('stores')
+                .select('store_id, store_name, store_code')
+                .order('store_name');
+            
+            if (error) {
+                console.error('❌ خطأ في تحميل المخازن:', error);
+                showStoreMessage('❌ فشل في تحميل المخازن', 'error');
+                return;
+            }
+            
+            const select = document.getElementById('dynamicStoreSelect');
+            if (!select) return;
+            
+            const currentStoreId = localStorage.getItem('store_id');
+            
+            select.innerHTML = '<option value="">اختر مخزن للعرض</option>';
+            
+            // إضافة خيار "كل المخازن" في البداية
+            select.innerHTML += '<option value="all_stores">🏪 كل المخازن</option>';
+            
+            data.forEach(store => {
+                const storeId = store.store_code || store.store_id;
+                const storeName = store.store_name || `مخزن ${storeId}`;
+                const option = document.createElement('option');
+                option.value = storeId;
+                option.textContent = `${storeName} (${storeId})`;
+                
+                if (storeId === currentStoreId) {
+                    option.selected = true;
+                }
+                
+                select.appendChild(option);
+            });
+            
+            console.log(`✅ تم تحميل ${data.length} مخزن`);
+            showStoreMessage(`تم تحميل ${data.length} مخزن متاح للاختيار`, 'success');
+            
+        } catch (error) {
+            console.error('❌ خطأ في تحميل المخازن:', error);
+            showStoreMessage('❌ فشل في تحميل المخازن', 'error');
+        }
+    }
+
+    // ✅ تغيير المخزن الحالي
+    function changeCurrentStore() {
+        const select = document.getElementById('dynamicStoreSelect');
+        const selectedStore = select.value;
+        
+        if (!selectedStore) {
+            showStoreMessage('الرجاء اختيار مخزن من القائمة', 'error');
+            return;
+        }
+        
+        // حفظ المخزن الجديد
+        const storeName = select.options[select.selectedIndex].text.split('(')[0].trim();
+        const storeId = selectedStore;
+        
+        localStorage.setItem('store_id', storeId);
+        localStorage.setItem('store_name', storeName);
+        localStorage.setItem('view_all_stores', 'false'); // إلغاء عرض الكل
+        
+        // تحديث شريط المستخدم
+        displayUserInfo();
+        
+        // إظهار رسالة نجاح
+        showStoreMessage(`✅ تم تغيير المخزن إلى: ${storeName} (${storeId})`, 'success');
+        
+        // إعادة تحميل البيانات بعد 1.5 ثانية
+        setTimeout(() => {
+            if (window.master && window.master.loadData) {
+                window.master.loadData();
+            }
+        }, 1500);
+    }
+
+    // ✅ عرض كل المخازن
+    function viewAllStores() {
+        // تمكين وضع عرض كل المخازن
+        localStorage.setItem('view_all_stores', 'true');
+        
+        // إظهار رسالة
+        showStoreMessage('👁️ تم تفعيل وضع عرض كل المخازن', 'info');
+        
+        // إعادة تحميل البيانات بعد ثانية
+        setTimeout(() => {
+            if (window.master && window.master.loadData) {
+                window.master.loadData();
+            }
+        }, 1000);
+    }
+
+    // ✅ إضافة خيار "عرض كل المخازن" في شريط التحكم
+    function addViewAllStoresOption() {
+        const controls = document.querySelector('.controls');
+        if (controls && !document.getElementById('viewAllBtn')) {
+            const viewAllBtn = document.createElement('button');
+            viewAllBtn.id = 'viewAllBtn';
+            viewAllBtn.className = 'view-all-stores-btn';
+            viewAllBtn.innerHTML = '<i class="fas fa-globe"></i> عرض كل المخازن';
+            viewAllBtn.onclick = viewAllStores;
+            
+            controls.insertBefore(viewAllBtn, controls.firstChild);
+        }
+    }
+
+    // ✅ دالة تسجيل الخروج
+    function logout() {
+        if (confirm('هل تريد تسجيل الخروج؟')) {
+            // مسح جميع بيانات المستخدم
+            const keys = [
+                'user_id', 'username', 'store_name', 'store_id',
+                'is_special_user', 'full_access', 'login_time', 
+                'view_all_stores', 'selected_store_id', 'selected_store_name'
+            ];
+            keys.forEach(key => localStorage.removeItem(key));
+            
+            // التوجيه لصفحة الدخول
+            window.location.href = 'index.html';
+        }
+    }
+
+    // ✅ دالة لعرض رسائل المخازن
+    function showStoreMessage(message, type = 'info') {
+        const messageDiv = document.getElementById('storeChangeMessage');
+        if (messageDiv) {
+            messageDiv.textContent = message;
+            messageDiv.className = `message-${type}`;
+            
+            // إخفاء الرسالة بعد 5 ثواني
+            setTimeout(() => {
+                messageDiv.textContent = '';
+                messageDiv.className = '';
+            }, 5000);
+        }
+    }
+  </script>
+</head>
+<body>
+  
+  <!-- شريط حالة الاتصال -->
+  <div id="connectionStatus" class="connection-status">
+    🔄 جاري التحميل...
+  </div>
+
+  <h2>📦 إدارة حركة الفروع - نظام الوحدات</h2>
+  <h4>📋 بيانات الصنف</h4>
+  
+  <div class="row-4">
+    <div>
+      <label class="required-label">تاريخ الحركة</label>
+      <input type="date" id="tran_date" required class="required-field">
+    </div>
+    <div>
+      <label class="required-label">الفروع</label>
+      <select id="store_id" required class="required-field"></select>
+    </div>
+    <div>
+      <label>المورد</label>
+      <select id="supplierid"></select>
+    </div>
+    <div>
+      <label>المندوب</label>
+      <input type="text" id="mndop">
+    </div>
+  </div>
+
+  <form id="masterForm" autocomplete="off">
+    <div style="grid-column:1/-1; background:#f0f8ff; padding:10px; border-radius:8px;"></div>
+    
+    <div>
+      <label class="required-label">كود الصنف</label>
+      <input type="text" id="item_id" required placeholder="أدخل الكود ثم اضغط Enter" class="required-field">
+    </div>
+    
+    <div>
+      <label class="required-label">اسم الصنف</label>
+      <input type="text" id="item_nm" readonly style="background:#e8f5e8;" class="required-field">
+    </div>
+    
+    <div id="itemStatus" class="item-status" style="display:none;"></div>
+
+    <div class="unit-section">
+      <div>
+        <label class="required-label">نوع الوحدة</label>
+        <select id="unit_type" required class="required-field">
+          <option value="piece">قطعة</option>
+          <option value="package">علبة</option>
+          <option value="meter">متر</option>
+          <option value="box">كرتون</option>
+        </select>
+      </div>
+      
+      <div>
+        <label>عدد القطع في العلبة</label>
+        <input type="number" id="units_per_package" value="1" min="1" step="1">
+      </div>
+      
+      <div>
+        <label>الوحدة الأساسية للبيع</label>
+        <select id="sale_unit">
+          <option value="piece">قطعة</option>
+          <option value="package">علبة</option>
+        </select>
+      </div>
+      
+      <div>
+        <label>معامل التحويل</label>
+        <input type="number" id="conversion_factor" value="1" step="0.01" readonly>
+      </div>
+    </div>
+    
+    <div class="unit-field">
+      <label class="required-label">الكمية (قطعة)</label>
+      <input type="number" id="item_qty_piece" step="0.01" placeholder="الكمية بالقطعة">
+    </div>
+    
+    <div class="unit-field">
+      <label>الكمية (علبة)</label>
+      <input type="number" id="item_qty_package" step="0.01" placeholder="الكمية بالعلبة">
+    </div>
+    
+    <div>
+      <label>الكمية النهائية</label>
+      <input type="number" id="item_qty" step="0.01" readonly>
+    </div>
+
+    <div class="unit-field">
+      <label class="required-label">سعر الشراء (قطعة)</label>
+      <input type="number" id="buy_price_piece" step="0.01" class="required-field">
+    </div>
+    
+    <div class="unit-field">
+      <label>سعر الشراء (علبة)</label>
+      <input type="number" id="buy_price_package" step="0.01">
+    </div>
+    
+    <div>
+      <label>سعر الشراء النهائي</label>
+      <input type="number" id="buy_price" step="0.01" readonly>
+    </div>
+
+    <div>
+      <label>الإجمالي</label>
+      <input type="number" id="total_price" readonly>
+    </div>
+    
+    <div>
+      <label class="required-label">نسبة الربح %</label>
+      <input type="number" id="rate" step="0.01" class="required-field">
+    </div>
+    
+    <div class="unit-field">
+      <label>سعر بيع1 (قطعة)</label>
+      <input type="number" id="sale_price1_piece" step="0.01">
+    </div>
+    
+    <div class="unit-field">
+      <label>سعر بيع1 (علبة)</label>
+      <input type="number" id="sale_price1_package" step="0.01">
+    </div>
+    
+    <div>
+      <label>سعر بيع1 النهائي</label>
+      <input type="number" id="sale_price1" step="0.01" readonly>
+    </div>
+
+    <div>
+      <label>سعر بيع2</label>
+      <input type="number" id="sale_price2" step="0.01">
+    </div>
+    
+    <div>
+      <label>سعر بيع3</label>
+      <input type="number" id="sale_price3" step="0.01">
+    </div>
+    
+    <div>
+      <label>نوع الحركة</label>
+      <input type="text" id="tran_type" value="شراء">
+    </div>
+    
+    <div>
+      <label>رقم التشغيله</label>
+      <input type="text" id="batch_no">
+    </div>
+    
+    <div>
+      <label>تاريخ الصلاحية</label>
+      <input type="date" id="expiry_date">
+    </div>
+    
+    <div>
+      <label>حد الطلب</label>
+      <input type="number" id="min_qty" step="0.01" value="0">
+    </div>
+    
+    <div class="unit-converter">
+      <div>
+        <label>التحويل من</label>
+        <input type="number" id="convert_from_qty" placeholder="الكمية" step="0.01">
+        <select id="convert_from_unit">
+          <option value="piece">قطعة</option>
+          <option value="package">علبة</option>
+        </select>
+      </div>
+      
+      <div>
+        <button type="button" onclick="master.convertUnits()" style="margin-top:20px;">⇄ تحويل</button>
+      </div>
+      
+      <div>
+        <label>إلى</label>
+        <input type="number" id="convert_to_qty" placeholder="النتيجة" readonly>
+        <select id="convert_to_unit">
+          <option value="piece">قطعة</option>
+          <option value="package">علبة</option>
+        </select>
+      </div>
+      
+      <div class="conversion-result" id="conversion_result">نتيجة التحويل</div>
+    </div>
+
+    <div style="grid-column:1/-1;">
+      <label>ملاحظات</label>
+      <textarea id="remarks"></textarea>
+    </div>
+    
+    <div style="grid-column:1/-1;text-align:end;">
+      <input type="file" id="importInput" accept=".csv,.xls,.xlsx" style="display:none">
+      <button type="button" id="importBtn">📥 استيراد</button>
+      <button type="submit" id="saveBtn">💾 حفظ التحديثات</button>
+      <button type="button" id="exportBtn">📤 تصدير</button>
+      <button type="button" onclick="master.switchConnectionMode()" class="btn-secondary">🔀 تبديل الوضع</button>
+    </div>
+  </form>
+
+  <div class="alerts-panel" id="alertsPanel" style="display:none;">
+    <h3>📢 تنبيهات الفروع</h3>
+    <div id="alertsList"></div>
+  </div>
+
+  <div class="controls">
+    <input type="text" id="searchBox" placeholder="🔍 ابحث بالكود أو اسم الصنف...">
+    <button type="button" id="searchBtn">بحث</button>
+    <button type="button" id="showAllBtn">عرض الكل</button>
+    <button type="button" id="lowStockBtn" style="background:#ffebee;color:#d32f2f;">📢 منخفض الفروع</button>
+    <select id="pageSizeSelector">
+      <option value="10">10</option>
+      <option value="20" selected>20</option>
+      <option value="50">50</option>
+      <option value="all">الكل</option>
+    </select>
+    <div>عدد السجلات: <span id="itemsCount">0</span></div>
+  </div>
+
+  <div class="table-wrap">
+    <table id="masterTable">
+      <thead>
+        <tr>
+          <th>#</th><th>تاريخ</th><th>مخزن</th><th>مورد</th><th>مندوب</th><th>كود</th><th>اسم الصنف</th>
+          <th>الكمية</th><th>الوحدة</th><th>سعر شراء</th><th>إجمالي</th><th>نسبة</th><th>بيع1</th>
+          <th>بيع2</th><th>بيع3</th><th>نوع</th><th>تشغيله</th><th>صلاحية</th><th>حد الطلب</th>
+          <th>ملاحظات</th><th>إجراءات</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div id="pagination"></div>
+  <div class="toast" id="toast"></div>
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script>
+    // ⚡ التهيئة العالمية
+    const SUPABASE_CONFIG = {
+        url: 'https://rvjacvrrpguehbapvewe.supabase.co',
+        key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2amFjdnJycGd1ZWhiYXB2ZXdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwMjUxNTksImV4cCI6MjA3ODYwMTE1OX0.wSavKzxKOF7-56G-pzDMtbXNrCNAbGs0wvadw-cilBg'
+      };
+
+    // 🎯 فئة إدارة الاتصال بـ Supabase
+    class SupabaseManager {
+      constructor() {
+        this.client = null;
+        this.initialize();
+      }
+
+      initialize() {
+        try {
+          this.client = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.key, {
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+              'Prefer': 'return=representation'
+            }
+          });
+          console.log('✅ Supabase Manager initialized');
+        } catch (error) {
+          console.error('❌ Failed to initialize Supabase:', error);
+        }
+      }
+
+      async fetchFromTable(table, query = {}) {
+        if (!this.client) this.initialize();
+        
+        let queryBuilder = this.client.from(table).select('*');
+        
+        // تطبيق شروط WHERE
+        if (query.where && Object.keys(query.where).length > 0) {
+          Object.entries(query.where).forEach(([key, value]) => {
+            // معالجة القيم null
+            if (value === null || value === undefined) {
+              queryBuilder = queryBuilder.is(key, null);
+            } else {
+              queryBuilder = queryBuilder.eq(key, value);
+            }
+          });
+        }
+        
+        // تطبيق الترتيب
+        if (query.orderBy) {
+          queryBuilder = queryBuilder.order(query.orderBy.column, { 
+            ascending: query.orderBy.ascending !== false 
+          });
+        }
+        
+        // تطبيق الحد
+        if (query.limit) {
+          queryBuilder = queryBuilder.limit(query.limit);
+        }
+        
+        const { data, error } = await queryBuilder;
+        
+        if (error) {
+          // ❌ لا ترمي Error، بل أعد مصفوفة فارغة
+          console.error(`❌ Error fetching from ${table}:`, error);
+          
+          // إذا كان خطأ 406، فهذا يعني الجدول غير موجود
+          if (error.code === '406') {
+            console.warn(`⚠️ Table ${table} might not exist or has RLS issues`);
+          }
+          
+          return []; // إرجاع مصفوفة فارغة بدلاً من رمي Error
+        }
+        
+        return data || [];
+      }
+
+      async fetchSingle(table, conditions) {
+        if (!this.client) this.initialize();
+        
+        try {
+          // أولاً: استخدم limit(1) بدلاً من single()
+          const { data, error } = await this.client
+            .from(table)
+            .select('*')
+            .match(conditions)
+            .limit(1);  // ❌ تغيير من .single() إلى .limit(1)
+          
+          if (error) {
+            console.error(`❌ Error fetching from ${table}:`, error);
+            return null;
+          }
+          
+          // إرجاع أول عنصر أو null
+          return data && data.length > 0 ? data[0] : null;
+          
+        } catch (error) {
+          console.error(`❌ Error in fetchSingle from ${table}:`, error);
+          return null;
+        }
+      }
+
+      async upsert(table, data, conflictColumns = []) {
+        if (!this.client) this.initialize();
+        
+        try {
+          const options = {};
+          if (conflictColumns.length > 0) {
+            options.onConflict = conflictColumns.join(',');
+          }
+          
+          const { data: result, error } = await this.client
+            .from(table)
+            .upsert(data, options);
+          
+          if (error) {
+            console.error(`❌ Error upserting to ${table}:`, error);
+            throw error;
+          }
+          
+          return result;
+        } catch (error) {
+          console.error(`❌ Error in upsert to ${table}:`, error);
+          throw error;
+        }
+      }
+
+      async delete(table, conditions) {
+        if (!this.client) this.initialize();
+        
+        try {
+          const { error } = await this.client
+            .from(table)
+            .delete()
+            .match(conditions);
+          
+          if (error) {
+            console.error(`❌ Error deleting from ${table}:`, error);
+            throw error;
+          }
+          
+          return true;
+        } catch (error) {
+          console.error(`❌ Error in delete from ${table}:`, error);
+          throw error;
+        }
+      }
+
+      async search(table, columns, searchTerm) {
+        if (!this.client) this.initialize();
+        
+        try {
+          // بناء شروط OR للبحث
+          const orConditions = columns.map(col => `${col}.ilike.%${searchTerm}%`);
+          
+          const { data, error } = await this.client
+            .from(table)
+            .select('*')
+            .or(orConditions.join(','));
+          
+          if (error) {
+            console.error(`❌ Error searching in ${table}:`, error);
+            throw error;
+          }
+          
+          return data || [];
+        } catch (error) {
+          console.error(`❌ Error in search in ${table}:`, error);
+          throw error;
+        }
+      }
+
+      // دالة مساعدة للاستعلام المعقد
+      async customQuery(table, select = '*', filters = {}) {
+        if (!this.client) this.initialize();
+        
+        try {
+          let query = this.client.from(table).select(select);
+          
+          // تطبيق الفلاتر
+          Object.entries(filters).forEach(([key, value]) => {
+            if (Array.isArray(value)) {
+              query = query.in(key, value);
+            } else {
+              query = query.eq(key, value);
+            }
+          });
+          
+          const { data, error } = await query;
+          
+          if (error) {
+            console.error(`❌ Error in custom query for ${table}:`, error);
+            throw error;
+          }
+          
+          return data || [];
+        } catch (error) {
+          console.error(`❌ Error in customQuery for ${table}:`, error);
+          throw error;
+        }
+      }
+
+      // 🆕 استدعاء PostgreSQL Function
+      async callFunction(functionName, params = {}) {
+        if (!this.client) this.initialize();
+        
+        try {
+          const { data, error } = await this.client.rpc(functionName, params);
+          
+          if (error) {
+            console.error(`❌ Error calling function ${functionName}:`, error);
+            throw error;
+          }
+          
+          return data;
+        } catch (error) {
+          console.error(`❌ Error in callFunction ${functionName}:`, error);
+          throw error;
+        }
+      }
+    }
+
+    // 🎯 فئة إدارة الحسابات
+    class CalculationsManager {
+      constructor(masterManager) {
+        this.master = masterManager;
+      }
+
+      calc() {
+        const q = +this.master.itemQty.value || 0;
+        const p = +this.master.buyPrice.value || 0;
+        const r = +this.master.rate.value || 0;
+        const t = +(q * p).toFixed(2);
+        
+        this.master.totalPrice.value = isNaN(t) ? '' : t;
+        
+        if (r > 0 && p > 0) {
+          const s = +(p + (p * r) / 100).toFixed(2);
+          this.master.salePrice1.value = s;
+          
+          if (this.master.currentUnitType === 'package' && this.master.currentUnitsPerPackage > 0) {
+            this.master.salePrice1Package.value = (s * this.master.currentUnitsPerPackage).toFixed(2);
+          }
+        }
+      }
+
+      calculateQuantities() {
+        const pieceQty = parseFloat(this.master.itemQtyPiece.value) || 0;
+        const packageQty = parseFloat(this.master.itemQtyPackage.value) || 0;
+        const finalQty = this.master.currentUnitType === 'package' 
+          ? pieceQty + packageQty * this.master.currentUnitsPerPackage 
+          : pieceQty;
+        
+        this.master.itemQty.value = finalQty.toFixed(2);
+        this.calc();
+      }
+
+      calculatePrices() {
+        const piecePrice = parseFloat(this.master.buyPricePiece.value) || 0;
+        const packagePrice = parseFloat(this.master.buyPricePackage.value) || 0;
+        let finalPrice = piecePrice;
+
+        if (this.master.currentUnitType === 'package' && this.master.currentUnitsPerPackage > 0) {
+          if (packagePrice > 0) {
+            finalPrice = packagePrice / this.master.currentUnitsPerPackage;
+            if (this.master.buyPricePiece) this.master.buyPricePiece.value = finalPrice.toFixed(2);
+          } else if (piecePrice > 0) {
+            finalPrice = piecePrice;
+            if (this.master.buyPricePackage) this.master.buyPricePackage.value = (piecePrice * this.master.currentUnitsPerPackage).toFixed(2);
+          }
+        }
+
+        if (this.master.buyPrice) this.master.buyPrice.value = finalPrice.toFixed(2);
+
+        const r = parseFloat(this.master.rate.value) || 0;
+        if (r > 0 && finalPrice > 0) {
+          const salePrice = +(finalPrice + finalPrice * r / 100).toFixed(2);
+          if (this.master.salePrice1) this.master.salePrice1.value = salePrice.toFixed(2);
+          if (this.master.salePrice1Piece) this.master.salePrice1Piece.value = salePrice.toFixed(2);
+          if (this.master.currentUnitType === 'package' && this.master.currentUnitsPerPackage > 0 && this.master.salePrice1Package) {
+            this.master.salePrice1Package.value = (salePrice * this.master.currentUnitsPerPackage).toFixed(2);
+          }
+        }
+        
+        this.calc();
+        this.calculatePricesForSaleUnit();
+      }
+
+      calculatePricesForSaleUnit() {
+        const units = parseFloat(this.master.unitsPerPackageEl.value) || 1;
+        const piecePrice = parseFloat(this.master.salePrice1Piece.value) || 0;
+        const packagePrice = parseFloat(this.master.salePrice1Package.value) || 0;
+        let finalPiece = piecePrice;
+        let finalPackage = packagePrice;
+
+        if (packagePrice > 0 && units > 0) {
+          finalPiece = packagePrice / units;
+          if (this.master.salePrice1Piece) this.master.salePrice1Piece.value = finalPiece.toFixed(2);
+        }
+
+        if (piecePrice > 0 && units > 0) {
+          finalPackage = piecePrice * units;
+          if (this.master.salePrice1Package) this.master.salePrice1Package.value = finalPackage.toFixed(2);
+        }
+
+        if (this.master.salePrice2) this.master.salePrice2.value = finalPackage.toFixed(2);
+
+        if (this.master.saleUnitEl && this.master.salePrice1) {
+          if (this.master.saleUnitEl.value === 'piece') {
+            this.master.salePrice1.value = finalPiece.toFixed(2);
+          } else {
+            this.master.salePrice1.value = "";
+          }
+        }
+      }
+
+      convertUnits() {
+        const fromQty = parseFloat(this.master.convertFromQty.value) || 0;
+        const fromUnit = this.master.convertFromUnit.value;
+        const toUnit = this.master.convertToUnit.value;
+        
+        if (!fromQty) {
+          this.master.showToast('⚠️ أدخل الكمية للتحويل');
+          return;
+        }
+        
+        let result = fromQty;
+        
+        if (fromUnit === 'piece' && toUnit === 'package') {
+          result = fromQty / this.master.currentUnitsPerPackage;
+        } else if (fromUnit === 'package' && toUnit === 'piece') {
+          result = fromQty * this.master.currentUnitsPerPackage;
+        }
+        
+        if (this.master.convertToQty) this.master.convertToQty.value = result.toFixed(2);
+        if (this.master.conversionResult) {
+          this.master.conversionResult.textContent = 
+            `${fromQty} ${fromUnit === 'piece' ? 'قطعة' : 'علبة'} = ${result.toFixed(2)} ${toUnit === 'piece' ? 'قطعة' : 'علبة'}`;
+        }
+      }
+    }
+
+    // 🎯 الفئة الرئيسية
+    class MasterManager {
+      constructor() {
+        this.supabase = new SupabaseManager();
+        this.calculations = new CalculationsManager(this);
+        
+        this.cache();
+        this.currentUnitsPerPackage = 1;
+        this.currentUnitType = 'piece';
+        this.currentItemName = '';
+        this.editKey = null;
+        this.allData = [];
+        
+        this.bindMethods();
+        this.init();
+      }
+
+      // 🔧 الطرق الأساسية
+      cache() {
+        this.form = document.getElementById('masterForm');
+        this.tbody = document.querySelector('#masterTable tbody');
+        this.toast = document.getElementById('toast');
+        this.importBtn = document.getElementById('importBtn');
+        this.importInput = document.getElementById('importInput');
+        this.exportBtn = document.getElementById('exportBtn');
+        this.searchBox = document.getElementById('searchBox');
+        this.itemsCount = document.getElementById('itemsCount');
+        this.storeSelect = document.getElementById('store_id');
+        this.supplierSelect = document.getElementById('supplierid');
+        this.itemIdInput = document.getElementById('item_id');
+        this.itemNameInput = document.getElementById('item_nm');
+        
+        this.unitsPerPackageEl = document.getElementById('units_per_package');
+        this.unitTypeEl = document.getElementById('unit_type');
+        this.saleUnitEl = document.getElementById('sale_unit');
+        this.convFactorEl = document.getElementById('conversion_factor');
+        this.itemQtyPiece = document.getElementById('item_qty_piece');
+        this.itemQtyPackage = document.getElementById('item_qty_package');
+        this.itemQty = document.getElementById('item_qty');
+        this.buyPricePiece = document.getElementById('buy_price_piece');
+        this.buyPricePackage = document.getElementById('buy_price_package');
+        this.buyPrice = document.getElementById('buy_price');
+        this.totalPrice = document.getElementById('total_price');
+        this.rate = document.getElementById('rate');
+        this.salePrice1Piece = document.getElementById('sale_price1_piece');
+        this.salePrice1Package = document.getElementById('sale_price1_package');
+        this.salePrice1 = document.getElementById('sale_price1');
+        this.salePrice2 = document.getElementById('sale_price2');
+        this.salePrice3 = document.getElementById('sale_price3');
+        this.convertFromQty = document.getElementById('convert_from_qty');
+        this.convertFromUnit = document.getElementById('convert_from_unit');
+        this.convertToQty = document.getElementById('convert_to_qty');
+        this.convertToUnit = document.getElementById('convert_to_unit');
+        this.conversionResult = document.getElementById('conversion_result');
+        this.tranDate = document.getElementById('tran_date');
+        this.supplierId = document.getElementById('supplierid');
+        this.mndop = document.getElementById('mndop');
+        this.buyPriceField = document.getElementById('buy_price');
+        this.saveBtn = document.getElementById('saveBtn');
+        this.itemStatus = document.getElementById('itemStatus');
+        this.searchBtn = document.getElementById('searchBtn');
+        this.showAllBtn = document.getElementById('showAllBtn');
+        this.lowStockBtn = document.getElementById('lowStockBtn');
+        this.pageSizeSelector = document.getElementById('pageSizeSelector');
+      }
+
+      bindMethods() {
+        this.showToast = this.showToast.bind(this);
+        this.setDateNow = this.setDateNow.bind(this);
+        this.formatDateForInput = this.formatDateForInput.bind(this);
+        this.formatDateForServer = this.formatDateForServer.bind(this);
+        this.updateUnitDisplays = this.updateUnitDisplays.bind(this);
+        this.loadOptions = this.loadOptions.bind(this);
+        this.loadData = this.loadData.bind(this);
+        this.searchItems = this.searchItems.bind(this);
+        this.loadLowStockAlerts = this.loadLowStockAlerts.bind(this);
+        this.render = this.render.bind(this);
+        this.fillFormWithItemData = this.fillFormWithItemData.bind(this);
+        this.clearForm = this.clearForm.bind(this);
+        this.saveHandler = this.saveHandler.bind(this);
+        this.editRow = this.editRow.bind(this);
+        this.delRow = this.delRow.bind(this);
+        this.handleImport = this.handleImport.bind(this);
+        this.handleExport = this.handleExport.bind(this);
+        this.setupEnterNavigation = this.setupEnterNavigation.bind(this);
+        this.updateQuantityFields = this.updateQuantityFields.bind(this);
+        this.updatePriceFields = this.updatePriceFields.bind(this);
+        this.attachItemBlur = this.attachItemBlur.bind(this);
+        this.loadItemData = this.loadItemData.bind(this);
+        this.showItemStatus = this.showItemStatus.bind(this);
+        this.updateConnectionStatus = this.updateConnectionStatus.bind(this);
+        this.checkRequiredFields = this.checkRequiredFields.bind(this);
+      }
+
+      // 📊 طرق العرض والتحكم
+      showToast(msg, time = 2000) {
+        if (!this.toast) return;
+        this.toast.textContent = msg;
+        this.toast.style.display = 'block';
+        clearTimeout(this._toastTimeout);
+        this._toastTimeout = setTimeout(() => (this.toast.style.display = 'none'), time);
+      }
+
+      updateConnectionStatus() {
+        const statusDiv = document.getElementById('connectionStatus');
+        if (!statusDiv) return;
+        statusDiv.innerHTML = `🌐 Online مباشر - ${this.allData.length} سجل`;
+        statusDiv.className = 'connection-status supabase';
+      }
+
+      setDateNow() {
+        const n = new Date();
+        this.tranDate.value = `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
+      }
+
+      formatDateForInput(dateString) {
+        return dateString ? dateString.replace(/\//g, '-') : '';
+      }
+
+      formatDateForServer(dateString) {
+        return dateString ? dateString.replace(/-/g, '/') : '';
+      }
+
+      // ✅ تحديث طريقة تحميل المخازن مع إصلاح مشكلة القائمة المنسدلة
+      
+      async loadOptions() {
+        try {
+            const [stores, suppliers] = await Promise.all([
+                this.supabase.fetchFromTable('stores'),
+                this.supabase.fetchFromTable('suppliers')
+            ]);
+            
+            // 🔥 **إصلاح: الحصول على البيانات الصحيحة**
+            const userStoreId = localStorage.getItem('store_id');
+            const isSpecialUser = localStorage.getItem('is_special_user') === 'true';
+            const viewAllStores = localStorage.getItem('view_all_stores') === 'true';
+            
+            console.log('📊 معلومات المستخدم:', {
+                userStoreId,
+                isSpecialUser,
+                viewAllStores,
+                storesCount: stores.length
+            });
+            
+            // ✅ **الإصلاح المؤقت: إجبار تفعيل كل المخازن دائماً للمستخدم الخاص**
+            if (isSpecialUser) {
+                // ⭐ **طريقة سريعة مؤقتة: تفعيل كل المخازن دائماً للمستخدم 9999**
+                const overrideAllStores = true; // ✅ تغيير هذا إلى true لتفعيل كل المخازن
+                
+                if (overrideAllStores) {
+                    // ⚡ **نسخة مبسطة: عرض كل المخازن مع خيار "كل المخازن" أولاً**
+                    let optionsHtml = '<option value="all_stores" selected>🏪 كل المخازن</option>';
+                    
+                    // إضافة كل المخازن
+                    stores.forEach(s => {
+                        const storeId = s.store_code || s.store_id;
+                        const storeName = s.store_name || `مخزن ${storeId}`;
+                        optionsHtml += `<option value="${storeId}">${storeName} (${storeId})</option>`;
+                    });
+                    
+                    this.storeSelect.innerHTML = optionsHtml;
+                    this.storeSelect.disabled = false; // ✅ مفعل للاختيار
+                    
+                    console.log(`✅ تم تفعيل عرض كل المخازن (${stores.length} مخزن)`);
+                    
+                } else {
+                    // الكود الأصلي (للعودة إليه لاحقاً)
+                    let optionsHtml = '';
+                    if (viewAllStores) {
+                        optionsHtml = '<option value="all_stores" selected>🏪 كل المخازن</option>';
+                    } else {
+                        optionsHtml = '<option value="all_stores">🏪 كل المخازن</option>';
+                    }
+                    
+                    stores.forEach(s => {
+                        const storeId = s.store_code || s.store_id;
+                        const storeName = s.store_name || `مخزن ${storeId}`;
+                        let selected = '';
+                        if (!viewAllStores && storeId === userStoreId) {
+                            selected = 'selected';
+                        }
+                        optionsHtml += `<option value="${storeId}" ${selected}>${storeName} (${storeId})</option>`;
+                    });
+                    
+                    this.storeSelect.innerHTML = optionsHtml;
+                    this.storeSelect.disabled = false;
+                }
+            } 
+            // للمستخدم العادي
+            else {
+                const userStore = stores.find(s => 
+                    s.store_code === userStoreId || s.store_id === userStoreId
+                );
+                
+                if (userStore) {
+                    this.storeSelect.innerHTML = 
+                        `<option value="${userStoreId}" selected>${userStore.store_name || userStoreId}</option>`;
+                } else {
+                    this.storeSelect.innerHTML = 
+                        `<option value="${userStoreId}" selected>مخزن ${userStoreId}</option>`;
+                }
+                this.storeSelect.disabled = true;
+                
+                console.log(`👤 المستخدم العادي: المخزن الثابت ${userStoreId}`);
+            }
+            
+            // تحميل الموردين
+            this.supplierSelect.innerHTML = '<option value="">--اختر--</option>' + 
+                suppliers.map(s => 
+                    `<option value="${s.supplierid}">${s.supplier_name || s.name || s.supplierid}</option>`
+                ).join('');
+                
+        } catch (err) {
+            console.error('❌ خطأ في تحميل الخيارات:', err);
+            this.showToast('❌ خطأ في تحميل الخيارات');
+            
+            // ✅ **الإصلاح: عرض كل المخازن حتى في حالة الخطأ للمستخدم الخاص**
+            const storeId = localStorage.getItem('store_id') || '9999';
+            const isSpecialUser = localStorage.getItem('is_special_user') === 'true';
+            
+            if (isSpecialUser) {
+                this.storeSelect.innerHTML = `
+                    <option value="all_stores" selected>🏪 كل المخازن</option>
+                    <option value="1">المخزن 1</option>
+                    <option value="2">المخزن 2</option>
+                    <option value="3">المخزن 3</option>
+                    <option value="${storeId}">المخزن الرئيسي (${storeId})</option>
+                `;
+                this.storeSelect.disabled = false; // ✅ مفعل
+            } else {
+                this.storeSelect.innerHTML = `<option value="${storeId}" selected>المخزن الرئيسي (${storeId})</option>`;
+                this.storeSelect.disabled = true;
+            }
+            
+            this.supplierSelect.innerHTML = '<option value="">--اختر--</option>';
+        }
+    }
+
+      // ✅ تحديث طريقة تحميل البيانات حسب نوع المستخدم
+      async loadData() {
+          const statusDiv = document.getElementById('connectionStatus');
+          if (statusDiv) {
+              statusDiv.innerHTML = '🔄 جاري تحميل البيانات من Supabase... <span class="loading"></span>';
+          }
+          
+          try {
+              console.log('🔄 جاري تحميل البيانات من Supabase');
+              
+              // جلب بيانات المستخدم من localStorage
+              const storeId = localStorage.getItem('store_id');
+              const isSpecialUser = localStorage.getItem('is_special_user') === 'true';
+              const viewAllStores = localStorage.getItem('view_all_stores') === 'true';
+              
+              console.log('📋 بيانات جلسة المستخدم:', {
+                  storeId,
+                  isSpecialUser,
+                  viewAllStores
+              });
+              
+              let queryBuilder;
+              
+              // **إصلاح: منطق تحميل البيانات**
+              if (isSpecialUser) {
+                  if (viewAllStores || (this.storeSelect && this.storeSelect.value === 'all_stores')) {
+                      // للمستخدم 9999: جلب كل السجلات من جميع المخازن
+                      queryBuilder = this.supabase.client
+                          .from('a_master')
+                          .select('*')
+                          .order('tran_date', { ascending: false });
+                          
+                      console.log('👑 المستخدم الخاص: جلب كل السجلات من جميع المخازن');
+                  } else {
+                      // للمستخدم 9999: جلب سجلات المخزن المختار فقط
+                      const selectedStoreId = this.storeSelect ? this.storeSelect.value : storeId;
+                      
+                      queryBuilder = this.supabase.client
+                          .from('a_master')
+                          .select('*')
+                          .eq('store_id', selectedStoreId)
+                          .order('tran_date', { ascending: false });
+                          
+                      console.log(`👑 المستخدم الخاص: جلب سجلات المخزن ${selectedStoreId}`);
+                  }
+              } else {
+                  // للمستخدم العادي: جلب سجلات مخزنه فقط
+                  queryBuilder = this.supabase.client
+                      .from('a_master')
+                      .select('*')
+                      .eq('store_id', storeId)
+                      .order('tran_date', { ascending: false });
+                      
+                  console.log(`👤 المستخدم العادي: جلب سجلات المخزن ${storeId}`);
+              }
+              
+              const { data, error } = await queryBuilder;
+              
+              if (error) {
+                  console.error('❌ خطأ في تحميل البيانات:', error);
+                  this.allData = [];
+                  this.showToast('❌ فشل تحميل البيانات');
+              } else {
+                  this.allData = data || [];
+                  console.log(`✅ تم تحميل ${this.allData.length} سجل`);
+              }
+              
+              this.render();
+              this.updateConnectionStatus();
+              
+          } catch (err) {
+              console.error("❌ خطأ في تحميل البيانات من Supabase:", err);
+              this.showToast('❌ فشل تحميل البيانات من Supabase');
+              this.allData = [];
+              this.render();
+              this.updateConnectionStatus();
+          }
+      }
+
+      async searchItems(query) {
+        if (!query) return await this.loadData();
+        
+        try {
+          this.allData = await this.supabase.search('a_master', ['item_id', 'item_nm'], query);
+          this.render();
+          this.showToast(`🔍 تم العثور على ${this.allData.length} نتيجة`);
+        } catch (err) {
+          console.error('خطأ في البحث:', err);
+          this.showToast('❌ حدث خطأ أثناء البحث');
+        }
+      }
+
+      async loadLowStockAlerts() {
+        try {
+          const data = await this.supabase.fetchFromTable('a_master');
+          const alerts = (data || []).filter(item => {
+            const itemQty = parseFloat(item.item_qty) || 0;
+            const minQty = parseFloat(item.min_qty) || 0;
+            return itemQty <= minQty;
+          });
+          
+          this.displayAlerts(alerts);
+        } catch (err) {
+          console.error('خطأ في التنبيهات:', err);
+          this.showToast('ℹ️ خاصية التنبيهات غير متاحة حالياً');
+        }
+      }
+
+      displayAlerts(alerts) {
+        const alertsList = document.getElementById('alertsList');
+        const alertsPanel = document.getElementById('alertsPanel');
+        if (!alertsList || !alertsPanel) return;
+        
+        if (!alerts || alerts.length === 0) {
+          alertsList.innerHTML = '<p>🎉 لا توجد تنبيهات - الفروع جيد</p>';
+        } else {
+          alertsList.innerHTML = alerts.map(alert => `
+            <div class="alert-item">
+              <strong>${alert.item_id} - ${alert.item_nm}</strong><br>
+              الفروع: ${alert.item_qty} | حد الطلب: ${alert.min_qty}
+              <button class="btn-edit" onclick="master.editRow('${alert.store_id}','${alert.item_id}')" style="margin-right:10px;">✏️ تحديث</button>
+            </div>
+          `).join('');
+          this.showToast(`📢 تم العثور على ${alerts.length} صنف منخفض الفروع`);
+        }
+        alertsPanel.style.display = 'block';
+      }
+
+      // 📝 طرق إدارة النماذج
+      attachItemBlur() {
+        if (!this.itemIdInput) return;
+        
+        this.itemIdInput.addEventListener('blur', async () => {
+          const itemId = this.itemIdInput.value.trim();
+          if (!itemId) return;
+          
+          try {
+            const itemData = await this.supabase.fetchSingle('items', { item_id: itemId });
+            if (itemData) {
+              this.itemNameInput.value = itemData.item_nm || '';
+              this.currentItemName = itemData.item_nm || '';
+              this.showItemStatus('✅ تم تحميل اسم الصنف', 'success');
+            } else {
+              this.itemNameInput.value = '';
+              this.currentItemName = '';
+              
+              setTimeout(() => {
+                if (!this.itemNameInput.value && this.itemIdInput.value) {
+                  this.showItemStatus('⚠️ الصنف غير موجود في جدول الأصناف', 'warning');
+                }
+              }, 300);
+            }
+          } catch (err) {
+            console.error('خطأ في جلب بيانات الصنف:', err);
+          }
+        });
+      }
+
+      async loadItemData() {
+        const itemId = this.itemIdInput.value.trim();
+        const storeId = this.storeSelect.value;
+        
+        if (!itemId) {
+          this.showItemStatus('⚠️ يرجى إدخال كود الصنف', 'warning');
+          return;
+        }
+
+        try {
+          const itemData = await this.supabase.fetchSingle('items', { item_id: itemId });
+          
+          if (itemData) {
+            this.itemNameInput.value = itemData.item_nm || '';
+            this.currentItemName = itemData.item_nm || '';
+            this.showItemStatus('✅ تم تحميل اسم الصنف', 'success');
+          } else {
+            this.itemNameInput.value = '';
+            this.currentItemName = '';
+            
+            const confirmAdd = confirm(
+              `⚠️ الصنف "${itemId}" غير موجود في جدول الأصناف.\n\n` +
+              `هل تريد:\n` +
+              `1️⃣ الاستمرار وإضافة الصنف جديد؟\n` +
+              `2️⃣ تصحيح الكود؟\n\n` +
+              `اضغط "موافق" للمتابعة، أو "إلغاء" لتصحيح الكود.`
+            );
+            
+            if (confirmAdd) {
+              this.showItemStatus('📝 سيتم إضافة صنف جديد - أكمل بيانات الصنف', 'warning');
+              setTimeout(() => {
+                if (this.itemNameInput) this.itemNameInput.focus();
+              }, 100);
+            } else {
+              this.showItemStatus('❌ رجاءً تأكد من كود الصنف', 'error');
+              this.itemIdInput.focus();
+              this.itemIdInput.select();
+              return;
+            }
+          }
+
+          if (storeId) {
+            try {
+              const masterData = await this.supabase.fetchSingle('a_master', { 
+                  store_id: storeId, 
+                  item_id: itemId 
+              });
+                        
+              if (masterData) {
+                this.fillFormWithItemData(masterData);
+                this.showItemStatus('✅ الصنف موجود في الفروع - يمكنك التحديث', 'success');
+              } else {
+                this.showItemStatus('📝 الصنف جديد على المخزن - يمكنك إضافته', 'warning');
+              }
+            } catch (error) {
+              console.error('❌ خطأ في جلب بيانات المخزون:', error);
+              this.showItemStatus('📝 الصنف جديد على المخزن - يمكنك إضافته', 'warning');
+            }
+          }
+          
+          if (this.currentItemName && !this.itemNameInput.value) {
+            this.itemNameInput.value = this.currentItemName;
+          }
+          
+          if (storeId) {
+            setTimeout(() => {
+              if (this.unitTypeEl) this.unitTypeEl.focus();
+            }, 100);
+          } else {
+            setTimeout(() => {
+              if (this.storeSelect) this.storeSelect.focus();
+            }, 100);
+          }
+          
+        } catch (err) {
+          console.error('❌ خطأ في تحميل بيانات الصنف:', err);
+          this.showItemStatus('⚠️ حدث خطأ في تحميل البيانات', 'warning');
+        }
+      }
+
+      showItemStatus(msg, type) {
+        if (!this.itemStatus) return;
+        this.itemStatus.textContent = msg;
+        this.itemStatus.className = 'item-status';
+        this.itemStatus.style.display = 'block';
+        this.itemStatus.classList.add(type === 'success' ? 'good-stock' : type === 'error' ? 'low-stock' : 'medium-stock');
+      }
+
+      fillFormWithItemData(data = {}) {
+        try {
+          console.log('🔄 تعبئة النموذج بالبيانات:', data);
+          
+          const formFields = [
+            'tran_date', 'store_id', 'supplierid', 'mndop', 'item_id', 'item_nm',
+            'item_qty', 'buy_price', 'total_price', 'rate', 'sale_price1', 'sale_price2', 'sale_price3',
+            'tran_type', 'batch_no', 'expiry_date', 'min_qty', 'remarks',
+            'unit_type', 'units_per_package', 'sale_unit', 'conversion_factor'
+          ];
+
+          formFields.forEach(key => {
+            const el = document.getElementById(key);
+            if (el && data[key] !== undefined && data[key] !== null) {
+              if (key === 'tran_date' || key === 'expiry_date') {
+                el.value = this.formatDateForInput(data[key]);
+              } else {
+                el.value = data[key];
+              }
+            }
+          });
+
+          if (data.item_qty !== undefined && data.unit_type) {
+            this.updateQuantityFields(data.item_qty, data.unit_type, data.units_per_package);
+          }
+
+          if (data.buy_price !== undefined && data.unit_type) {
+            this.updatePriceFields(data.buy_price, data.unit_type, data.units_per_package, 'buy');
+          }
+
+          if (data.sale_price1 !== undefined && data.unit_type) {
+            this.updatePriceFields(data.sale_price1, data.unit_type, data.units_per_package, 'sale');
+          }
+
+        } catch (err) {
+          console.error('fillFormWithItemData err', err);
+        }
+      }
+
+      clearForm() {
+        const storeId = this.storeSelect.value;
+        const currentName = this.currentItemName;
+        if (this.form) this.form.reset();
+        if (storeId && this.storeSelect) this.storeSelect.value = storeId;
+        if (currentName && this.itemNameInput) this.itemNameInput.value = currentName;
+        this.setDateNow();
+        this.updateUnitDisplays();
+      }
+
+      // ✅ تحديث طريقة الحفظ مع التحقق من صلاحيات المستخدم
+      async saveHandler(e) {
+          e.preventDefault();
+          
+          // جلب بيانات المستخدم
+          const currentStoreId = localStorage.getItem('store_id');
+          const isSpecialUser = localStorage.getItem('is_special_user') === 'true';
+          const viewAllStores = localStorage.getItem('view_all_stores') === 'true';
+          
+          // **إصلاح: التحقق من صلاحيات الحفظ**
+          let storeIdToSave = currentStoreId;
+          
+          if (isSpecialUser) {
+              if (viewAllStores) {
+                  // إذا كان يعرض كل المخازن، يجب اختيار مخزن محدد
+                  if (!this.storeSelect.value || this.storeSelect.value === 'all_stores') {
+                      this.showToast('⚠️ يرجى اختيار مخزن محدد من القائمة');
+                      this.storeSelect.focus();
+                      return;
+                  }
+                  storeIdToSave = this.storeSelect.value;
+              } else {
+                  // إذا لم يكن يعرض كل المخازن، يستخدم المخزن المختار
+                  storeIdToSave = this.storeSelect.value || currentStoreId;
+              }
+          } else {
+              // للمستخدم العادي: يتأكد من الحفظ في مخزنه فقط
+              if (this.storeSelect.value !== currentStoreId) {
+                  this.showToast('⚠️ يمكنك الإضافة فقط للمخزن المرتبط بحسابك');
+                  this.storeSelect.value = currentStoreId;
+                  return;
+              }
+          }
+          
+          // ✅ التحقق من الحقول الإجبارية
+          if (!this.checkRequiredFields()) {
+              return;
+          }
+          
+          const formData = {
+              tran_date: this.formatDateForServer(this.tranDate.value),
+              store_id: storeIdToSave,
+              supplierid: this.supplierId.value || null,
+              mndop: this.mndop.value || '',
+              item_id: this.itemIdInput.value,
+              item_nm: this.itemNameInput.value,
+              item_qty: parseFloat(this.itemQty.value) || 0,
+              buy_price: parseFloat(this.buyPriceField.value) || 0,
+              total_price: parseFloat(this.totalPrice.value) || 0,
+              rate: parseFloat(this.rate.value) || 0,
+              sale_price1: parseFloat(this.salePrice1.value) || 0,
+              sale_price2: parseFloat(this.salePrice2.value) || 0,
+              sale_price3: parseFloat(this.salePrice3.value) || 0,
+              tran_type: document.getElementById('tran_type').value || 'شراء',
+              batch_no: document.getElementById('batch_no').value || '',
+              expiry_date: this.formatDateForServer(document.getElementById('expiry_date').value) || null,
+              min_qty: parseFloat(document.getElementById('min_qty').value) || 0,
+              remarks: document.getElementById('remarks').value || '',
+              unit_type: this.unitTypeEl.value,
+              units_per_package: parseFloat(this.unitsPerPackageEl.value) || 1,
+              sale_unit: this.saleUnitEl.value,
+              conversion_factor: parseFloat(this.convFactorEl.value) || 1
+          };
+          
+          // **إصلاح: تحقق إضافي**
+          if (!formData.store_id) {
+              this.showToast('⚠️ المخزن مطلوب');
+              this.storeSelect.focus();
+              return;
+          }
+          
+          if (!formData.item_id) {
+              this.showToast('⚠️ كود الصنف مطلوب');
+              this.itemIdInput.focus();
+              return;
+          }
+          
+          if (!formData.item_nm) {
+              this.showToast('⚠️ اسم الصنف مطلوب');
+              this.itemNameInput.focus();
+              return;
+          }
+
+          try {
+              let existingQty = 0;
+              const storeId = formData.store_id, itemId = formData.item_id;
+              
+              try {
+                  const existingData = await this.supabase.fetchSingle('a_master', { 
+                      store_id: storeId, 
+                      item_id: itemId 
+                  });
+                  
+                  if (existingData) {
+                      existingQty = parseFloat(existingData.item_qty) || 0;
+                      this.showToast(`📊 الكمية الحالية: ${existingQty} - سيتم إضافة: ${formData.item_qty}`);
+                  }
+              } catch (err) {
+                  console.log('سجل جديد أو خطأ في جلب الكمية السابقة');
+              }
+
+              formData.item_qty = existingQty + formData.item_qty;
+              formData.total_price = +(formData.item_qty * formData.buy_price).toFixed(2);
+              
+              // **إصلاح: محاولة upsert بمعالجة الأخطاء**
+              try {
+                  await this.supabase.upsert('a_master', formData, ['store_id', 'item_id']);
+                  
+                  this.showToast('✅ تم حفظ السجل بنجاح في Supabase' + ` - الكمية الإجمالية: ${formData.item_qty}`);
+                  this.clearForm();
+                  this.editKey = null;
+                  await this.loadData();
+                  
+                  if (this.itemStatus) this.itemStatus.style.display = 'none';
+                  setTimeout(() => this.itemIdInput.focus(), 100);
+                  
+              } catch (upsertError) {
+                  console.error('❌ خطأ في upsert:', upsertError);
+                  
+                  // محاولة بديلة: حذف ثم إدراج
+                  try {
+                      // حذف السجل الحالي أولاً
+                      await this.supabase.delete('a_master', { 
+                          store_id: storeId, 
+                          item_id: itemId 
+                      });
+                      
+                      // ثم إدراج السجل الجديد
+                      await this.supabase.client
+                          .from('a_master')
+                          .insert([formData]);
+                      
+                      this.showToast('✅ تم حفظ السجل بنجاح (باستخدام طريقة بديلة)');
+                      this.clearForm();
+                      this.editKey = null;
+                      await this.loadData();
+                      
+                  } catch (insertError) {
+                      console.error('❌ خطأ في الحفظ البديل:', insertError);
+                      this.showToast('❌ حدث خطأ أثناء الحفظ - يرجى المحاولة مرة أخرى');
+                  }
+              }
+              
+          } catch (err) {
+              console.error('❌ خطأ في الحفظ:', err);
+              this.showToast('❌ ' + (err.message || 'حدث خطأ أثناء الحفظ'));
+          }
+      }
+      
+      async editRow(store, item) {
+        try {
+          const data = await this.supabase.fetchSingle('a_master', { 
+            store_id: store, 
+            item_id: item 
+          });
+          
+          if (!data) {
+            this.showToast('❌ لم يتم العثور على السجل');
+            return;
+          }
+          
+          this.fillFormWithItemData(data);
+
+          if (data.item_id && (!this.itemNameInput.value || this.itemNameInput.value === '')) {
+            try {
+              const itemData = await this.supabase.fetchSingle('items', { item_id: data.item_id });
+              if (itemData) {
+                this.itemNameInput.value = itemData.item_nm || '';
+                this.currentItemName = this.itemNameInput.value;
+              }
+            } catch (err) {
+              console.error('خطأ في جلب اسم الصنف:', err);
+            }
+          }
+
+          if (data.unit_type) {
+            this.currentUnitType = data.unit_type;
+            this.currentUnitsPerPackage = parseFloat(data.units_per_package) || 1;
+            
+            if (this.unitTypeEl) this.unitTypeEl.value = data.unit_type || 'piece';
+            if (this.unitsPerPackageEl) this.unitsPerPackageEl.value = data.units_per_package || 1;
+            if (this.saleUnitEl) this.saleUnitEl.value = data.sale_unit || 'piece';
+            if (this.convFactorEl) this.convFactorEl.value = data.conversion_factor || 1;
+            
+            this.updateUnitDisplays();
+            this.calculations.calculateQuantities();
+            this.calculations.calculatePrices();
+            this.calculations.calculatePricesForSaleUnit();
+          }
+
+          this.editKey = `${store}_${item}`;
+          this.showItemStatus('✏️ جاهز للتحديث - يمكنك تعديل البيانات', 'success');
+          
+          setTimeout(() => {
+            if (this.storeSelect) this.storeSelect.focus();
+          }, 100);
+          
+        } catch (err) {
+          console.error('خطأ في التعديل:', err);
+          this.showToast('❌ خطأ في تحميل البيانات: ' + (err.message || ''));
+        }
+      }
+
+      async delRow(store, item) {
+        if (!confirm('🗑️ حذف السجل؟')) return;
+        
+        try {
+          await this.supabase.delete('a_master', { 
+            store_id: store, 
+            item_id: item 
+          });
+          
+          this.allData = this.allData.filter(i => 
+            String(i.store_id) !== String(store) || String(i.item_id) !== String(item)
+          );
+          
+          this.render();
+          this.showToast('🗑️ تم الحذف');
+          
+        } catch (err) {
+          console.error('خطأ في الحذف:', err);
+          this.showToast('❌ حدث خطأ أثناء الحذف');
+        }
+      }
+
+      // 📋 طرق التصدير والاستيراد
+      async handleImport(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = async (ev) => {
+          try {
+            const wb = XLSX.read(ev.target.result, { type: 'binary' });
+            const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: "" });
+            
+            let addedCount = 0;
+            let skippedCount = 0;
+            
+            for (const row of data) {
+              try {
+                if (row.item_id) {
+                  const itemExists = await this.supabase.fetchSingle('items', { item_id: row.item_id });
+                  
+                  if (!itemExists) {
+                    const newItem = {
+                      item_id: row.item_id,
+                      item_nm: row.item_nm || `صنف ${row.item_id}`,
+                      unit_type: row.unit_type || 'piece',
+                      units_per_package: row.units_per_package || 1,
+                      sale_unit: row.sale_unit || 'piece',
+                      created_at: new Date().toISOString(),
+                      updated_at: new Date().toISOString()
+                    };
+                    
+                    await this.supabase.upsert('items', newItem, ['item_id']);
+                    console.log(`✅ تم إضافة الصنف ${row.item_id} تلقائياً`);
+                  }
+                }
+                
+                await this.supabase.upsert('a_master', row, ['store_id', 'item_id']);
+                addedCount++;
+              } catch (error) {
+                console.error(`❌ خطأ في استيراد السجل:`, row, error);
+                skippedCount++;
+              }
+            }
+            
+            this.showToast(`📥 تم استيراد ${addedCount} سجل، تم تخطي ${skippedCount}`);
+            await this.loadData();
+            setTimeout(() => this.saveBtn.focus(), 100);
+          } catch (err) {
+            console.error('خطأ في الاستيراد:', err);
+            this.showToast('❌ حدث خطأ أثناء الاستيراد');
+          }
+        };
+        reader.readAsBinaryString(file);
+        e.target.value = '';
+      }
+
+      handleExport() {
+        const ws = XLSX.utils.json_to_sheet(this.allData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'a_masterbk');
+        XLSX.writeFile(wb, `a_masterbk_${new Date().toISOString().slice(0, 10)}.xlsx`);
+      }
+
+      // 🎨 طرق العرض
+      render() {
+        if (!this.tbody) return;
+        
+        this.tbody.innerHTML = '';
+        const query = (this.searchBox?.value || '').toLowerCase();
+        const data = !query ? this.allData : this.allData.filter(row => 
+          Object.values(row).some(val => String(val || '').toLowerCase().includes(query))
+        );
+        
+        data.forEach((row, index) => {
+          const tr = document.createElement('tr');
+          const itemQty = parseFloat(row.item_qty) || 0;
+          const minQty = parseFloat(row.min_qty) || 0;
+          
+          if (itemQty <= minQty) tr.style.background = '#ffebee';
+          else if (itemQty <= minQty * 2) tr.style.background = '#fff3e0';
+          
+          tr.innerHTML = `
+            <td>${index + 1}</td>
+            <td>${row.tran_date || ''}</td>
+            <td>${row.store_id || ''}</td>
+            <td>${row.supplierid || ''}</td>
+            <td>${row.mndop || ''}</td>
+            <td><strong>${row.item_id || ''}</strong></td>
+            <td>${row.item_nm || ''}</td>
+            <td><strong>${row.item_qty || ''}</strong></td>
+            <td><span class="unit-badge">${row.unit_type === 'package' ? 'علبة' : 'قطعة'}</span></td>
+            <td>${row.buy_price || ''}</td>
+            <td>${row.total_price || ''}</td>
+            <td>${row.rate || ''}</td>
+            <td>${row.sale_price1 || ''}</td>
+            <td>${row.sale_price2 || ''}</td>
+            <td>${row.sale_price3 || ''}</td>
+            <td>${row.tran_type || ''}</td>
+            <td>${row.batch_no || ''}</td>
+            <td>${row.expiry_date || ''}</td>
+            <td>${row.min_qty || ''}</td>
+            <td>${row.remarks || ''}</td>
+            <td>
+              <button class="btn-edit" onclick="master.editRow('${row.store_id}','${row.item_id}')">✏️ تحديث</button>
+              <button class="btn-del" onclick="master.delRow('${row.store_id}','${row.item_id}')">🗑️ حذف</button>
+            </td>`;
+          this.tbody.appendChild(tr);
+        });
+        
+        if (this.itemsCount) this.itemsCount.textContent = data.length;
+      }
+
+      // 🎯 طرق التنقل
+      setupEnterNavigation() {
+        if (!this.form) return;
+        
+        const fieldOrder = [
+          'tran_date', 'store_id', 'supplierid', 'mndop', 'item_id', 
+          'unit_type', 'units_per_package', 'sale_unit',
+          'item_qty_piece', 'item_qty_package', 'item_qty',
+          'buy_price_piece', 'buy_price_package', 'buy_price',
+          'total_price', 'rate', 'sale_price1_piece', 'sale_price1_package',
+          'sale_price1', 'sale_price2', 'sale_price3', 'tran_type',
+          'batch_no', 'expiry_date', 'min_qty', 'convert_from_qty',
+          'convert_from_unit', 'convert_to_qty', 'convert_to_unit', 'remarks'
+        ];
+
+        const getNavFields = () => {
+          const unitType = this.unitTypeEl.value;
+          const nav = [];
+          
+          fieldOrder.forEach(id => {
+            const field = document.getElementById(id);
+            if (!field) return;
+            
+            if (field.style.display === 'none' || field.disabled || field.offsetParent === null) return;
+            
+            if (['item_qty', 'buy_price', 'total_price', 'sale_price1', 'conversion_factor', 'convert_to_qty'].includes(id)) return;
+            
+            if (unitType === 'package' && id.includes('_piece') && !id.includes('convert')) return;
+            if (unitType === 'piece' && id.includes('_package') && !id.includes('convert')) return;
+            
+            nav.push(id);
+          });
+          
+          return nav;
+        };
+
+        const moveNext = (currentId) => {
+          const nav = getNavFields();
+          const idx = nav.indexOf(currentId);
+          if (idx === -1) return false;
+          
+          if (idx < nav.length - 1) {
+            const nextId = nav[idx + 1];
+            const nextEl = document.getElementById(nextId);
+            
+            // ✅ التحقق من الحقل الحالي قبل الانتقال
+            if (currentId === 'item_id' && !this.itemIdInput.value.trim()) {
+                this.showToast('⚠️ كود الصنف مطلوب');
+                this.itemIdInput.classList.add('required-field-empty');
+                setTimeout(() => this.itemIdInput.classList.remove('required-field-empty'), 1000);
+                return false;
+            }
+            
+            if (currentId === 'item_nm' && !this.itemNameInput.value.trim()) {
+                this.showToast('⚠️ اسم الصنف مطلوب');
+                this.itemNameInput.classList.add('required-field-empty');
+                setTimeout(() => this.itemNameInput.classList.remove('required-field-empty'), 1000);
+                return false;
+            }
+            
+            if (currentId === 'item_qty_piece' && !this.itemQtyPiece.value) {
+                this.showToast('⚠️ الكمية مطلوبة');
+                this.itemQtyPiece.classList.add('required-field-empty');
+                setTimeout(() => this.itemQtyPiece.classList.remove('required-field-empty'), 1000);
+                return false;
+            }
+            
+            if (currentId === 'buy_price_piece' && !this.buyPricePiece.value) {
+                this.showToast('⚠️ سعر الشراء مطلوب');
+                this.buyPricePiece.classList.add('required-field-empty');
+                setTimeout(() => this.buyPricePiece.classList.remove('required-field-empty'), 1000);
+                return false;
+            }
+            
+            if (currentId === 'rate' && !this.rate.value) {
+                this.showToast('⚠️ نسبة الربح مطلوبة');
+                this.rate.classList.add('required-field-empty');
+                setTimeout(() => this.rate.classList.remove('required-field-empty'), 1000);
+                return false;
+            }
+            
+            if (nextEl) {
+              nextEl.focus();
+              if (nextEl.tagName === 'SELECT') {
+                setTimeout(() => nextEl.click(), 10);
+              }
+              return true;
+            }
+          }
+          
+          if (this.saveBtn) {
+            this.saveBtn.focus();
+            return true;
+          }
+          return false;
+        };
+
+        fieldOrder.forEach(id => {
+          const field = document.getElementById(id);
+          if (field) {
+            field.addEventListener('keydown', (e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                
+                // ✅ التحقق من الحقل الحالي قبل الانتقال
+                if (id === 'item_id' && !this.itemIdInput.value.trim()) {
+                    this.showToast('⚠️ كود الصنف مطلوب');
+                    this.itemIdInput.classList.add('required-field-empty');
+                    setTimeout(() => this.itemIdInput.classList.remove('required-field-empty'), 1000);
+                    this.itemIdInput.focus();
+                    return;
+                }
+                
+                if (id === 'item_nm' && !this.itemNameInput.value.trim()) {
+                    this.showToast('⚠️ اسم الصنف مطلوب');
+                    this.itemNameInput.classList.add('required-field-empty');
+                    setTimeout(() => this.itemNameInput.classList.remove('required-field-empty'), 1000);
+                    this.itemNameInput.focus();
+                    return;
+                }
+                
+                if (id === 'item_qty_piece' && !this.itemQtyPiece.value) {
+                    this.showToast('⚠️ الكمية مطلوبة');
+                    this.itemQtyPiece.classList.add('required-field-empty');
+                    setTimeout(() => this.itemQtyPiece.classList.remove('required-field-empty'), 1000);
+                    this.itemQtyPiece.focus();
+                    return;
+                }
+                
+                if (id === 'buy_price_piece' && !this.buyPricePiece.value) {
+                    this.showToast('⚠️ سعر الشراء مطلوب');
+                    this.buyPricePiece.classList.add('required-field-empty');
+                    setTimeout(() => this.buyPricePiece.classList.remove('required-field-empty'), 1000);
+                    this.buyPricePiece.focus();
+                    return;
+                }
+                
+                if (id === 'rate' && !this.rate.value) {
+                    this.showToast('⚠️ نسبة الربح مطلوبة');
+                    this.rate.classList.add('required-field-empty');
+                    setTimeout(() => this.rate.classList.remove('required-field-empty'), 1000);
+                    this.rate.focus();
+                    return;
+                }
+                
+                moveNext(id);
+              }
+            });
+          }
+        });
+
+        if (this.saveBtn) {
+          this.saveBtn.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              this.form.dispatchEvent(new Event('submit'));
+            }
+          });
+        }
+      }
+
+      // ✅ دالة للتحقق من الحقول الإجبارية
+      checkRequiredFields() {
+          let isValid = true;
+          
+          // الحقول الإجبارية الأساسية (ثابتة)
+          const baseRequiredFields = [
+              { id: 'tran_date', name: 'تاريخ الحركة' },
+              { id: 'store_id', name: 'المخزن' },
+              { id: 'item_id', name: 'كود الصنف' },
+              { id: 'item_nm', name: 'اسم الصنف' },
+              { id: 'unit_type', name: 'نوع الوحدة' },
+              { id: 'rate', name: 'نسبة الربح' }
+          ];
+          
+          // تحديد الحقول الإضافية حسب نوع الوحدة
+          const unitType = this.unitTypeEl ? this.unitTypeEl.value : 'piece';
+          let dynamicRequiredFields = [];
+          
+          if (unitType === 'package') {
+              // عند اختيار "علبة": الكمية وسعر الشراء للعلبة مطلوبان
+              dynamicRequiredFields = [
+                  { id: 'item_qty_package', name: 'الكمية (علبة)' },
+                  { id: 'buy_price_package', name: 'سعر الشراء (علبة)' }
+              ];
+          } else {
+              // عند اختيار "قطعة": الكمية وسعر الشراء للقطعة مطلوبان
+              dynamicRequiredFields = [
+                  { id: 'item_qty_piece', name: 'الكمية (قطعة)' },
+                  { id: 'buy_price_piece', name: 'سعر الشراء (قطعة)' }
+              ];
+          }
+          
+          // دمج الحقول الأساسية والديناميكية
+          const requiredFields = [...baseRequiredFields, ...dynamicRequiredFields];
+          
+          // التحقق من كل حقل
+          requiredFields.forEach(field => {
+              const element = document.getElementById(field.id);
+              if (element) {
+                  // تخطي الحقول المخفية أو المعطلة
+                  if (element.style.display === 'none' || 
+                      element.offsetParent === null || 
+                      element.disabled) {
+                      return;
+                  }
+                  
+                  // التحقق من وجود القيمة
+                  const value = element.value;
+                  if (!value || value.toString().trim() === '') {
+                      this.showToast(`⚠️ ${field.name} مطلوب`);
+                      element.classList.add('required-field-empty');
+                      setTimeout(() => element.classList.remove('required-field-empty'), 1000);
+                      
+                      if (!element.disabled) {
+                          element.focus();
+                      }
+                      
+                      isValid = false;
+                  }
+              }
+          });
+          
+          // تحقق إضافي: إذا كانت الكمية أو السعر = 0
+          if (isValid) {
+              const qtyField = unitType === 'package' ? this.itemQtyPackage : this.itemQtyPiece;
+              const priceField = unitType === 'package' ? this.buyPricePackage : this.buyPricePiece;
+              
+              if (qtyField && parseFloat(qtyField.value) <= 0) {
+                  this.showToast(`⚠️ ${unitType === 'package' ? 'الكمية (علبة)' : 'الكمية (قطعة)'} يجب أن تكون أكبر من صفر`);
+                  qtyField.classList.add('required-field-empty');
+                  setTimeout(() => qtyField.classList.remove('required-field-empty'), 1000);
+                  qtyField.focus();
+                  isValid = false;
+              }
+              
+              if (priceField && parseFloat(priceField.value) <= 0) {
+                  this.showToast(`⚠️ ${unitType === 'package' ? 'سعر الشراء (علبة)' : 'سعر الشراء (قطعة)'} يجب أن يكون أكبر من صفر`);
+                  priceField.classList.add('required-field-empty');
+                  setTimeout(() => priceField.classList.remove('required-field-empty'), 1000);
+                  priceField.focus();
+                  isValid = false;
+              }
+          }
+          
+          return isValid;
+      }
+      // ⚡ تهيئة الأحداث المحسنة
+      initEvents() {
+          // الأحداث الحالية للحسابات والأسعار
+          ['item_qty', 'buy_price', 'rate'].forEach(id => {
+              const el = document.getElementById(id);
+              if (el) el.addEventListener('input', () => this.calculations.calc());
+          });
+
+          if (this.itemQtyPiece) this.itemQtyPiece.addEventListener('input', () => this.calculations.calculateQuantities());
+          if (this.itemQtyPackage) this.itemQtyPackage.addEventListener('input', () => this.calculations.calculateQuantities());
+          if (this.buyPricePiece) this.buyPricePiece.addEventListener('input', () => this.calculations.calculatePrices());
+          if (this.buyPricePackage) this.buyPricePackage.addEventListener('input', () => this.calculations.calculatePrices());
+
+          if (this.salePrice1Piece) {
+              this.salePrice1Piece.addEventListener('input', () => {
+                  const piecePrice = parseFloat(this.salePrice1Piece.value) || 0;
+                  if (this.salePrice1) this.salePrice1.value = piecePrice.toFixed(2);
+                  if (this.currentUnitType === 'package' && this.currentUnitsPerPackage > 0 && this.salePrice1Package) {
+                      this.salePrice1Package.value = (piecePrice * this.currentUnitsPerPackage).toFixed(2);
+                  }
+                  this.calculations.calculatePricesForSaleUnit();
+              });
+          }
+
+          // أحداث وحدات القياس
+          if (this.unitTypeEl) this.unitTypeEl.addEventListener('change', this.updateUnitDisplays);
+          if (this.unitsPerPackageEl) this.unitsPerPackageEl.addEventListener('input', this.updateUnitDisplays);
+          if (this.saleUnitEl) this.saleUnitEl.addEventListener('change', () => this.calculations.calculatePricesForSaleUnit());
+
+          const convertBtn = document.querySelector('.unit-converter button');
+          if (convertBtn) convertBtn.addEventListener('click', () => this.calculations.convertUnits());
+
+          // أحداث النماذج والاستيراد/التصدير
+          if (this.form) this.form.addEventListener('submit', this.saveHandler);
+          if (this.importBtn) this.importBtn.addEventListener('click', () => this.importInput.click());
+          if (this.importInput) this.importInput.addEventListener('change', this.handleImport);
+          if (this.exportBtn) this.exportBtn.addEventListener('click', this.handleExport);
+
+          // أحداث البحث والتصفية
+          if (this.searchBtn) this.searchBtn.addEventListener('click', () => this.searchItems(this.searchBox.value));
+          if (this.showAllBtn) this.showAllBtn.addEventListener('click', () => {
+              if (this.searchBox) this.searchBox.value = '';
+              this.loadData();
+          });
+          if (this.lowStockBtn) this.lowStockBtn.addEventListener('click', this.loadLowStockAlerts);
+          if (this.searchBox) {
+              this.searchBox.addEventListener('keypress', e => {
+                  if (e.key === 'Enter') this.searchItems(this.searchBox.value);
+              });
+          }
+
+          // أحداث التنقل وإدخال البيانات
+          this.attachItemBlur();
+          this.setupEnterNavigation();
+
+          // ✅ تحميل بيانات الصنف عند إدخال الكود
+          if (this.itemIdInput) {
+              this.itemIdInput.addEventListener('keypress', (e) => {
+                  if (e.key === 'Enter') {
+                      e.preventDefault();
+                      this.loadItemData();
+                  }
+              });
+          }
+
+          // ✅ نظام إدارة المخازن والصلاحيات المحسن
+          if (this.storeSelect) {
+              // التحقق من الصلاحيات وتحديد المخازن المتاحة
+              const isSpecialUser = this.checkUserPermissions();
+              
+              if (isSpecialUser) {
+                  // للمستخدم المميز: تمكين التغيير والتحميل التلقائي
+                  this.storeSelect.disabled = false;
+                  
+                  // إضافة مستمع لتغيير المخزن
+                  this.storeSelect.addEventListener('change', async () => {
+                      await this.handleStoreChange();
+                  });
+              } else {
+                  // للمستخدم العادي: تعطيل القائمة وتحديد مخزنه فقط
+                  this.storeSelect.disabled = true;
+                  
+                  // إضافة حماية من التغيير للمستخدم العادي
+                  this.storeSelect.addEventListener('change', () => {
+                      this.storeSelect.value = localStorage.getItem('store_id') || '';
+                      this.showToast('⚠️ غير مصرح لك بتغيير المخزن', 'warning');
+                  });
+              }
+          }
+
+          // ✅ حماية النماذج بناءً على الصلاحيات
+          this.protectFormsBasedOnPermissions();
+      }
+
+      // ✅ دالة مساعدة للتحقق من صلاحيات المستخدم
+      checkUserPermissions() {
+          const storeId = localStorage.getItem('store_id');
+          let isSpecialUser = localStorage.getItem('is_special_user') === 'true';
+          
+          // التحقق من التلاعب في localStorage وضمان الاتساق
+          if (storeId === '9999' && !isSpecialUser) {
+              localStorage.setItem('is_special_user', 'true');
+              return true;
+          }
+          
+          if (storeId !== '9999' && isSpecialUser) {
+              localStorage.setItem('is_special_user', 'false');
+              return false;
+          }
+          
+          return isSpecialUser;
+      }
+
+      // ✅ معالجة تغيير المخزن للمستخدم المميز
+      async handleStoreChange() {
+          const selectedValue = this.storeSelect.value;
+          const selectedText = this.storeSelect.options[this.storeSelect.selectedIndex].text;
+          
+          // حفظ حالة العرض
+          if (selectedValue === 'all_stores') {
+              localStorage.setItem('view_all_stores', 'true');
+              this.showToast('👁️ تم تفعيل عرض كل المخازن', 'info');
+          } else {
+              localStorage.setItem('view_all_stores', 'false');
+              
+              // حفظ المخزن المحدد (بدون تعديل store_id الأصلي)
+              const storeName = selectedText.replace(/\([^)]*\)/g, '').trim();
+              this.showToast(`✅ تم تحديد المخزن: ${storeName}`, 'success');
+          }
+          
+          // تحديث واجهة المستخدم
+          this.updateStoreDisplayState();
+          
+          // تحديث شريط معلومات المستخدم إذا كانت الدالة موجودة
+          if (typeof displayUserInfo === 'function') {
+              setTimeout(() => displayUserInfo(), 300);
+          }
+          
+          // إعادة تحميل البيانات
+          setTimeout(() => this.loadData(), 500);
+      }
+
+      // ✅ تحديث حالة عرض المخزن
+      updateStoreDisplayState() {
+          const viewAllStores = localStorage.getItem('view_all_stores') === 'true';
+          const storeInfoElement = document.querySelector('.store-info-display');
+          
+          if (storeInfoElement) {
+              if (viewAllStores) {
+                  storeInfoElement.textContent = '📊 عرض كل المخازن';
+                  storeInfoElement.className = 'badge badge-primary';
+              } else {
+                  const selectedStoreId = this.storeSelect ? this.storeSelect.value : localStorage.getItem('store_id');
+                  const storeName = this.storeSelect ? 
+                      this.storeSelect.options[this.storeSelect.selectedIndex].text.split('(')[0].trim() : 
+                      `المخزن ${selectedStoreId}`;
+                  storeInfoElement.textContent = `🏪 ${storeName}`;
+                  storeInfoElement.className = 'badge badge-info';
+              }
+          }
+      }
+
+      // ✅ حماية النماذج بناءً على الصلاحيات
+      protectFormsBasedOnPermissions() {
+          const isSpecialUser = this.checkUserPermissions();
+          const viewAllStores = localStorage.getItem('view_all_stores') === 'true';
+          
+          if (!isSpecialUser && viewAllStores) {
+              // إذا كان المستخدم العادي يحاول عرض كل المخازن
+              if (this.form) {
+                  this.form.style.opacity = '0.6';
+                  this.form.querySelectorAll('input, select, button:not([type="button"])').forEach(el => {
+                      el.disabled = true;
+                      el.title = 'غير متاح عند عرض كل المخازن';
+                  });
+                  
+                  // إضافة تحذير مرئي
+                  const warningMsg = this.form.querySelector('.form-warning') || document.createElement('div');
+                  warningMsg.className = 'form-warning alert alert-warning mt-2';
+                  warningMsg.innerHTML = '<small>⚠️ لا يمكن إضافة أو تعديل العناصر عند عرض كل المخازن</small>';
+                  
+                  if (!this.form.querySelector('.form-warning')) {
+                      this.form.appendChild(warningMsg);
+                  }
+              }
+          } else {
+              // إزالة الحماية إذا كانت الصلاحيات مناسبة
+              if (this.form) {
+                  this.form.style.opacity = '1';
+                  this.form.querySelectorAll('input, select, button').forEach(el => {
+                      el.disabled = false;
+                      el.title = '';
+                  });
+                  
+                  // إزالة رسالة التحذير
+                  const warningMsg = this.form.querySelector('.form-warning');
+                  if (warningMsg) {
+                      warningMsg.remove();
+                  }
+              }
+          }
+      }
+
+      // ✅ دالة مساعدة لعرض الرسائل المحسنة
+      showToast(message, type = 'info', duration = 3000) {
+          // إذا كان هناك نظام toast موجود، استخدمه
+          if (typeof window.showToast === 'function') {
+              window.showToast(message, type);
+              return;
+          }
+          
+          // تنفيذ بسيط إذا لم يكن هناك نظام toast
+          const toast = document.createElement('div');
+          toast.textContent = message;
+          
+          // تحديد اللون حسب النوع
+          let bgColor = '#2196F3'; // default blue for info
+          if (type === 'success') bgColor = '#4CAF50';
+          else if (type === 'error') bgColor = '#f44336';
+          else if (type === 'warning') bgColor = '#ff9800';
+          
+          toast.style.cssText = `
+              position: fixed;
+              top: 20px;
+              right: 20px;
+              background: ${bgColor};
+              color: white;
+              padding: 12px 24px;
+              border-radius: 4px;
+              z-index: 9999;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+              animation: slideInRight 0.3s ease;
+              font-family: 'Cairo', sans-serif;
+          `;
+          
+          document.body.appendChild(toast);
+          
+          setTimeout(() => {
+              toast.style.animation = 'slideOutRight 0.3s ease';
+              setTimeout(() => toast.remove(), 300);
+          }, duration);
+      }
+
+      // 🔄 طرق تحديث الواجهة
+      updateUnitDisplays() {
+          if (!this.unitTypeEl || !this.unitsPerPackageEl) return;
+          
+          const unitType = this.unitTypeEl.value;
+          const unitsPerPackage = parseFloat(this.unitsPerPackageEl.value) || 1;
+          if (this.convFactorEl) this.convFactorEl.value = unitsPerPackage;
+          this.currentUnitsPerPackage = unitsPerPackage;
+          this.currentUnitType = unitType;
+
+          const packageFields = ['item_qty_package', 'buy_price_package', 'sale_price1_package'];
+          const pieceFields = ['item_qty_piece', 'buy_price_piece', 'sale_price1_piece'];
+
+          packageFields.forEach(id => {
+              const el = document.getElementById(id);
+              const label = document.querySelector(`label[for="${id}"]`);
+              if (el) {
+                  el.style.display = unitType === 'package' ? 'block' : 'none';
+                  el.disabled = unitType !== 'package';
+                  
+                  // ✅ تحديث الحقول المطلوبة
+                  if (unitType === 'package') {
+                      if (['item_qty_package', 'buy_price_package'].includes(id)) {
+                          el.setAttribute('required', 'true');
+                          if (label) label.classList.add('required-label');
+                      }
+                  } else {
+                      el.removeAttribute('required');
+                      if (label) label.classList.remove('required-label');
+                  }
+              }
+              if (label) label.style.display = unitType === 'package' ? 'block' : 'none';
+          });
+          
+          pieceFields.forEach(id => {
+              const el = document.getElementById(id);
+              const label = document.querySelector(`label[for="${id}"]`);
+              if (el) {
+                  el.style.display = unitType === 'package' ? 'none' : 'block';
+                  el.disabled = unitType === 'package';
+                  
+                  // ✅ تحديث الحقول المطلوبة
+                  if (unitType === 'piece') {
+                      if (['item_qty_piece', 'buy_price_piece'].includes(id)) {
+                          el.setAttribute('required', 'true');
+                          if (label) label.classList.add('required-label');
+                      }
+                  } else {
+                      el.removeAttribute('required');
+                      if (label) label.classList.remove('required-label');
+                  }
+              }
+              if (label) label.style.display = unitType === 'package' ? 'none' : 'block';
+          });
+
+          this.updateFieldSkipping();
+          this.calculations.calculateQuantities();
+          this.calculations.calculatePrices();
+          this.calculations.calculatePricesForSaleUnit();
+      }
+      updateFieldSkipping() {
+        if (!this.unitTypeEl) return;
+        
+        const unitType = this.unitTypeEl.value;
+        const autoFields = ['item_qty', 'buy_price', 'total_price', 'sale_price1', 'conversion_factor'];
+        const allFields = this.form ? [...this.form.querySelectorAll('input, select')] : [];
+        
+        allFields.forEach(field => {
+          const id = field.id;
+          field.style.background = '';
+          field.tabIndex = 0;
+          if (autoFields.includes(id)) {
+            field.style.background = '#f0f8ff';
+            field.tabIndex = -1;
+          }
+          if (unitType === 'package' && ['item_qty_piece', 'buy_price_piece', 'sale_price1_piece'].includes(id)) {
+            field.tabIndex = -1;
+          }
+          if (unitType === 'piece' && ['item_qty_package', 'buy_price_package', 'sale_price1_package'].includes(id)) {
+            field.tabIndex = -1;
+          }
+        });
+      }
+
+      updateQuantityFields(totalQty, unitType, unitsPerPackage) {
+        const qty = parseFloat(totalQty) || 0;
+        const units = parseFloat(unitsPerPackage) || 1;
+        
+        if (unitType === 'package') {
+          const packages = Math.floor(qty / units);
+          const pieces = qty % units;
+          if (this.itemQtyPiece) this.itemQtyPiece.value = pieces;
+          if (this.itemQtyPackage) this.itemQtyPackage.value = packages;
+        } else {
+          if (this.itemQtyPiece) this.itemQtyPiece.value = qty;
+          if (this.itemQtyPackage) this.itemQtyPackage.value = 0;
+        }
+      }
+
+      updatePriceFields(price, unitType, unitsPerPackage, priceType) {
+        const priceVal = parseFloat(price) || 0;
+        const units = parseFloat(unitsPerPackage) || 1;
+        
+        if (unitType === 'package') {
+          if (priceType === 'buy') {
+            if (this.buyPricePiece) this.buyPricePiece.value = priceVal;
+            if (this.buyPricePackage) this.buyPricePackage.value = (priceVal * units).toFixed(2);
+          } else if (priceType === 'sale') {
+            if (this.salePrice1Piece) this.salePrice1Piece.value = priceVal;
+            if (this.salePrice1Package) this.salePrice1Package.value = (priceVal * units).toFixed(2);
+          }
+        } else {
+          if (priceType === 'buy') {
+            if (this.buyPricePiece) this.buyPricePiece.value = priceVal;
+            if (this.buyPricePackage) this.buyPricePackage.value = 0;
+          } else if (priceType === 'sale') {
+            if (this.salePrice1Piece) this.salePrice1Piece.value = priceVal;
+            if (this.salePrice1Package) this.salePrice1Package.value = 0;
+          }
+        }
+      }
+
+      // 🚀 التهيئة النهائية
+      async init() {
+        try {
+          console.log('🚀 بدء تهيئة النظام...');
+          
+          this.updateConnectionStatus();
+          await this.loadOptions();
+          this.setDateNow();
+          await this.loadData();
+          this.initEvents();
+          this.updateUnitDisplays();
+          
+          setTimeout(() => { 
+            if (this.itemIdInput) {
+              this.itemIdInput.focus(); 
+              console.log('🎯 جاهز - المؤشر على حقل كود الصنف'); 
+            }
+          }, 500);
+          
+          setTimeout(() => { 
+            console.log('📢 تحميل تنبيهات الفروع...'); 
+            this.loadLowStockAlerts(); 
+          }, 1000);
+          
+          console.log('✅ تم تهيئة النظام بنجاح');
+        } catch (err) {
+          console.error('init err', err);
+        }
+      }
+    }
+    
+    // أنشئ مثيلاً واحداً ليكون مرجعاً في الواجهة
+    window.master = new MasterManager();
+  </script>
+  <script>
+    // تهيئة النظام بعد تحميل الصفحة
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(() => {
+            if (window.master) {
+                window.master.init();
+            }
+        }, 100);
+    });
+  </script>
+</body>
+</html>

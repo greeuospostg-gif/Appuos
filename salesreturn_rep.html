@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>📊 تقرير مرتجع المبيعات</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <!-- إضافة Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    /* نفس الـ CSS السابق */
+    :root {
+      --primary: #5d7fe3;
+      --primary-dark: #4a6bd4;
+      --primary-light: #f0f4ff;
+      --secondary: #8a5bd6;
+      --success: #4cc9f0;
+      --warning: #f72585;
+      --light: #f8f9fa;
+      --dark: #212529;
+      --gray: #6c757d;
+      --border: #dee2e6;
+      --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      --transition: all 0.3s ease;
+      --special-user: #9b59b6; /* لون المدير */
+      --normal-user: #2ecc71; /* لون المستخدم العادي */
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #e6ecff 0%, #f0f4ff 100%);
+      color: var(--dark);
+      line-height: 1.6;
+      padding: 15px;
+      min-height: 100vh;
+    }
+
+    /* أشرطة الحالة */
+    .status-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+    }
+
+    .connection-status, .permission-status {
+      background: #fff;
+      padding: 10px 15px;
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+      min-width: 250px;
+    }
+
+    .connection-status {
+      border-left: 4px solid #28a745;
+    }
+    
+    .connection-status.disconnected {
+      border-left-color: #dc3545;
+    }
+    
+    .permission-status {
+      border-left: 4px solid var(--primary);
+    }
+    
+    .permission-status.special {
+      border-left-color: var(--special-user);
+    }
+    
+    .permission-status.normal {
+      border-left-color: var(--normal-user);
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    
+    .status-dot.connected {
+      background-color: #28a745;
+    }
+    
+    .status-dot.disconnected {
+      background-color: #dc3545;
+    }
+    
+    .loading-spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #fff;
+      border-radius: 50%;
+      border-top-color: transparent;
+      animation: spin 1s linear infinite;
+      margin-left: 8px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .container {
+      max-width: 1800px;
+      margin: 0 auto;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #5d7fe3 0%, #8a5bd6 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 12px 12px 0 0;
+      margin-bottom: 0;
+      text-align: center;
+      position: relative;
+    }
+
+    h2 {
+      font-size: 1.6rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin: 0;
+    }
+
+    .user-info {
+      position: absolute;
+      left: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(255, 255, 255, 0.2);
+      padding: 8px 15px;
+      border-radius: 8px;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .user-type {
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    
+    .user-type.special {
+      background: var(--special-user);
+      color: white;
+    }
+    
+    .user-type.normal {
+      background: var(--normal-user);
+      color: white;
+    }
+
+    .filters-card {
+      background: white;
+      border-radius: 0 0 12px 12px;
+      box-shadow: var(--shadow);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .section-title {
+      background: var(--primary-light);
+      padding: 12px 20px;
+      border-radius: 8px;
+      margin: -20px -20px 20px -20px;
+      color: var(--primary-dark);
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .filters-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+      color: var(--dark);
+      font-size: 0.9rem;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      transition: var(--transition);
+      background-color: var(--light);
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(93, 127, 227, 0.2);
+    }
+
+    select:disabled {
+      background-color: #f8f9fa;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .btn-primary {
+      background-color: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background-color: var(--primary-dark);
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      background-color: var(--secondary);
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      background-color: #7a4bc4;
+      transform: translateY(-2px);
+    }
+
+    .btn-outline {
+      background-color: transparent;
+      color: var(--primary);
+      border: 1px solid var(--primary);
+    }
+
+    .btn-outline:hover {
+      background-color: var(--primary);
+      color: white;
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    .actions-row {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 15px;
+    }
+
+    .table-container {
+      overflow-x: auto;
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+      background: white;
+      margin-bottom: 20px;
+      position: relative;
+      min-height: 200px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: white;
+      min-width: 1200px;
+    }
+
+    th {
+      background-color: var(--primary);
+      color: white;
+      padding: 12px 8px;
+      text-align: center;
+      font-weight: 600;
+      font-size: 0.85rem;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.85rem;
+      text-align: center;
+    }
+
+    tr:hover {
+      background-color: rgba(93, 127, 227, 0.05);
+    }
+
+    .summary-card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      padding: 20px;
+      margin-top: 20px;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      text-align: center;
+    }
+
+    .summary-item {
+      padding: 15px;
+      border-radius: 8px;
+      background: var(--primary-light);
+    }
+
+    .summary-value {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: var(--primary);
+      margin: 5px 0;
+    }
+
+    .summary-label {
+      font-size: 0.9rem;
+      color: var(--gray);
+      font-weight: 600;
+    }
+
+    /* مؤشر التحميل */
+    .loading-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255, 255, 255, 0.8);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+      border-radius: 10px;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    /* معالجة الأخطاء */
+    .error-message {
+      background-color: #ffebee;
+      color: #c62828;
+      padding: 12px;
+      border-radius: 8px;
+      margin: 15px 0;
+      text-align: center;
+      border-left: 4px solid #f44336;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--gray);
+    }
+
+    .empty-state i {
+      font-size: 3rem;
+      margin-bottom: 15px;
+      color: var(--border);
+    }
+
+    /* التنبيهات */
+    .toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: var(--success);
+      color: white;
+      padding: 15px 20px;
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      z-index: 10000;
+      display: none;
+      font-weight: 600;
+      animation: slideInRight 0.3s ease;
+    }
+
+    @keyframes slideInRight {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 10px;
+      }
+      
+      .status-bar {
+        flex-direction: column;
+      }
+      
+      .connection-status, .permission-status {
+        min-width: 100%;
+      }
+      
+      .header {
+        padding: 15px;
+      }
+      
+      .user-info {
+        position: static;
+        transform: none;
+        margin-top: 10px;
+        justify-content: center;
+      }
+      
+      h2 {
+        font-size: 1.4rem;
+      }
+      
+      .filters-card {
+        padding: 15px;
+      }
+      
+      .filters-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .actions-row {
+        flex-direction: column;
+      }
+      
+      .btn {
+        width: 100%;
+      }
+    }
+
+    @media print {
+      body {
+        background: white;
+        padding: 0;
+      }
+      
+      .status-bar, .filters-card, .actions-row, .summary-card {
+        display: none;
+      }
+      
+      .header {
+        background: white !important;
+        color: black !important;
+        border-bottom: 2px solid #000;
+      }
+      
+      table {
+        box-shadow: none;
+      }
+      
+      th {
+        background: #f8f9fa !important;
+        color: black !important;
+        border: 1px solid #000;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- شريط الحالة -->
+  <div class="status-bar">
+    <div class="connection-status" id="connectionStatus">
+      <span class="status-dot"></span>
+      <span id="statusText">جارٍ الاتصال...</span>
+    </div>
+    
+    <div class="permission-status" id="permissionStatus">
+      <i class="fas fa-user-shield"></i>
+      <span id="permissionText">جاري تحديد الصلاحيات...</span>
+    </div>
+  </div>
+
+  <!-- التنبيهات -->
+  <div id="toast" class="toast"></div>
+
+  <div class="container">
+    <div class="header">
+      <h2><i class="fas fa-undo-alt"></i> تقرير مرتجع المبيعات</h2>
+      <div class="user-info" id="userInfo">
+        <i class="fas fa-user"></i>
+        <span id="userName">المستخدم: --</span>
+        <span class="user-type" id="userType">--</span>
+      </div>
+    </div>
+
+    <div class="filters-card">
+      <div class="section-title">
+        <i class="fas fa-filter"></i> فلاتر التقرير
+      </div>
+      <div class="filters-grid">
+        <div class="form-group">
+          <label for="fromDate"><i class="fas fa-calendar-day"></i> من تاريخ:</label>
+          <input type="date" id="fromDate">
+        </div>
+        
+        <div class="form-group">
+          <label for="toDate"><i class="fas fa-calendar-day"></i> إلى تاريخ:</label>
+          <input type="date" id="toDate">
+        </div>
+        
+        <div class="form-group">
+          <label for="storeFrom"><i class="fas fa-warehouse"></i> من مخزن:</label>
+          <select id="storeFrom">
+            <option value="">جميع المخازن</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="storeTo"><i class="fas fa-warehouse"></i> إلى مخزن:</label>
+          <select id="storeTo">
+            <option value="">جميع المخازن</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="customer"><i class="fas fa-users"></i> العميل:</label>
+          <select id="customer">
+            <option value="">جميع العملاء</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="item"><i class="fas fa-barcode"></i> الصنف:</label>
+          <select id="item">
+            <option value="">جميع الأصناف</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="actions-row">
+        <button class="btn btn-primary" id="loadReportBtn">
+          <i class="fas fa-search"></i> عرض التقرير
+        </button>
+        <button class="btn btn-outline" id="printReportBtn">
+          <i class="fas fa-print"></i> طباعة
+        </button>
+        <select id="exportFormat" class="btn btn-outline" style="padding: 10px 12px;">
+          <option value="">📤 تصدير...</option>
+          <option value="csv">CSV</option>
+          <option value="excel">Excel</option>
+          <option value="pdf">PDF</option>
+        </select>
+        <button class="btn btn-outline" id="resetFiltersBtn">
+          <i class="fas fa-broom"></i> مسح الفلاتر
+        </button>
+      </div>
+    </div>
+
+    <div class="table-container" id="tableContainer">
+      <!-- مؤشر التحميل -->
+      <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+        <div class="spinner"></div>
+      </div>
+      
+      <!-- رسالة الخطأ -->
+      <div id="errorMessage" class="error-message" style="display: none;"></div>
+      
+      <!-- حالة عدم وجود بيانات -->
+      <div id="emptyState" class="empty-state" style="display: none;">
+        <i class="fas fa-inbox"></i>
+        <h3>لا توجد بيانات</h3>
+        <p>لم يتم العثور على أي مرتجعات تطابق معايير البحث المحددة.</p>
+      </div>
+      
+      <table id="reportTable">
+        <thead>
+          <tr>
+            <th>التاريخ</th>
+            <th>المخزن</th>
+            <th>العميل</th>
+            <th>رقم الفاتورة</th>
+            <th>كود الصنف</th>
+            <th>اسم الصنف</th>
+            <th>الكمية</th>
+            <th>سعر البيع</th>
+            <th>الخصم</th>
+            <th>الإجمالي</th>
+            <th>سبب الإرجاع</th>
+            <th>المستخدم</th>
+            <th>الدفعة</th>
+            <th>تاريخ الصلاحية</th>
+            <th>نوع البيع</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="summary-card">
+      <div class="summary-grid">
+        <div class="summary-item">
+          <div class="summary-label">إجمالي المرتجعات</div>
+          <div class="summary-value" id="totalReturns">0</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-label">إجمالي الكمية</div>
+          <div class="summary-value" id="totalQuantity">0</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-label">إجمالي القيمة</div>
+          <div class="summary-value" id="totalValue">0.00</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-label">متوسط الخصم</div>
+          <div class="summary-value" id="avgDiscount">0.00</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // استخدم IIFE لتجنب مشاكل السكوب
+    (function() {
+      'use strict';
+      
+      // 🎯 نظام الصلاحيات الذهبية
+      const USER_STORE_ID = localStorage.getItem('store_id') || sessionStorage.getItem('store_id') || '0';
+      const USER_NAME = localStorage.getItem('username') || sessionStorage.getItem('username') || 'مستخدم';
+      const STORE_NAME = localStorage.getItem('store_name') || sessionStorage.getItem('store_name') || 'غير محدد';
+      const IS_SPECIAL_USER = USER_STORE_ID === '9999'; // الشرط الأساسي
+      
+      // 🔧 تكوين Supabase
+      const SUPABASE_URL = 'https://rvjacvrrpguehbapvewe.supabase.co';
+      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2amFjdnJycGd1ZWhiYXB2ZXdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwMjUxNTksImV4cCI6MjA3ODYwMTE1OX0.wSavKzxKOF7-56G-pzDMtbXNrCNAbGs0wvadw-cilBg';
+      
+      // متغيرات التطبيق
+      let supabaseClient = null;
+      let allData = [];
+      let currentData = [];
+      let isOnline = false;
+
+      // 🔄 وظائف التهيئة
+      async function initializeApp() {
+          console.log(`🔑 معلومات المستخدم:`);
+          console.log(`   - ID: ${USER_STORE_ID}`);
+          console.log(`   - اسم: ${USER_NAME}`);
+          console.log(`   - نوع: ${IS_SPECIAL_USER ? 'مدير النظام (9999)' : 'مستخدم عادي'}`);
+          
+          initializeDates();
+          loadUserInfo();
+          updatePermissionStatus();
+          await checkConnection();
+          if (isOnline) {
+              await loadStores();
+              await loadCustomers();
+              await loadItems();
+              await loadReport();
+          }
+          
+          setupEventListeners();
+          showWelcomeMessage();
+      }
+
+      // تحميل معلومات المستخدم
+      function loadUserInfo() {
+          const userType = IS_SPECIAL_USER ? "مدير النظام" : "مستخدم عادي";
+          const userTypeClass = IS_SPECIAL_USER ? "special" : "normal";
+          
+          document.getElementById('userName').textContent = `${USER_NAME} - ${STORE_NAME}`;
+          document.getElementById('userType').textContent = userType;
+          document.getElementById('userType').className = `user-type ${userTypeClass}`;
+      }
+
+      // تحديث حالة الصلاحيات
+      function updatePermissionStatus() {
+          const statusElement = document.getElementById('permissionStatus');
+          const textElement = document.getElementById('permissionText');
+          
+          if (IS_SPECIAL_USER) {
+              statusElement.className = 'permission-status special';
+              textElement.innerHTML = '<i class="fas fa-crown"></i> مدير النظام - صلاحيات كاملة';
+          } else {
+              statusElement.className = 'permission-status normal';
+              textElement.innerHTML = `<i class="fas fa-store"></i> مخزن ${USER_STORE_ID} - صلاحيات محدودة`;
+          }
+      }
+
+      // التحقق من حالة الاتصال
+      async function checkConnection() {
+          const statusElement = document.getElementById('connectionStatus');
+          const statusText = document.getElementById('statusText');
+          const dot = statusElement.querySelector('.status-dot');
+          
+          try {
+              // إنشاء عميل Supabase إذا لم يكن موجوداً
+              if (!supabaseClient) {
+                  supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+              }
+              
+              // اختبار الاتصال
+              const { data, error } = await supabaseClient
+                  .from('stores')
+                  .select('store_id')
+                  .limit(1);
+              
+              if (!error) {
+                  isOnline = true;
+                  statusElement.classList.remove('disconnected');
+                  dot.className = 'status-dot connected';
+                  statusText.textContent = 'متصل بـ Supabase';
+              } else {
+                  throw error;
+              }
+          } catch (error) {
+              isOnline = false;
+              statusElement.classList.add('disconnected');
+              dot.className = 'status-dot disconnected';
+              statusText.textContent = 'غير متصل';
+              console.error('الاتصال بـ Supabase فشل:', error);
+          }
+      }
+
+      // تعيين التواريخ الافتراضية
+      function initializeDates() {
+          const today = new Date();
+          const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+          
+          document.getElementById('fromDate').value = formatDate(firstDay);
+          document.getElementById('toDate').value = formatDate(today);
+      }
+
+      // إعداد مستمعي الأحداث
+      function setupEventListeners() {
+          document.getElementById('loadReportBtn').addEventListener('click', loadReport);
+          document.getElementById('printReportBtn').addEventListener('click', printReport);
+          document.getElementById('resetFiltersBtn').addEventListener('click', resetFilters);
+          document.getElementById('exportFormat').addEventListener('change', handleExport);
+          
+          // مراقبة حالة الاتصال
+          window.addEventListener('online', checkConnection);
+          window.addEventListener('offline', checkConnection);
+      }
+
+      // التعامل مع التصدير
+      function handleExport(e) {
+          const format = e.target.value;
+          if (format) {
+              exportReport(format);
+              e.target.value = '';
+          }
+      }
+
+      // عرض/إخفاء مؤشر التحميل
+      function setLoading(loading) {
+          const overlay = document.getElementById('loadingOverlay');
+          const btn = document.getElementById('loadReportBtn');
+          
+          if (loading) {
+              overlay.style.display = 'flex';
+              btn.innerHTML = '<div class="loading-spinner"></div> جارٍ التحميل...';
+              btn.disabled = true;
+          } else {
+              overlay.style.display = 'none';
+              btn.innerHTML = '<i class="fas fa-search"></i> عرض التقرير';
+              btn.disabled = false;
+          }
+      }
+
+      // عرض رسالة تنبيه
+      function showMessage(message, type = 'success') {
+          const toast = document.getElementById('toast');
+          toast.textContent = message;
+          toast.style.display = 'block';
+          toast.style.background = 
+              type === 'success' ? '#2ecc71' :
+              type === 'error' ? '#e74c3c' :
+              type === 'warning' ? '#f39c12' : '#3498db';
+
+          setTimeout(() => {
+              toast.style.display = 'none';
+          }, 4000);
+      }
+
+      // عرض رسالة خطأ
+      function showError(message) {
+          const errorElement = document.getElementById('errorMessage');
+          errorElement.textContent = message;
+          errorElement.style.display = 'block';
+          showMessage(message, 'error');
+      }
+
+      // إخفاء جميع حالات العرض
+      function resetDisplayStates() {
+          document.getElementById('errorMessage').style.display = 'none';
+          document.getElementById('emptyState').style.display = 'none';
+          document.querySelector('#reportTable').style.display = 'table';
+      }
+
+      // تحميل قائمة المخازن من Supabase مع تطبيق الصلاحيات
+      async function loadStores() {
+          try {
+              console.log('🔄 جاري تحميل قائمة المخازن مع تطبيق الصلاحيات...');
+              
+              let query = supabaseClient
+                  .from('stores')
+                  .select('store_id, store_name')
+                  .order('store_id');
+              
+              // 🔒 إذا لم يكن مستخدم خاص، يرى فقط مخزنه
+              if (!IS_SPECIAL_USER && USER_STORE_ID) {
+                  query = query.eq('store_id', parseInt(USER_STORE_ID));
+                  console.log(`🔒 تطبيق فلتر الصلاحيات: عرض مخزن ${USER_STORE_ID} فقط`);
+              }
+              
+              const { data, error } = await query;
+              
+              if (error) throw error;
+              
+              const storeFrom = document.getElementById('storeFrom');
+              const storeTo = document.getElementById('storeTo');
+              
+              storeFrom.innerHTML = '<option value="">جميع المخازن</option>';
+              storeTo.innerHTML = '<option value="">جميع المخازن</option>';
+              
+              data.forEach(store => {
+                  const option1 = new Option(`${store.store_id} - ${store.store_name}`, store.store_id);
+                  const option2 = new Option(`${store.store_id} - ${store.store_name}`, store.store_id);
+                  storeFrom.add(option1);
+                  storeTo.add(option2);
+              });
+              
+              // 🔒 إذا لم يكن مستخدم خاص، قفل وتعيين المخزن تلقائياً
+              if (!IS_SPECIAL_USER && USER_STORE_ID && data.length > 0) {
+                  storeFrom.value = USER_STORE_ID;
+                  storeTo.value = USER_STORE_ID;
+                  storeFrom.disabled = true;
+                  storeTo.disabled = true;
+                  console.log(`🔒 تم قفل خيار المخزن للمستخدم العادي: ${USER_STORE_ID}`);
+              }
+              
+              console.log(`✅ تم تحميل ${data.length} مخزن (بعد تطبيق الصلاحيات)`);
+              
+          } catch (error) {
+              console.error('Error loading stores:', error);
+              showError('⚠️ حدث خطأ في تحميل قائمة المخازن');
+          }
+      }
+
+      // تحميل قائمة العملاء من Supabase مع تطبيق الصلاحيات
+      async function loadCustomers() {
+          try {
+              console.log('🔄 جاري تحميل قائمة العملاء مع تطبيق الصلاحيات...');
+              
+              let query = supabaseClient
+                  .from('customers')
+                  .select('customer_id, customer_name')
+                  .order('customer_id');
+              
+              // 🔒 إذا لم يكن مستخدم خاص، نضيف فلتر بحسب صلاحيات المخزن
+              if (!IS_SPECIAL_USER && USER_STORE_ID) {
+                  // نفترض أن هناك علاقة بين العملاء والمخازن
+                  query = query.eq('store_id', parseInt(USER_STORE_ID));
+                  console.log(`🔒 تطبيق فلتر الصلاحيات على العملاء للمخزن: ${USER_STORE_ID}`);
+              }
+              
+              const { data, error } = await query;
+              
+              if (error) throw error;
+              
+              const customerSelect = document.getElementById('customer');
+              customerSelect.innerHTML = '<option value="">جميع العملاء</option>';
+              
+              data.forEach(customer => {
+                  const option = new Option(`${customer.customer_id} - ${customer.customer_name}`, customer.customer_id);
+                  customerSelect.add(option);
+              });
+              
+              console.log(`✅ تم تحميل ${data.length} عميل (بعد تطبيق الصلاحيات)`);
+              
+          } catch (error) {
+              console.error('Error loading customers:', error);
+              showError('⚠️ حدث خطأ في تحميل قائمة العملاء');
+          }
+      }
+
+      // تحميل قائمة الأصناف من Supabase مع تطبيق الصلاحيات
+      async function loadItems() {
+          try {
+              console.log('🔄 جاري تحميل قائمة الأصناف مع تطبيق الصلاحيات...');
+              
+              let query = supabaseClient
+                  .from('items')
+                  .select('item_id, item_nm')
+                  .order('item_id');
+              
+              // 🔒 إذا لم يكن مستخدم خاص، نضيف فلتر بحسب صلاحيات المخزن
+              if (!IS_SPECIAL_USER && USER_STORE_ID) {
+                  // نفترض أن هناك علاقة بين الأصناف والمخازن
+                  query = query.eq('store_id', parseInt(USER_STORE_ID));
+                  console.log(`🔒 تطبيق فلتر الصلاحيات على الأصناف للمخزن: ${USER_STORE_ID}`);
+              }
+              
+              const { data, error } = await query;
+              
+              if (error) throw error;
+              
+              const itemSelect = document.getElementById('item');
+              itemSelect.innerHTML = '<option value="">جميع الأصناف</option>';
+              
+              data.forEach(item => {
+                  const option = new Option(`${item.item_id} - ${item.item_nm}`, item.item_id);
+                  itemSelect.add(option);
+              });
+              
+              console.log(`✅ تم تحميل ${data.length} صنف (بعد تطبيق الصلاحيات)`);
+              
+          } catch (error) {
+              console.error('Error loading items:', error);
+              showError('⚠️ حدث خطأ في تحميل قائمة الأصناف');
+          }
+      }
+
+      // تحميل التقرير مع تطبيق الصلاحيات
+      async function loadReport() {
+          try {
+              setLoading(true);
+              resetDisplayStates();
+              
+              const filters = getFilters();
+              
+              // 🔒 التحقق من صلاحيات المخزن المحدد
+              const selectedStore = filters.storeFrom;
+              
+              if (!IS_SPECIAL_USER && selectedStore && selectedStore !== USER_STORE_ID) {
+                  showError('❌ غير مصرح لك بالوصول إلى بيانات هذا المخزن');
+                  setLoading(false);
+                  return;
+              }
+              
+              console.log('🔍 جاري جلب بيانات مرتجع المبيعات...');
+              console.log('📅 الفترة:', filters.fromDate, 'إلى', filters.toDate);
+              console.log('🏪 المخزن المحدد:', selectedStore || 'الكل');
+              console.log('👤 صلاحيات المستخدم:', IS_SPECIAL_USER ? 'مدير كامل' : `مخزن ${USER_STORE_ID}`);
+              
+              // جلب البيانات من Supabase مع JOINs
+              let query = supabaseClient
+                  .from('sales_return')
+                  .select(`
+                      *,
+                      stores!inner(store_name),
+                      customers(customer_name),
+                      items!inner(item_nm),
+                      users(username)
+                  `);
+              
+              // تطبيق الفلاتر الأساسية
+              if (filters.fromDate) {
+                  query = query.gte('tran_date', filters.fromDate);
+              }
+              if (filters.toDate) {
+                  query = query.lte('tran_date', filters.toDate + ' 23:59:59');
+              }
+              
+              // 🔒 تطبيق فلتر المخزن بناءً على الصلاحيات
+              if (!IS_SPECIAL_USER) {
+                  query = query.eq('store_id', parseInt(USER_STORE_ID));
+                  console.log('🔒 تطبيق فلتر المخزن الآلي:', USER_STORE_ID);
+              } else if (filters.storeFrom) {
+                  // المستخدم الخاص يختار المخزن يدوياً
+                  query = query.eq('store_id', parseInt(filters.storeFrom));
+              }
+              
+              // تطبيق الفلاتر الأخرى
+              if (filters.customer) {
+                  query = query.eq('customer_id', parseInt(filters.customer));
+              }
+              if (filters.item) {
+                  query = query.eq('item_id', filters.item);
+              }
+              
+              const { data, error } = await query;
+              
+              if (error) throw error;
+              
+              allData = data || [];
+              currentData = allData;
+              
+              console.log(`✅ تم جلب ${allData.length} سجل (بعد تطبيق الصلاحيات)`);
+              
+              renderTable();
+              updateSummary();
+              
+              if (allData.length > 0) {
+                  showMessage(`✅ تم تحميل ${allData.length} سجل من المرتجعات`);
+              } else {
+                  showMessage('ℹ️ لا توجد بيانات للفترة المحددة', 'warning');
+              }
+              
+          } catch (error) {
+              console.error('Error loading report:', error);
+              showError('⚠️ حدث خطأ في تحميل التقرير: ' + error.message);
+              
+              // في حالة الخطأ، نعرض بيانات فارغة
+              allData = [];
+              currentData = [];
+              renderTable();
+              updateSummary();
+          } finally {
+              setLoading(false);
+          }
+      }
+
+      // جلب الفلاتر
+      function getFilters() {
+          return {
+              fromDate: document.getElementById('fromDate').value,
+              toDate: document.getElementById('toDate').value,
+              storeFrom: document.getElementById('storeFrom').value,
+              storeTo: document.getElementById('storeTo').value,
+              customer: document.getElementById('customer').value,
+              item: document.getElementById('item').value
+          };
+      }
+
+      // عرض البيانات في الجدول
+      function renderTable() {
+          const tbody = document.querySelector('#reportTable tbody');
+          const emptyState = document.getElementById('emptyState');
+          const table = document.querySelector('#reportTable');
+          
+          tbody.innerHTML = '';
+          
+          if (currentData.length === 0) {
+              table.style.display = 'none';
+              emptyState.style.display = 'block';
+              return;
+          }
+          
+          table.style.display = 'table';
+          emptyState.style.display = 'none';
+          
+          currentData.forEach((row, index) => {
+              const tr = document.createElement('tr');
+              tr.innerHTML = `
+                  <td>${formatDateTime(row.tran_date)}</td>
+                  <td>${row.stores ? row.stores.store_name : row.store_id}</td>
+                  <td>${row.customers ? row.customers.customer_name : (row.customer_id || '')}</td>
+                  <td>${row.invoice_id}</td>
+                  <td>${row.item_id}</td>
+                  <td>${row.items ? row.items.item_nm : ''}</td>
+                  <td>${formatNumber(row.item_qty)} ${row.unit_type || 'piece'}</td>
+                  <td>${formatNumber(row.sale_price)}</td>
+                  <td>${formatNumber(row.discount)}</td>
+                  <td>${formatNumber(row.total_price)}</td>
+                  <td>${row.return_reason || ''}</td>
+                  <td>${row.users ? row.users.username : (row.user_id || '')}</td>
+                  <td>${row.batch_no || ''}</td>
+                  <td>${row.expiry_date ? formatDate(new Date(row.expiry_date)) : ''}</td>
+                  <td>${row.sale_type || ''}</td>
+              `;
+              tbody.appendChild(tr);
+          });
+      }
+
+      // تحديث الإحصائيات
+      function updateSummary() {
+          const totalReturns = currentData.length;
+          const totalQuantity = currentData.reduce((sum, row) => sum + (parseFloat(row.item_qty) || 0), 0);
+          const totalValue = currentData.reduce((sum, row) => sum + (parseFloat(row.total_price) || 0), 0);
+          const avgDiscount = currentData.length > 0 ? 
+              currentData.reduce((sum, row) => sum + (parseFloat(row.discount) || 0), 0) / currentData.length : 0;
+          
+          document.getElementById('totalReturns').textContent = totalReturns;
+          document.getElementById('totalQuantity').textContent = formatNumber(totalQuantity);
+          document.getElementById('totalValue').textContent = formatCurrency(totalValue);
+          document.getElementById('avgDiscount').textContent = formatCurrency(avgDiscount);
+      }
+
+      // مسح الفلاتر
+      function resetFilters() {
+          document.getElementById('fromDate').value = '';
+          document.getElementById('toDate').value = '';
+          
+          // للمستخدم العادي، إعادة تعيين المخزن لقيمته الأصلية
+          if (!IS_SPECIAL_USER) {
+              document.getElementById('storeFrom').value = USER_STORE_ID;
+              document.getElementById('storeTo').value = USER_STORE_ID;
+          } else {
+              document.getElementById('storeFrom').value = '';
+              document.getElementById('storeTo').value = '';
+          }
+          
+          document.getElementById('customer').value = '';
+          document.getElementById('item').value = '';
+          
+          initializeDates();
+          showMessage('تم مسح الفلاتر بنجاح', 'info');
+      }
+
+      // طباعة التقرير مع التحقق من الصلاحيات
+      function printReport() {
+          // 🔒 التحقق من أن المستخدم العادي لا يطبع بيانات غير مخزنه
+          if (!IS_SPECIAL_USER) {
+              const selectedStore = document.getElementById('storeFrom').value;
+              if (selectedStore && selectedStore !== USER_STORE_ID) {
+                  showError('❌ غير مصرح لك بطباعة بيانات هذا المخزن');
+                  return;
+              }
+          }
+          
+          window.print();
+      }
+
+      // تصدير التقرير مع التحقق من الصلاحيات
+      function exportReport(format) {
+          if (currentData.length === 0) {
+              showError('⚠️ لا توجد بيانات للتصدير');
+              return;
+          }
+          
+          // 🔒 التحقق من أن المستخدم العادي لا يقوم بتصدير بيانات غير مخزنه
+          if (!IS_SPECIAL_USER) {
+              const selectedStore = document.getElementById('storeFrom').value;
+              if (selectedStore && selectedStore !== USER_STORE_ID) {
+                  showError('❌ غير مصرح لك بتصدير بيانات هذا المخزن');
+                  return;
+              }
+          }
+          
+          switch (format) {
+              case 'csv':
+                  exportToCSV();
+                  break;
+              case 'excel':
+                  exportToExcel();
+                  break;
+              case 'pdf':
+                  exportToPDF();
+                  break;
+          }
+      }
+
+      // التصدير إلى CSV
+      function exportToCSV() {
+          const headers = ['التاريخ', 'المخزن', 'العميل', 'رقم الفاتورة', 'كود الصنف', 'اسم الصنف', 'الكمية', 'سعر البيع', 'الخصم', 'الإجمالي', 'سبب الإرجاع', 'المستخدم', 'الدفعة', 'تاريخ الصلاحية', 'نوع البيع'];
+          
+          const csvContent = [
+              headers.join(','),
+              ...currentData.map(row => [
+                  formatDateTime(row.tran_date),
+                  `"${row.stores ? row.stores.store_name : row.store_id}"`,
+                  `"${row.customers ? row.customers.customer_name : (row.customer_id || '')}"`,
+                  row.invoice_id,
+                  `"${row.item_id}"`,
+                  `"${row.items ? row.items.item_nm : ''}"`,
+                  `${row.item_qty} ${row.unit_type || 'piece'}`,
+                  row.sale_price,
+                  row.discount,
+                  row.total_price,
+                  `"${row.return_reason || ''}"`,
+                  `"${row.users ? row.users.username : (row.user_id || '')}"`,
+                  `"${row.batch_no || ''}"`,
+                  row.expiry_date ? formatDate(new Date(row.expiry_date)) : '',
+                  row.sale_type || ''
+              ].join(','))
+          ].join('\n');
+          
+          const storeInfo = IS_SPECIAL_USER ? 'جميع-المخازن' : `مخزن-${USER_STORE_ID}`;
+          const fileName = `مرتجع_المبيعات_${storeInfo}_${new Date().toISOString().slice(0,10)}.csv`;
+          
+          downloadFile(csvContent, fileName, 'text/csv;charset=utf-8;');
+          showMessage('✅ تم تصدير البيانات إلى CSV بنجاح');
+      }
+
+      // التصدير إلى Excel
+      function exportToExcel() {
+          // استخدام مكتبة SheetJS إذا كانت متوفرة، أو تنزيل كـ CSV
+          exportToCSV(); // بديل مؤقت
+      }
+
+      // التصدير إلى PDF
+      function exportToPDF() {
+          // استخدام مكتبة jsPDF إذا كانت متوفرة
+          showMessage('⚠️ خاصية التصدير إلى PDF قيد التطوير', 'warning');
+      }
+
+      // عرض رسالة ترحيبية
+      function showWelcomeMessage() {
+          setTimeout(() => {
+              if (IS_SPECIAL_USER) {
+                  showMessage('👑 مرحباً بمدير النظام! لديك صلاحيات كاملة على جميع المخازن', 'success');
+              } else {
+                  showMessage(`🔐 مرحباً! يمكنك عرض بيانات مخزنك فقط (المخزن: ${USER_STORE_ID})`, 'info');
+              }
+          }, 1000);
+      }
+
+      // وظائف مساعدة
+      function formatDate(date) {
+          return date.toISOString().split('T')[0];
+      }
+
+      function formatDateTime(dateString) {
+          if (!dateString) return '';
+          try {
+              const date = new Date(dateString);
+              if (isNaN(date.getTime())) return dateString;
+              return date.toLocaleString('ar-EG');
+          } catch (e) {
+              return dateString;
+          }
+      }
+
+      function formatNumber(num) {
+          return parseFloat(num || 0).toLocaleString('ar-EG');
+      }
+
+      function formatCurrency(num) {
+          return parseFloat(num || 0).toLocaleString('ar-EG', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+          });
+      }
+
+      function downloadFile(content, fileName, mimeType) {
+          try {
+              const blob = new Blob(['\uFEFF' + content], { type: mimeType });
+              const link = document.createElement('a');
+              link.href = URL.createObjectURL(blob);
+              link.download = fileName;
+              link.click();
+          } catch (error) {
+              console.error('Error downloading file:', error);
+              showError('❌ فشل في تنزيل الملف');
+          }
+      }
+
+      // تهيئة التطبيق عند تحميل الصفحة
+      document.addEventListener('DOMContentLoaded', initializeApp);
+      
+      // تصدير الدوال الضرورية للسكوب العالمي
+      window.SalesReturnReport = {
+          loadReport,
+          printReport,
+          resetFilters,
+          exportReport,
+          loadStores,
+          loadCustomers,
+          loadItems
+      };
+      
+    })(); // نهاية IIFE
+  </script>
+</body>
+</html>

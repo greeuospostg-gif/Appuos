@@ -1,0 +1,1152 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التقارير المالية</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        body { 
+            background-color: #f8f9fa; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+        }
+        .header { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            color: white; 
+            padding: 1.5rem 0; 
+            margin-bottom: 1.5rem; 
+        }
+        .dashboard-card { 
+            background: white; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08); 
+            border: none; 
+            margin-bottom: 1.5rem; 
+            transition: transform 0.3s; 
+        }
+        .dashboard-card:hover { 
+            transform: translateY(-5px); 
+        }
+        .card-header { 
+            background: linear-gradient(to right, #f8f9fa, #e9ecef); 
+            border-bottom: 2px solid #667eea; 
+            font-weight: 600; 
+        }
+        .account-category { 
+            border-left: 4px solid #667eea; 
+            padding-left: 15px; 
+            margin-bottom: 20px; 
+        }
+        .assets { border-left-color: #28a745; }
+        .liabilities { border-left-color: #dc3545; }
+        .revenue { border-left-color: #17a2b8; }
+        .expenses { border-left-color: #ffc107; }
+        
+        .amount-positive { color: #28a745; font-weight: bold; }
+        .amount-negative { color: #dc3545; font-weight: bold; }
+        
+        .account-item { 
+            border-bottom: 1px solid #eee; 
+            padding: 10px 0; 
+            transition: background 0.2s; 
+        }
+        .account-item:hover { 
+            background-color: #f8f9fa; 
+        }
+        
+        .chart-container { 
+            position: relative; 
+            height: 300px; 
+            margin-bottom: 20px; 
+        }
+        
+        .stats-card { 
+            text-align: center; 
+            padding: 20px; 
+            border-radius: 10px; 
+            color: white; 
+        }
+        .stats-1 { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .stats-2 { background: linear-gradient(135deg, #28a745 0%, #20c997 100%); }
+        .stats-3 { background: linear-gradient(135deg, #fd7e14 0%, #ffc107 100%); }
+        .stats-4 { background: linear-gradient(135deg, #17a2b8 0%, #20c997 100%); }
+        
+        .filter-section { 
+            background: #f8f9fa; 
+            padding: 15px; 
+            border-radius: 10px; 
+            margin-bottom: 20px; 
+        }
+        
+        .tab-content { 
+            padding: 20px; 
+            background: white; 
+            border-radius: 0 0 10px 10px; 
+            border: 1px solid #dee2e6; 
+            border-top: none; 
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            vertical-align: text-bottom;
+            border: 0.15em solid currentColor;
+            border-right-color: transparent;
+            border-radius: 50%;
+            animation: spinner-border .75s linear infinite;
+        }
+        
+        @keyframes spinner-border {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- شريط العنوان -->
+    <div class="header">
+        <div class="container">
+            <h1><i class="fas fa-chart-line me-2"></i>لوحة التقارير المالية المتكاملة</h1>
+            <p class="mb-0">ميزان المراجعة - التحليل المالي - الرسوم البيانية</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- فلترة التقارير -->
+        <div class="filter-section">
+            <div class="row g-3 align-items-center">
+                <div class="col-md-3">
+                    <label for="reportPeriod" class="form-label">الفترة الزمنية</label>
+                    <select class="form-select" id="reportPeriod">
+                        <option value="month">هذا الشهر</option>
+                        <option value="last_month">الشهر الماضي</option>
+                        <option value="quarter">هذا الربع</option>
+                        <option value="year">هذه السنة</option>
+                        <option value="custom">مخصص</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="startDate" class="form-label">من تاريخ</label>
+                    <input type="date" class="form-control" id="startDate">
+                </div>
+                <div class="col-md-3">
+                    <label for="endDate" class="form-label">إلى تاريخ</label>
+                    <input type="date" class="form-control" id="endDate">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">&nbsp;</label>
+                    <button class="btn btn-primary w-100" id="generateReport">
+                        <i class="fas fa-sync-alt me-2"></i>تحديث التقارير
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- الإحصائيات السريعة -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="stats-card stats-1">
+                    <h3 id="totalAccounts">0</h3>
+                    <p>عدد الحسابات</p>
+                    <small>نشطة</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card stats-2">
+                    <h3 id="totalDebitSum">0</h3>
+                    <p>إجمالي المدين</p>
+                    <small>ج.م</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card stats-3">
+                    <h3 id="totalCreditSum">0</h3>
+                    <p>إجمالي الدائن</p>
+                    <small>ج.م</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card stats-4">
+                    <h3 id="netBalance">0</h3>
+                    <p>صافي الرصيد</p>
+                    <small>ج.م</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- التبويبات الرئيسية -->
+        <div class="card dashboard-card">
+            <div class="card-header">
+                <ul class="nav nav-tabs card-header-tabs">
+                    <li class="nav-item">
+                        <a class="nav-link active" data-bs-toggle="tab" href="#trialBalance">
+                            <i class="fas fa-balance-scale me-2"></i>ميزان المراجعة
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab" href="#analytical">
+                            <i class="fas fa-chart-pie me-2"></i>التحليل المالي
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab" href="#charts">
+                            <i class="fas fa-chart-bar me-2"></i>الرسوم البيانية
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            
+            <div class="tab-content">
+                <!-- تبويب ميزان المراجعة -->
+                <div class="tab-pane fade show active" id="trialBalance">
+                    <div class="row">
+                        <!-- الأصول -->
+                        <div class="col-md-6">
+                            <div class="account-category assets">
+                                <h5 class="d-flex justify-content-between">
+                                    <span><i class="fas fa-building me-2"></i>الأصول</span>
+                                    <span class="badge bg-success" id="assetsCount">0 حسابات</span>
+                                </h5>
+                                
+                                <div id="assetsList">
+                                    <div class="text-center py-4">
+                                        <span class="loading-spinner"></span>
+                                        <p class="mt-2">جاري تحميل البيانات...</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="category-total mt-3 pt-2 border-top">
+                                    <strong>إجمالي الأصول:</strong>
+                                    <span class="amount-positive float-start" id="assetsTotal">0 ج.م</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- المصروفات -->
+                        <div class="col-md-6">
+                            <div class="account-category expenses">
+                                <h5 class="d-flex justify-content-between">
+                                    <span><i class="fas fa-money-bill-wave me-2"></i>المصروفات</span>
+                                    <span class="badge bg-warning" id="expensesCount">0 حسابات</span>
+                                </h5>
+                                
+                                <div id="expensesList">
+                                    <div class="text-center py-4">
+                                        <span class="loading-spinner"></span>
+                                        <p class="mt-2">جاري تحميل البيانات...</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="category-total mt-3 pt-2 border-top">
+                                    <strong>إجمالي المصروفات:</strong>
+                                    <span class="amount-positive float-start" id="expensesTotal">0 ج.م</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-4">
+                        <!-- الخصوم -->
+                        <div class="col-md-6">
+                            <div class="account-category liabilities">
+                                <h5 class="d-flex justify-content-between">
+                                    <span><i class="fas fa-hand-holding-usd me-2"></i>الخصوم</span>
+                                    <span class="badge bg-danger" id="liabilitiesCount">0 حسابات</span>
+                                </h5>
+                                
+                                <div id="liabilitiesList">
+                                    <div class="text-center py-4">
+                                        <span class="loading-spinner"></span>
+                                        <p class="mt-2">جاري تحميل البيانات...</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="category-total mt-3 pt-2 border-top">
+                                    <strong>إجمالي الخصوم:</strong>
+                                    <span class="amount-negative float-start" id="liabilitiesTotal">0 ج.م</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- الإيرادات -->
+                        <div class="col-md-6">
+                            <div class="account-category revenue">
+                                <h5 class="d-flex justify-content-between">
+                                    <span><i class="fas fa-chart-line me-2"></i>الإيرادات</span>
+                                    <span class="badge bg-info" id="revenueCount">0 حسابات</span>
+                                </h5>
+                                
+                                <div id="revenueList">
+                                    <div class="text-center py-4">
+                                        <span class="loading-spinner"></span>
+                                        <p class="mt-2">جاري تحميل البيانات...</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="category-total mt-3 pt-2 border-top">
+                                    <strong>إجمالي الإيرادات:</strong>
+                                    <span class="amount-negative float-start" id="revenueTotal">0 ج.م</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- ملخص التوازن -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="alert" id="balanceStatus">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <strong id="balanceTitle"><i class="fas fa-check-circle me-2"></i>تحقق من التوازن:</strong>
+                                        <p class="mb-0" id="balanceMessage">مجموع الأرصدة المدينة = مجموع الأرصدة الدائنة</p>
+                                    </div>
+                                    <div class="col-md-6 text-start">
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <strong>إجمالي المدين:</strong>
+                                                <h4 class="amount-positive" id="totalDebitDisplay">0 ج.م</h4>
+                                            </div>
+                                            <div class="col-6">
+                                                <strong>إجمالي الدائن:</strong>
+                                                <h4 class="amount-negative" id="totalCreditDisplay">0 ج.م</h4>
+                                            </div>
+                                        </div>
+                                        <div class="mt-2">
+                                            <span class="badge" id="balanceBadge">جاري التحقق...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- تبويب التحليل المالي -->
+                <div class="tab-pane fade" id="analytical">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h5><i class="fas fa-table me-2"></i>تحليل مفصل حسب التصنيف</h5>
+                            <div class="table-responsive">
+                                <table class="table table-hover" id="analyticalTable">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>التصنيف</th>
+                                            <th>عدد الحسابات</th>
+                                            <th>إجمالي المدين</th>
+                                            <th>إجمالي الدائن</th>
+                                            <th>صافي الرصيد</th>
+                                            <th>النسبة</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="analyticalData">
+                                        <tr>
+                                            <td colspan="6" class="text-center py-4">
+                                                <span class="loading-spinner"></span>
+                                                <p class="mt-2">جاري تحميل البيانات...</p>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <h5><i class="fas fa-chart-pie me-2"></i>التوزيع النسبي</h5>
+                            <div class="chart-container">
+                                <canvas id="pieChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- تبويب الرسوم البيانية -->
+                <div class="tab-pane fade" id="charts">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5><i class="fas fa-chart-bar me-2"></i>مقارنة الإيرادات والمصروفات</h5>
+                            <div class="chart-container">
+                                <canvas id="barChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h5><i class="fas fa-chart-line me-2"></i>اتجاه الأرصدة خلال الشهر</h5>
+                            <div class="chart-container">
+                                <canvas id="lineChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- أزرار التصدير -->
+        <div class="row mt-3">
+            <div class="col">
+                <button class="btn btn-success me-2" id="exportPDF" disabled>
+                    <i class="fas fa-file-pdf me-2"></i>تصدير PDF
+                </button>
+                <button class="btn btn-info me-2" id="exportExcel" disabled>
+                    <i class="fas fa-file-excel me-2"></i>تصدير Excel
+                </button>
+                <button class="btn btn-secondary" id="printReport">
+                    <i class="fas fa-print me-2"></i>طباعة التقرير
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // كود الجافاسكريبت المعدل بدون دوال مخزنة
+        class FinancialDashboard {
+            constructor() {
+                this.SUPABASE_URL = 'https://rvjacvrrpguehbapvewe.supabase.co';
+                this.SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2amFjdnJycGd1ZWhiYXB2ZXdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwMjUxNTksImV4cCI6MjA3ODYwMTE1OX0.wSavKzxKOF7-56G-pzDMtbXNrCNAbGs0wvadw-cilBg';
+                
+                this.supabase = supabase.createClient(this.SUPABASE_URL, this.SUPABASE_KEY);
+                this.charts = {};
+                
+                this.init();
+            }
+            
+            async init() {
+                try {
+                    // تعيين التواريخ الافتراضية
+                    this.setDefaultDates();
+                    
+                    // إعداد الأحداث
+                    this.setupEventListeners();
+                    
+                    // تهيئة الرسوم البيانية
+                    this.setupCharts();
+                    
+                    // تحميل البيانات الأولية
+                    await this.loadInitialData();
+                    
+                } catch (error) {
+                    console.error('خطأ في تهيئة التطبيق:', error);
+                    this.showAlert('خطأ في تهيئة التطبيق', 'danger');
+                }
+            }
+            
+            setDefaultDates() {
+                const today = new Date();
+                const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+                
+                document.getElementById('startDate').value = this.formatDateForInput(firstDay);
+                document.getElementById('endDate').value = this.formatDateForInput(today);
+            }
+            
+            setupEventListeners() {
+                document.getElementById('generateReport').addEventListener('click', () => this.loadAllReports());
+                document.getElementById('reportPeriod').addEventListener('change', (e) => this.onPeriodChange(e.target.value));
+                document.getElementById('exportPDF').addEventListener('click', () => this.exportPDF());
+                document.getElementById('exportExcel').addEventListener('click', () => this.exportExcel());
+                document.getElementById('printReport').addEventListener('click', () => window.print());
+            }
+            
+            async onPeriodChange(period) {
+                const today = new Date();
+                let startDate, endDate;
+                
+                switch(period) {
+                    case 'month':
+                        startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                        endDate = today;
+                        break;
+                    case 'last_month':
+                        const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                        startDate = lastMonth;
+                        endDate = new Date(today.getFullYear(), today.getMonth(), 0);
+                        break;
+                    case 'quarter':
+                        const quarter = Math.floor(today.getMonth() / 3);
+                        startDate = new Date(today.getFullYear(), quarter * 3, 1);
+                        endDate = today;
+                        break;
+                    case 'year':
+                        startDate = new Date(today.getFullYear(), 0, 1);
+                        endDate = today;
+                        break;
+                    default:
+                        return;
+                }
+                
+                document.getElementById('startDate').value = this.formatDateForInput(startDate);
+                document.getElementById('endDate').value = this.formatDateForInput(endDate);
+            }
+            
+            async loadInitialData() {
+                try {
+                    // تحميل إحصائيات سريعة
+                    await this.loadQuickStats();
+                    
+                    // تحميل التقارير الرئيسية
+                    await this.loadAllReports();
+                    
+                } catch (error) {
+                    console.error('خطأ في تحميل البيانات الأولية:', error);
+                }
+            }
+            
+            async loadQuickStats() {
+                try {
+                    // عدد الحسابات النشطة
+                    const { data: accounts, error: accountsError } = await this.supabase
+                        .from('accounts')
+                        .select('account_id')
+                        .eq('is_active', true);
+                    
+                    if (!accountsError) {
+                        document.getElementById('totalAccounts').textContent = accounts?.length || 0;
+                    }
+                    
+                } catch (error) {
+                    console.error('خطأ في تحميل الإحصائيات السريعة:', error);
+                }
+            }
+            
+            async loadAllReports() {
+                try {
+                    const startDate = document.getElementById('startDate').value;
+                    const endDate = document.getElementById('endDate').value;
+                    
+                    // التحقق من صحة التواريخ
+                    if (!startDate || !endDate) {
+                        this.showAlert('يرجى تحديد الفترة الزمنية', 'warning');
+                        return;
+                    }
+                    
+                    // عرض حالة التحميل
+                    this.showLoading(true);
+                    
+                    // تحميل ميزان المراجعة
+                    const trialBalance = await this.loadTrialBalance(startDate, endDate);
+                    this.renderTrialBalance(trialBalance);
+                    
+                    // تحميل التحليل المالي
+                    const analysis = await this.loadFinancialAnalysis(startDate, endDate);
+                    this.renderAnalysis(analysis);
+                    
+                    // تحديث الرسوم البيانية
+                    this.updateCharts(analysis);
+                    
+                    // إعادة تمكين أزرار التصدير
+                    document.getElementById('exportPDF').disabled = false;
+                    document.getElementById('exportExcel').disabled = false;
+                    
+                } catch (error) {
+                    console.error('خطأ في تحميل التقارير:', error);
+                    this.showAlert('حدث خطأ في تحميل البيانات: ' + error.message, 'danger');
+                } finally {
+                    this.showLoading(false);
+                }
+            }
+            
+            async loadTrialBalance(startDate, endDate) {
+                try {
+                    console.log('تحميل ميزان المراجعة للفترة:', startDate, 'إلى', endDate);
+                    
+                    // استعلام مباشر للحسابات مع حركاتها - معدل للعمل بدون دوال مخزنة
+                    const { data, error } = await this.supabase
+                        .from('accounts')
+                        .select(`
+                            account_id,
+                            account_code,
+                            account_name,
+                            balance,
+                            account_types!inner(
+                                account_type_name
+                            ),
+                            account_transactions(
+                                transaction_id,
+                                debit_amount,
+                                credit_amount,
+                                transaction_date
+                            )
+                        `)
+                        .eq('is_active', true)
+                        .order('account_code');
+                    
+                    if (error) {
+                        console.error('خطأ في استعلام الحسابات:', error);
+                        throw error;
+                    }
+                    
+                    console.log('عدد الحسابات المسترجعة:', data?.length);
+                    
+                    if (!data || data.length === 0) {
+                        return this.getEmptyTrialBalanceData();
+                    }
+                    
+                    // معالجة البيانات محلياً
+                    const start = new Date(startDate);
+                    const end = new Date(endDate);
+                    
+                    const processedAccounts = [];
+                    let totalDebit = 0;
+                    let totalCredit = 0;
+                    
+                    data.forEach(account => {
+                        let accountDebit = 0;
+                        let accountCredit = 0;
+                        
+                        // حساب الحركات في الفترة المحددة
+                        if (account.account_transactions && account.account_transactions.length > 0) {
+                            account.account_transactions.forEach(trans => {
+                                const transDate = new Date(trans.transaction_date);
+                                
+                                // التحقق إذا كانت الحركة ضمن الفترة
+                                if (transDate >= start && transDate <= end) {
+                                    accountDebit += parseFloat(trans.debit_amount) || 0;
+                                    accountCredit += parseFloat(trans.credit_amount) || 0;
+                                }
+                            });
+                        }
+                        
+                        const accountBalance = accountDebit - accountCredit;
+                        
+                        // تجاهل الحسابات بدون حركات في الفترة
+                        if (accountDebit > 0 || accountCredit > 0) {
+                            processedAccounts.push({
+                                account_id: account.account_id,
+                                account_code: account.account_code,
+                                account_name: account.account_name,
+                                account_type_name: account.account_types?.account_type_name || 'غير مصنف',
+                                debit_amount: accountDebit,
+                                credit_amount: accountCredit,
+                                balance: accountBalance
+                            });
+                            
+                            totalDebit += accountDebit;
+                            totalCredit += accountCredit;
+                        }
+                    });
+                    
+                    console.log('الحسابات المعالجة:', processedAccounts.length);
+                    console.log('إجمالي المدين:', totalDebit, 'إجمالي الدائن:', totalCredit);
+                    
+                    return {
+                        accounts: processedAccounts,
+                        totals: {
+                            debit: totalDebit,
+                            credit: totalCredit
+                        }
+                    };
+                    
+                } catch (error) {
+                    console.error('خطأ في تحميل ميزان المراجعة:', error);
+                    return this.getEmptyTrialBalanceData();
+                }
+            }
+            
+            getEmptyTrialBalanceData() {
+                return {
+                    accounts: [],
+                    totals: {
+                        debit: 0,
+                        credit: 0
+                    }
+                };
+            }
+            
+            categorizeTrialBalance(trialBalanceData) {
+                const result = {
+                    assets: { accounts: [], total: 0, count: 0 },
+                    liabilities: { accounts: [], total: 0, count: 0 },
+                    revenue: { accounts: [], total: 0, count: 0 },
+                    expenses: { accounts: [], total: 0, count: 0 }
+                };
+                
+                trialBalanceData.accounts.forEach(account => {
+                    const typeName = (account.account_type_name || '').toLowerCase();
+                    const accountObj = {
+                        code: account.account_code,
+                        name: account.account_name,
+                        debit: account.debit_amount,
+                        credit: account.credit_amount,
+                        balance: account.balance
+                    };
+                    
+                    // تصنيف الحساب بناءً على نوعه
+                    if (typeName.includes('أصل') || typeName.includes('اصول') || typeName.includes('asset')) {
+                        result.assets.accounts.push(accountObj);
+                        result.assets.total += Math.abs(account.balance);
+                        result.assets.count++;
+                    } 
+                    else if (typeName.includes('مصروف') || typeName.includes('تكلفة') || typeName.includes('expense') || typeName.includes('cost')) {
+                        result.expenses.accounts.push(accountObj);
+                        result.expenses.total += Math.abs(account.balance);
+                        result.expenses.count++;
+                    } 
+                    else if (typeName.includes('خصوم') || typeName.includes('التزام') || typeName.includes('liability') || typeName.includes('obligation')) {
+                        result.liabilities.accounts.push(accountObj);
+                        result.liabilities.total += Math.abs(account.balance);
+                        result.liabilities.count++;
+                    } 
+                    else if (typeName.includes('إيراد') || typeName.includes('ايراد') || typeName.includes('دخل') || typeName.includes('revenue') || typeName.includes('income')) {
+                        result.revenue.accounts.push(accountObj);
+                        result.revenue.total += Math.abs(account.balance);
+                        result.revenue.count++;
+                    }
+                    // إذا لم يتطابق مع أي تصنيف، نضعه في "أخرى"
+                    else {
+                        console.log('حساب غير مصنف:', account.account_type_name);
+                        // يمكنك إضافته إلى تصنيف حسب رغبتك
+                        result.expenses.accounts.push(accountObj);
+                        result.expenses.total += Math.abs(account.balance);
+                        result.expenses.count++;
+                    }
+                });
+                
+                return result;
+            }
+            
+            renderTrialBalance(trialBalanceData) {
+                // تصنيف الحسابات
+                const categorized = this.categorizeTrialBalance(trialBalanceData);
+                
+                // تحديث العدد لكل فئة
+                document.getElementById('assetsCount').textContent = `${categorized.assets.count} حسابات`;
+                document.getElementById('expensesCount').textContent = `${categorized.expenses.count} حسابات`;
+                document.getElementById('liabilitiesCount').textContent = `${categorized.liabilities.count} حسابات`;
+                document.getElementById('revenueCount').textContent = `${categorized.revenue.count} حسابات`;
+                
+                // تحديث الإجماليات
+                document.getElementById('assetsTotal').textContent = this.formatCurrency(categorized.assets.total);
+                document.getElementById('expensesTotal').textContent = this.formatCurrency(categorized.expenses.total);
+                document.getElementById('liabilitiesTotal').textContent = this.formatCurrency(categorized.liabilities.total);
+                document.getElementById('revenueTotal').textContent = this.formatCurrency(categorized.revenue.total);
+                
+                // عرض الحسابات
+                this.renderAccountList('assetsList', categorized.assets.accounts, 'positive');
+                this.renderAccountList('expensesList', categorized.expenses.accounts, 'positive');
+                this.renderAccountList('liabilitiesList', categorized.liabilities.accounts, 'negative');
+                this.renderAccountList('revenueList', categorized.revenue.accounts, 'negative');
+                
+                // تحديث إحصائيات السريعة
+                document.getElementById('totalDebitSum').textContent = this.formatNumber(trialBalanceData.totals.debit);
+                document.getElementById('totalCreditSum').textContent = this.formatNumber(trialBalanceData.totals.credit);
+                document.getElementById('netBalance').textContent = this.formatNumber(Math.abs(trialBalanceData.totals.debit - trialBalanceData.totals.credit));
+                
+                // التحقق من التوازن
+                this.updateBalanceStatus(trialBalanceData.totals.debit, trialBalanceData.totals.credit);
+            }
+            
+            renderAccountList(elementId, accounts, balanceType) {
+                const container = document.getElementById(elementId);
+                
+                if (!accounts || accounts.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-inbox fa-2x mb-2"></i>
+                            <p>لا توجد حركات في هذه الفترة</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                let html = '';
+                
+                accounts.forEach(account => {
+                    const balanceClass = balanceType === 'positive' ? 'amount-positive' : 'amount-negative';
+                    const balanceSign = account.balance >= 0 ? '' : '-';
+                    const displayBalance = Math.abs(account.balance);
+                    
+                    html += `
+                        <div class="account-item">
+                            <div class="row align-items-center">
+                                <div class="col-5">
+                                    <strong>${this.escapeHtml(account.code)}</strong>
+                                    <div class="text-muted small">${this.escapeHtml(account.name)}</div>
+                                </div>
+                                <div class="col-7">
+                                    <div class="row text-start">
+                                        <div class="col-4">
+                                            <span class="text-success small">${this.formatCurrency(account.debit)}</span>
+                                        </div>
+                                        <div class="col-4">
+                                            <span class="text-danger small">${this.formatCurrency(account.credit)}</span>
+                                        </div>
+                                        <div class="col-4">
+                                            <span class="${balanceClass}">
+                                                ${balanceSign}${this.formatCurrency(displayBalance)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                container.innerHTML = html;
+            }
+            
+            updateBalanceStatus(totalDebit, totalCredit) {
+                const difference = Math.abs(totalDebit - totalCredit);
+                const isBalanced = difference < 0.01;
+                const balanceAlert = document.getElementById('balanceStatus');
+                const balanceBadge = document.getElementById('balanceBadge');
+                
+                document.getElementById('totalDebitDisplay').textContent = this.formatCurrency(totalDebit);
+                document.getElementById('totalCreditDisplay').textContent = this.formatCurrency(totalCredit);
+                
+                if (isBalanced) {
+                    balanceAlert.className = 'alert alert-success';
+                    document.getElementById('balanceTitle').innerHTML = '<i class="fas fa-check-circle me-2"></i>تحقق من التوازن:';
+                    document.getElementById('balanceMessage').textContent = 'مجموع الأرصدة المدينة = مجموع الأرصدة الدائنة';
+                    balanceBadge.className = 'badge bg-success';
+                    balanceBadge.innerHTML = '<i class="fas fa-check me-1"></i>متوازن';
+                } else {
+                    balanceAlert.className = 'alert alert-warning';
+                    document.getElementById('balanceTitle').innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>ملاحظة:';
+                    document.getElementById('balanceMessage').textContent = `هذا ميزان مراجعة، وليس مطلوب أن يتوازن. الفرق: ${this.formatCurrency(difference)}`;
+                    balanceBadge.className = 'badge bg-warning';
+                    balanceBadge.innerHTML = '<i class="fas fa-info-circle me-1"></i>مراجعة';
+                }
+            }
+            
+            async loadFinancialAnalysis(startDate, endDate) {
+                try {
+                    console.log('تحميل التحليل المالي للفترة:', startDate, 'إلى', endDate);
+                    
+                    const { data, error } = await this.supabase
+                        .from('account_types')
+                        .select(`
+                            account_type_id,
+                            account_type_name,
+                            accounts!inner(
+                                account_id,
+                                account_transactions(
+                                    transaction_id,
+                                    debit_amount,
+                                    credit_amount,
+                                    transaction_date
+                                )
+                            )
+                        `)
+                        .order('account_type_name');
+                    
+                    if (error) {
+                        console.error('خطأ في استعلام التحليل المالي:', error);
+                        throw error;
+                    }
+                    
+                    if (!data || data.length === 0) {
+                        return [];
+                    }
+                    
+                    const start = new Date(startDate);
+                    const end = new Date(endDate);
+                    const analysis = [];
+                    
+                    data.forEach(type => {
+                        let totalDebit = 0;
+                        let totalCredit = 0;
+                        let accountCount = 0;
+                        
+                        if (type.accounts && type.accounts.length > 0) {
+                            accountCount = type.accounts.length;
+                            
+                            type.accounts.forEach(account => {
+                                if (account.account_transactions && account.account_transactions.length > 0) {
+                                    account.account_transactions.forEach(trans => {
+                                        const transDate = new Date(trans.transaction_date);
+                                        
+                                        if (transDate >= start && transDate <= end) {
+                                            totalDebit += parseFloat(trans.debit_amount) || 0;
+                                            totalCredit += parseFloat(trans.credit_amount) || 0;
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                        
+                        const netBalance = totalDebit - totalCredit;
+                        const total = totalDebit + totalCredit;
+                        const percentage = total > 0 ? ((Math.abs(netBalance) / total) * 100) : 0;
+                        
+                        // إضافة فقط إذا كان هناك حركات
+                        if (totalDebit > 0 || totalCredit > 0) {
+                            analysis.push({
+                                type: type.account_type_name,
+                                account_count: accountCount,
+                                total_debit: totalDebit,
+                                total_credit: totalCredit,
+                                net_balance: netBalance,
+                                percentage: Math.min(percentage, 100)
+                            });
+                        }
+                    });
+                    
+                    console.log('التحليل المالي المحمل:', analysis.length, 'عنصر');
+                    return analysis;
+                    
+                } catch (error) {
+                    console.error('خطأ في تحميل التحليل المالي:', error);
+                    return [];
+                }
+            }
+            
+            renderAnalysis(analysis) {
+                const container = document.getElementById('analyticalData');
+                
+                if (!analysis || analysis.length === 0) {
+                    container.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">
+                                <i class="fas fa-inbox fa-2x mb-2"></i>
+                                <p>لا توجد بيانات في هذه الفترة</p>
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                let html = '';
+                
+                analysis.forEach(item => {
+                    const netBalanceAbs = Math.abs(item.net_balance);
+                    const progressBarClass = item.net_balance >= 0 ? 'bg-success' : 'bg-danger';
+                    
+                    html += `
+                        <tr>
+                            <td><strong>${this.escapeHtml(item.type)}</strong></td>
+                            <td>${item.account_count}</td>
+                            <td class="text-success">${this.formatCurrency(item.total_debit)}</td>
+                            <td class="text-danger">${this.formatCurrency(item.total_credit)}</td>
+                            <td class="${item.net_balance >= 0 ? 'amount-positive' : 'amount-negative'}">
+                                ${this.formatCurrency(netBalanceAbs)}
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="progress flex-grow-1 me-2" style="height: 8px;">
+                                        <div class="progress-bar ${progressBarClass}" 
+                                             style="width: ${item.percentage}%"></div>
+                                    </div>
+                                    <small class="text-nowrap">${item.percentage.toFixed(1)}%</small>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                container.innerHTML = html;
+            }
+            
+            setupCharts() {
+                // الرسم البياني الدائري
+                const pieCanvas = document.getElementById('pieChart');
+                if (pieCanvas) {
+                    const pieCtx = pieCanvas.getContext('2d');
+                    this.charts.pie = new Chart(pieCtx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['لا توجد بيانات'],
+                            datasets: [{
+                                data: [100],
+                                backgroundColor: ['#f0f0f0']
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    rtl: true,
+                                    labels: {
+                                        font: {
+                                            family: 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif'
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+                
+                // الرسم البياني العمودي
+                const barCanvas = document.getElementById('barChart');
+                if (barCanvas) {
+                    const barCtx = barCanvas.getContext('2d');
+                    this.charts.bar = new Chart(barCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: ['لا توجد بيانات'],
+                            datasets: [
+                                {
+                                    label: 'المدين',
+                                    data: [0],
+                                    backgroundColor: '#28a745'
+                                },
+                                {
+                                    label: 'الدائن',
+                                    data: [0],
+                                    backgroundColor: '#dc3545'
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                x: {
+                                    grid: {
+                                        display: false
+                                    }
+                                },
+                                y: {
+                                    beginAtZero: true
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+            
+            updateCharts(analysis) {
+                if (!analysis || !Array.isArray(analysis) || analysis.length === 0) {
+                    console.log('لا توجد بيانات للرسوم البيانية');
+                    return;
+                }
+                
+                try {
+                    // تحديث الرسم الدائري
+                    if (this.charts.pie) {
+                        const pieData = analysis.filter(item => Math.abs(item.net_balance) > 0);
+                        
+                        if (pieData.length > 0) {
+                            this.charts.pie.data.labels = pieData.map(item => item.type);
+                            this.charts.pie.data.datasets[0].data = pieData.map(item => Math.abs(item.net_balance));
+                            this.charts.pie.data.datasets[0].backgroundColor = this.getChartColors(pieData.length);
+                        }
+                        this.charts.pie.update();
+                    }
+                    
+                    // تحديث الرسم العمودي (أعلى 5 تصنيفات)
+                    if (this.charts.bar) {
+                        const barData = [...analysis]
+                            .sort((a, b) => Math.abs(b.net_balance) - Math.abs(a.net_balance))
+                            .slice(0, 5);
+                        
+                        if (barData.length > 0) {
+                            this.charts.bar.data.labels = barData.map(item => item.type);
+                            this.charts.bar.data.datasets[0].data = barData.map(item => item.total_debit);
+                            this.charts.bar.data.datasets[1].data = barData.map(item => item.total_credit);
+                        }
+                        this.charts.bar.update();
+                    }
+                    
+                } catch (error) {
+                    console.error('خطأ في تحديث الرسوم البيانية:', error);
+                }
+            }
+            
+            getChartColors(count) {
+                const baseColors = [
+                    '#4CAF50', '#F44336', '#2196F3', '#FF9800', 
+                    '#9C27B0', '#607D8B', '#795548', '#009688',
+                    '#E91E63', '#CDDC39', '#00BCD4', '#FF5722'
+                ];
+                
+                return count <= baseColors.length 
+                    ? baseColors.slice(0, count)
+                    : Array.from({length: count}, (_, i) => {
+                        const hue = (i * 137.508) % 360;
+                        return `hsl(${hue}, 70%, 60%)`;
+                    });
+            }
+            
+            // دوال مساعدة
+            formatCurrency(amount) {
+                if (typeof amount !== 'number' || isNaN(amount)) {
+                    return '0.00 ج.م';
+                }
+                return amount.toLocaleString('ar-SA', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                }) + ' ج.م';
+            }
+            
+            formatNumber(amount) {
+                if (typeof amount !== 'number' || isNaN(amount)) {
+                    return '0';
+                }
+                
+                if (amount >= 1000000) {
+                    return (amount / 1000000).toFixed(1) + 'M';
+                } else if (amount >= 1000) {
+                    return (amount / 1000).toFixed(1) + 'K';
+                }
+                return amount.toFixed(0);
+            }
+            
+            formatDateForInput(date) {
+                return date.toISOString().split('T')[0];
+            }
+            
+            escapeHtml(text) {
+                if (!text) return '';
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+            
+            showLoading(show) {
+                const btn = document.getElementById('generateReport');
+                if (show) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<span class="loading-spinner"></span> جاري التحميل...';
+                } else {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-sync-alt me-2"></i>تحديث التقارير';
+                }
+            }
+            
+            showAlert(message, type) {
+                // إزالة أي تنبيهات سابقة
+                const oldAlerts = document.querySelectorAll('.alert-dismissible.position-fixed');
+                oldAlerts.forEach(alert => alert.remove());
+                
+                const alertDiv = document.createElement('div');
+                alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+                alertDiv.style.top = '20px';
+                alertDiv.style.right = '20px';
+                alertDiv.style.zIndex = '9999';
+                alertDiv.style.minWidth = '300px';
+                alertDiv.innerHTML = `
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                
+                document.body.appendChild(alertDiv);
+                
+                // إزالة التنبيه تلقائياً بعد 5 ثواني
+                setTimeout(() => {
+                    if (alertDiv.parentElement) {
+                        alertDiv.remove();
+                    }
+                }, 5000);
+            }
+            
+            exportPDF() {
+                this.showAlert('سيتم إضافة ميزة تصدير PDF قريباً', 'info');
+            }
+            
+            exportExcel() {
+                this.showAlert('سيتم إضافة ميزة تصدير Excel قريباً', 'info');
+            }
+        }
+        
+        // تشغيل التطبيق عند تحميل الصفحة
+        document.addEventListener('DOMContentLoaded', () => {
+            window.financialDashboard = new FinancialDashboard();
+        });
+    </script>
+</body>
+</html>

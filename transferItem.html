@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تحويل بين الفروع</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --primary: #3498db; --secondary: #2c3e50; --accent: #1abc9c;
+            --light: #f5f7fa; --dark: #34495e; --success: #2ecc71;
+            --warning: #f39c12; --danger: #e74c3c; --radius: 16px;
+            --shadow: 0 8px 25px rgba(0,0,0,0.1); --transition: all 0.3s ease;
+            --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-secondary: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            --gradient-success: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+            --gradient-warning: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+            --gradient-danger: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Cairo', sans-serif; }
+        body { background: var(--gradient-primary); min-height: 100vh; padding: 15px; }
+        .container { max-width: 1400px; margin: 0 auto; background: white; border-radius: var(--radius); 
+                    box-shadow: var(--shadow); overflow: hidden; min-height: 95vh; display: flex; flex-direction: column; }
+
+        /* شريط حالة الاتصال ومؤشر التحميل */
+        .connection-status { 
+            position: fixed; top: 15px; left: 15px; background: white; padding: 10px 15px; 
+            border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); z-index: 1000; 
+            font-size: 13px; display: flex; align-items: center; gap: 8px; border-left: 4px solid #28a745; 
+            transition: var(--transition); 
+        }
+        .connection-status.connected { border-left-color: #28a745; }
+        .connection-status.connecting { border-left-color: #ffc107; }
+        .connection-status.disconnected { border-left-color: #dc3545; }
+        
+        .loading-spinner { 
+            display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+            z-index: 9999; background: rgba(255,255,255,0.95); padding: 30px; border-radius: var(--radius); 
+            box-shadow: var(--shadow); text-align: center; 
+        }
+        .spinner-border { 
+            width: 3rem; height: 3rem; border: 0.3em solid currentColor; border-right-color: transparent; 
+            border-radius: 50%; animation: spinner-border 0.75s linear infinite; 
+        }
+
+        /* الهيدر والمحتوى الرئيسي */
+        .header { 
+            background: var(--gradient-secondary); color: white; padding: 25px; text-align: center; 
+            position: relative; overflow: hidden; 
+        }
+        .header::before { 
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; 
+            background: var(--gradient-primary); 
+        }
+        .header h1 { 
+            font-size: 28px; margin-bottom: 10px; display: flex; align-items: center; 
+            justify-content: center; gap: 12px; 
+        }
+        .user-info { 
+            background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); padding: 20px; 
+            border-radius: 12px; display: flex; justify-content: space-between; align-items: center; 
+            flex-wrap: wrap; gap: 15px; margin-top: 15px; 
+        }
+        .user-info div { 
+            display: flex; align-items: center; gap: 10px; padding: 10px 15px; 
+            background: rgba(255,255,255,0.2); border-radius: 8px; 
+        }
+
+        .main-content { 
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); 
+            gap: 20px; padding: 25px; flex: 1; overflow: auto; 
+        }
+        .section { 
+            background: rgba(255,255,255,0.95); border-radius: var(--radius); padding: 25px; 
+            box-shadow: var(--shadow); border: 1px solid rgba(255,255,255,0.3); display: flex; flex-direction: column; 
+        }
+        .section-title { 
+            background: var(--gradient-primary); color: white; padding: 15px 20px; 
+            border-radius: 12px; margin: -25px -25px 20px -25px; text-align: center; 
+            font-size: 18px; font-weight: 700; display: flex; align-items: center; 
+            justify-content: center; gap: 10px; 
+        }
+
+        /* النماذج والأزرار */
+        .form-group { margin-bottom: 20px; position: relative; }
+        .form-group label { 
+            display: block; margin-bottom: 8px; font-weight: 600; color: var(--secondary); 
+            display: flex; align-items: center; gap: 8px; font-size: 15px; 
+        }
+        .form-control { 
+            width: 100%; padding: 14px 16px; border: 2px solid #e8ecef; border-radius: 10px; 
+            font-size: 15px; transition: var(--transition); background: white; font-family: inherit; 
+        }
+        .form-control:focus { 
+            border-color: var(--primary); outline: none; 
+            box-shadow: 0 0 0 3px rgba(52,152,219,0.1); transform: translateY(-2px); 
+        }
+        .form-control.error { border-color: var(--danger); box-shadow: 0 0 0 3px rgba(231,76,60,0.1); }
+        .error-message { color: var(--danger); font-size: 12px; margin-top: 5px; display: none; }
+
+        .btn { 
+            padding: 14px 28px; border: none; border-radius: 10px; font-size: 15px; font-weight: 700; 
+            cursor: pointer; transition: var(--transition); display: flex; align-items: center; 
+            gap: 10px; justify-content: center; 
+        }
+        .btn-primary { background: var(--gradient-primary); color: white; }
+        .btn-secondary { background: var(--gradient-secondary); color: white; }
+        .btn-success { background: var(--gradient-success); color: white; }
+        .btn-warning { background: var(--gradient-warning); color: white; }
+        .btn-danger { background: var(--gradient-danger); color: white; }
+        .btn:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
+
+        /* نتائج البحث وقائمة العناصر */
+        .search-results { 
+            max-height: 200px; overflow-y: auto; border: 2px solid #e8ecef; 
+            border-radius: 10px; margin-top: 8px; background: white; box-shadow: var(--shadow); 
+            display: none; position: absolute; width: calc(100% - 32px); z-index: 100; top: 100%; 
+        }
+        .search-item { 
+            padding: 12px 15px; border-bottom: 1px solid #f1f2f6; cursor: pointer; 
+            transition: var(--transition); line-height: 1.4; 
+        }
+        .search-item:hover { background: var(--gradient-primary); color: white; transform: translateX(-5px); }
+        .search-item:last-child { border-bottom: none; }
+
+        .items-list { 
+            flex: 1; overflow-y: auto; border: 2px solid #e8ecef; border-radius: 10px; 
+            margin-top: 15px; background: white; 
+        }
+        .item-row { 
+            display: grid; grid-template-columns: 40px 1fr 80px 100px 100px 100px; gap: 12px; 
+            padding: 15px; border-bottom: 1px solid #f1f2f6; align-items: center; transition: var(--transition); 
+        }
+        .item-row:hover { background: #f8f9fa; }
+        .item-row.header { 
+            background: var(--gradient-secondary); color: white; font-weight: 700; 
+            position: sticky; top: 0; border-bottom: none; 
+        }
+
+        /* الملخص والمعلومات */
+        .summary-grid { 
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); 
+            gap: 15px; margin: 20px 0; 
+        }
+        .summary-item { 
+            background: white; padding: 20px; border-radius: 12px; text-align: center; 
+            box-shadow: var(--shadow); border-left: 4px solid var(--primary); 
+        }
+        .summary-value { 
+            font-size: 24px; font-weight: 700; margin-top: 8px; background: var(--gradient-primary); 
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; 
+        }
+
+        .action-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        .inventory-info { 
+            background: rgba(46,204,113,0.1); padding: 15px; border-radius: 10px; 
+            margin-top: 15px; border-right: 4px solid var(--success); display: none; 
+        }
+        .transfer-info { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+
+        /* التنبيهات والرسائل */
+        .toast { 
+            position: fixed; top: 20px; right: 20px; background: var(--success); color: white; 
+            padding: 15px 20px; border-radius: 8px; box-shadow: var(--shadow); z-index: 10000; 
+            display: none; font-weight: 600; animation: slideInRight 0.3s ease; 
+        }
+
+        /* إيصال الطباعة */
+        @media print {
+            body * {
+                visibility: hidden;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            
+            #receiptContainer,
+            #receiptContainer * {
+                visibility: visible;
+            }
+            
+            #receiptContainer {
+                position: fixed;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 20px;
+                box-shadow: none;
+                display: block !important;
+                background: white;
+                z-index: 99999;
+            }
+            
+            .print-buttons,
+            .no-print {
+                display: none !important;
+            }
+            
+            .receipt-container {
+                box-shadow: none;
+                border: none;
+                margin: 0;
+                padding: 20px;
+            }
+        }
+
+        .receipt-container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            max-width: 800px;
+            margin: 20px auto;
+            display: none;
+            border: 3px solid #3498db;
+        }
+
+        .receipt-header {
+            text-align: center;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 20px;
+            margin-bottom: 25px;
+        }
+
+        .receipt-header h2 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .receipt-header p {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .receipt-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 25px;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border-right: 4px solid #3498db;
+        }
+
+        .receipt-info div {
+            padding: 8px 0;
+            font-size: 15px;
+        }
+
+        .receipt-items {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            border: 2px solid #ddd;
+            font-size: 14px;
+        }
+
+        .receipt-items th {
+            background: #34495e;
+            color: white;
+            padding: 15px 10px;
+            text-align: center;
+            border: 1px solid #2c3e50;
+            font-weight: 700;
+        }
+
+        .receipt-items td {
+            padding: 12px 8px;
+            border-bottom: 1px solid #ddd;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+
+        .receipt-summary {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 25px 0;
+            border-right: 4px solid #3498db;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .receipt-summary-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .receipt-footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 25px;
+            border-top: 2px solid #3498db;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .print-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 25px;
+        }
+
+        /* الأنيميشن */
+        @keyframes spinner-border { to { transform: rotate(360deg); } }
+        @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .section { animation: fadeInUp 0.5s ease; }
+
+        /* التجاوب للجوال */
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .container { min-height: 98vh; border-radius: 12px; }
+            .header { padding: 20px 15px; }
+            .header h1 { font-size: 22px; flex-direction: column; gap: 8px; }
+            .user-info { flex-direction: column; gap: 10px; padding: 15px; }
+            .user-info div { justify-content: center; width: 100%; }
+            .main-content { grid-template-columns: 1fr; gap: 15px; padding: 15px; }
+            .section { padding: 20px 15px; border-radius: 12px; }
+            .section-title { margin: -20px -15px 15px -15px; padding: 12px 15px; font-size: 16px; border-radius: 8px; }
+            .form-group { margin-bottom: 15px; }
+            .form-control { padding: 12px 14px; font-size: 14px; }
+            .btn { padding: 12px 20px; font-size: 14px; }
+            .search-results { width: calc(100% - 30px); }
+            .item-row { grid-template-columns: 30px 1fr 60px 80px 80px 80px; gap: 8px; padding: 12px 8px; font-size: 12px; }
+            .summary-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+            .summary-item { padding: 15px; }
+            .summary-value { font-size: 20px; }
+            .action-buttons { grid-template-columns: 1fr; gap: 10px; }
+            .transfer-info { grid-template-columns: 1fr; gap: 10px; }
+            .connection-status { top: 10px; left: 10px; right: 10px; font-size: 12px; padding: 8px 12px; }
+            
+            .receipt-container { padding: 20px 15px; margin: 15px; }
+            .receipt-info { grid-template-columns: 1fr; gap: 10px; padding: 15px; }
+            .receipt-summary-grid { grid-template-columns: 1fr; gap: 10px; }
+            .print-buttons { flex-direction: column; gap: 10px; }
+        }
+
+        @media (max-width: 480px) {
+            .header h1 { font-size: 20px; }
+            .item-row { grid-template-columns: 25px 1fr 50px 70px 70px 70px; font-size: 11px; gap: 5px; }
+            .summary-grid { grid-template-columns: 1fr; }
+            .receipt-items { font-size: 12px; }
+            .receipt-items th, .receipt-items td { padding: 8px 5px; }
+        }
+
+        /* كلاسات مساعدة */
+        .mt-3 { margin-top: 1rem; }
+        .visually-hidden { 
+            position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; 
+            overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; 
+        }
+    </style>
+</head>
+<body>
+    <!-- شريط حالة الاتصال -->
+    <div class="connection-status no-print connecting">
+        <span id="connectionStatus">
+            <i class="fas fa-spinner fa-spin"></i> جاري الاتصال...
+        </span>
+    </div>
+
+    <!-- مؤشر التحميل -->
+    <div id="loadingSpinner" class="loading-spinner no-print">
+        <div class="spinner-border text-primary"></div>
+        <div class="mt-3">جاري التحميل...</div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-exchange-alt"></i> تحويل بين المخازن</h1>
+            <p>نظام نقل الأصناف من فرع إلى آخر</p>
+            
+            <div class="user-info">
+                <div>
+                    <i class="fas fa-user"></i>
+                    <span id="userName">المستخدم: --</span>
+                </div>
+                <div>
+                    <i class="fas fa-calendar"></i>
+                    <span id="currentDate">--</span>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-warning" onclick="transferApp.newTransfer()">
+                        <i class="fas fa-plus"></i> تحويل جديد
+                    </button>
+                    <button class="btn btn-primary" onclick="window.location.href='main.html'">
+                        <i class="fas fa-home"></i> الرئيسية
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- قسم معلومات التحويل -->
+            <div class="section">
+                <div class="section-title"><i class="fas fa-info-circle"></i> معلومات التحويل</div>
+                
+                <div class="transfer-info">
+                    <div class="form-group">
+                        <label for="fromStore"><i class="fas fa-warehouse"></i> الفرع المصدر:</label>
+                        <select id="fromStore" class="form-control">
+                            <option value="">اختر الفرع المصدر</option>
+                        </select>
+                        <div class="error-message" id="fromStoreError">يجب اختيار الفرع المصدر</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="toStore"><i class="fas fa-warehouse"></i> الفرع الهدف:</label>
+                        <select id="toStore" class="form-control">
+                            <option value="">اختر الفرع الهدف</option>
+                        </select>
+                        <div class="error-message" id="toStoreError">يجب اختيار الفرع الهدف</div>
+                        <div class="error-message" id="sameStoreError" style="display: none; color: var(--warning);">
+                            ⚠️ لا يمكن التحويل لنفس المخزن
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="transferDate"><i class="fas fa-calendar-day"></i> تاريخ التحويل:</label>
+                    <input type="date" id="transferDate" class="form-control">
+                </div>
+                
+                <div class="form-group">
+                    <label for="transferRemarks"><i class="fas fa-sticky-note"></i> ملاحظات:</label>
+                    <textarea id="transferRemarks" class="form-control" rows="3" placeholder="ملاحظات حول التحويل..."></textarea>
+                </div>
+            </div>
+
+            <!-- قسم البحث عن الصنف -->
+            <div class="section">
+                <div class="section-title"><i class="fas fa-search"></i> البحث عن الصنف</div>
+                
+                <div class="form-group">
+                    <label for="itemSearch"><i class="fas fa-barcode"></i> كود أو اسم الصنف:</label>
+                    <input type="text" id="itemSearch" class="form-control" placeholder="ابحث بالكود أو الاسم...">
+                    <div class="error-message" id="itemSearchError">يجب اختيار الفرع المصدر أولاً</div>
+                    <div id="itemResults" class="search-results"></div>
+                </div>
+                
+                <div id="inventoryInfo" class="inventory-info">
+                    <div><strong>الرصيد المتاح:</strong> <span id="availableStock">0</span></div>
+                    <div><strong>رقم الدفعة:</strong> <span id="batchNo">-</span></div>
+                    <div><strong>انتهاء الصلاحية:</strong> <span id="expiryDate">-</span></div>
+                </div>
+            </div>
+
+            <!-- قسم إضافة الصنف للتحويل -->
+            <div class="section">
+                <div class="section-title"><i class="fas fa-plus-circle"></i> إضافة صنف للتحويل</div>
+                
+                <div class="form-group">
+                    <label for="transferQty"><i class="fas fa-balance-scale"></i> الكمية المراد تحويلها:</label>
+                    <input type="number" id="transferQty" class="form-control" min="0.01" step="0.01" value="1">
+                    <div class="error-message" id="transferQtyError">الكمية يجب أن تكون أكبر من الصفر</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="batchNoInput"><i class="fas fa-tag"></i> رقم الدفعة:</label>
+                    <input type="text" id="batchNoInput" class="form-control" placeholder="رقم الدفعة">
+                    <div class="error-message" id="batchNoError">يجب إدخال رقم الدفعة</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="expiryDateInput"><i class="fas fa-calendar-times"></i> انتهاء الصلاحية:</label>
+                    <input type="date" id="expiryDateInput" class="form-control">
+                    <div class="error-message" id="expiryDateError">يجب إدخال تاريخ الانتهاء</div>
+                </div>
+                
+                <button class="btn btn-success" onclick="transferApp.addTransferItem()">
+                    <i class="fas fa-cart-plus"></i> إضافة للتحويل
+                </button>
+            </div>
+
+            <!-- قسم الأصناف المضافة -->
+            <div class="section">
+                <div class="section-title"><i class="fas fa-shopping-cart"></i> الأصناف المضافة</div>
+                <div id="transferItemsList" class="items-list">
+                    <div class="item-row header">
+                        <div>#</div>
+                        <div>الصنف</div>
+                        <div>الكمية</div>
+                        <div>الدفعة</div>
+                        <div>الصلاحية</div>
+                        <div>إجراءات</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- الملخص والإجراءات -->
+        <div class="section" style="margin: 20px; flex-shrink: 0;">
+            <div class="section-title"><i class="fas fa-chart-bar"></i> ملخص التحويل</div>
+            
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <div>عدد الأصناف</div>
+                    <div id="totalItems" class="summary-value">0</div>
+                </div>
+                <div class="summary-item">
+                    <div>إجمالي الكمية</div>
+                    <div id="totalQty" class="summary-value">0</div>
+                </div>
+                <div class="summary-item">
+                    <div>الفرع المصدر</div>
+                    <div id="fromStoreName" class="summary-value">-</div>
+                </div>
+                <div class="summary-item">
+                    <div>الفرع الهدف</div>
+                    <div id="toStoreName" class="summary-value">-</div>
+                </div>
+            </div>
+            
+            <div class="action-buttons">
+                <button class="btn btn-danger" onclick="transferApp.cancelTransfer()">
+                    <i class="fas fa-times"></i> إلغاء التحويل
+                </button>
+                <button class="btn btn-success" onclick="transferApp.processTransfer()">
+                    <i class="fas fa-paper-plane"></i> معالجة التحويل
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- إيصال التحويل -->
+    <div id="receiptContainer" class="receipt-container">
+        <div class="receipt-header">
+            <h2><i class="fas fa-exchange-alt"></i> إيصال تحويل مخزون</h2>
+            <p>نظام إدارة المخازن - تحويل بين الفروع</p>
+        </div>
+        
+        <div class="receipt-info">
+            <div><strong>رقم التحويل:</strong> <span id="receiptTransferNo">-</span></div>
+            <div><strong>التاريخ والوقت:</strong> <span id="receiptDateTime">-</span></div>
+            <div><strong>من الفرع:</strong> <span id="receiptFromStore">-</span></div>
+            <div><strong>إلى الفرع:</strong> <span id="receiptToStore">-</span></div>
+            <div><strong>ملاحظات:</strong> <span id="receiptRemarks">-</span></div>
+            <div><strong>المستخدم:</strong> <span id="receiptUser">-</span></div>
+        </div>
+        
+        <h3 style="text-align: center; margin: 20px 0; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;">
+            الأصناف المحولة
+        </h3>
+        
+        <table class="receipt-items">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>كود الصنف</th>
+                    <th>اسم الصنف</th>
+                    <th>الكمية</th>
+                    <th>الوحدة</th>
+                    <th>رقم الدفعة</th>
+                    <th>انتهاء الصلاحية</th>
+                </tr>
+            </thead>
+            <tbody id="receiptItemsBody">
+                <!-- يتم تعبئة العناصر هنا -->
+            </tbody>
+        </table>
+        
+        <div class="receipt-summary">
+            <div class="receipt-summary-grid">
+                <div><strong>إجمالي عدد الأصناف:</strong> <span id="receiptTotalItems">0</span></div>
+                <div><strong>إجمالي الكمية المحولة:</strong> <span id="receiptTotalQty">0</span></div>
+            </div>
+        </div>
+        
+        <div class="receipt-footer">
+            <p>شكراً لاستخدامكم نظام إدارة المخازن</p>
+            <p>هذا الإيصال يؤكد عملية التحويل بين المخازن</p>
+            <div class="print-buttons no-print">
+                <button class="btn btn-primary" onclick="transferApp.printReceipt()">
+                    <i class="fas fa-print"></i> طباعة الإيصال
+                </button>
+                <button class="btn btn-secondary" onclick="transferApp.closeReceipt()">
+                    <i class="fas fa-times"></i> إغلاق الإيصال
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+        class TransferApp {
+            constructor() {
+                this.SUPABASE_URL = 'https://rvjacvrrpguehbapvewe.supabase.co';
+                this.SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2amFjdnJycGd1ZWhiYXB2ZXdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwMjUxNTksImV4cCI6MjA3ODYwMTE1OX0.wSavKzxKOF7-56G-pzDMtbXNrCNAbGs0wvadw-cilBg';
+                this.supabase = null;
+                this.isOnline = false;
+                
+                this.state = {
+                    transferLines: [],
+                    currentItem: null,
+                    fromStore: null,
+                    toStore: null,
+                    searchTimer: null
+                };
+                
+                this.init();
+            }
+
+            async init() {
+                this.dom = this._initDOM();
+                this._bindEvents();
+                const connected = await this.initSupabase();
+                
+                if (connected) {
+                    await this.loadUserInfo();
+                    await this.loadStores();
+                    this.setCurrentDate();
+                    this.addEnterNavigation();
+                } else {
+                    this.showError('فشل في الاتصال بقاعدة البيانات. يرجى التحقق من الاتصال بالإنترنت.');
+                }
+            }
+
+            _initDOM() {
+                const dom = {};
+                const ids = [
+                    'connectionStatus', 'loadingSpinner', 'fromStore', 'toStore', 
+                    'transferDate', 'transferRemarks', 'itemSearch', 'itemResults', 
+                    'inventoryInfo', 'availableStock', 'batchNo', 'expiryDate', 
+                    'transferQty', 'batchNoInput', 'expiryDateInput', 'transferItemsList', 
+                    'totalItems', 'totalQty', 'fromStoreName', 'toStoreName', 'toast',
+                    'userName', 'currentDate', 'fromStoreError', 'toStoreError',
+                    'sameStoreError', 'itemSearchError', 'transferQtyError',
+                    'batchNoError', 'expiryDateError'
+                ];
+                
+                ids.forEach(id => {
+                    dom[id] = document.getElementById(id);
+                });
+                
+                return dom;
+            }
+
+            async initSupabase() {
+                try {
+                    this.showLoading(true);
+                    this.updateConnectionStatus('connecting', '<i class="fas fa-spinner fa-spin"></i> جاري الاتصال...');
+                    
+                    console.log('🔄 جاري تهيئة Supabase...');
+                    this.supabase = supabase.createClient(this.SUPABASE_URL, this.SUPABASE_KEY);
+                    
+                    // اختبار الاتصال
+                    const { data, error } = await this.supabase
+                        .from('stores')
+                        .select('store_id')
+                        .limit(1);
+                    
+                    if (error) throw error;
+
+                    this.isOnline = true;
+                    this.updateConnectionStatus('connected', '<i class="fas fa-cloud-check"></i> متصل بالسحابة');
+                    console.log('✅ Supabase متصل بنجاح');
+                    return true;
+                    
+                } catch (error) {
+                    console.error('❌ فشل في الاتصال بـ Supabase:', error);
+                    this.isOnline = false;
+                    this.updateConnectionStatus('disconnected', '<i class="fas fa-cloud-slash"></i> غير متصل');
+                    this.showError('فشل في الاتصال بقاعدة البيانات: ' + error.message);
+                    return false;
+                } finally {
+                    this.showLoading(false);
+                }
+            }
+
+            updateConnectionStatus(type, message) {
+                const statusElement = document.querySelector('.connection-status');
+                if (!statusElement) return;
+                
+                statusElement.className = `connection-status no-print ${type}`;
+                this.dom.connectionStatus.innerHTML = message;
+            }
+
+            showLoading(show) {
+                if (this.dom.loadingSpinner) {
+                    this.dom.loadingSpinner.style.display = show ? 'block' : 'none';
+                }
+            }
+
+            async loadUserInfo() {
+                const username = localStorage.getItem("username") || sessionStorage.getItem("username") || "مستخدم";
+                this.dom.userName.textContent = `المستخدم: ${username}`;
+                this.dom.currentDate.textContent = new Date().toLocaleDateString('ar-EG');
+            }
+
+            async loadStores() {
+                try {
+                    if (!this.supabase) {
+                        this.showError('غير متصل بقاعدة البيانات');
+                        return;
+                    }
+
+                    const { data, error } = await this.supabase
+                        .from('stores')
+                        .select('store_id, store_name')
+                        .order('store_name');
+
+                    if (error) {
+                        console.error('❌ خطأ في تحميل المخازن:', error);
+                        return;
+                    }
+
+                    this.dom.fromStore.innerHTML = '<option value="">اختر الفرع المصدر</option>';
+                    this.dom.toStore.innerHTML = '<option value="">اختر الفرع الهدف</option>';
+
+                    data.forEach(store => {
+                        const optionFrom = document.createElement('option');
+                        optionFrom.value = store.store_id;
+                        optionFrom.textContent = `${store.store_id} - ${store.store_name}`;
+                        this.dom.fromStore.appendChild(optionFrom);
+                        
+                        const optionTo = document.createElement('option');
+                        optionTo.value = store.store_id;
+                        optionTo.textContent = `${store.store_id} - ${store.store_name}`;
+                        this.dom.toStore.appendChild(optionTo);
+                    });
+
+                    console.log(`✅ تم تحميل ${data.length} مخزن`);
+                } catch (error) {
+                    console.error('❌ خطأ في تحميل المخازن:', error);
+                }
+            }
+
+            setCurrentDate() {
+                const today = new Date().toISOString().split('T')[0];
+                this.dom.transferDate.value = today;
+            }
+
+            _bindEvents() {
+                this.dom.itemSearch.addEventListener('input', () => this._onItemSearch());
+                this.dom.fromStore.addEventListener('change', () => this._onStoreChange());
+                this.dom.toStore.addEventListener('change', () => this._checkSameStore());
+                
+                this.addEnterNavigation();
+                
+                window.addEventListener('online', () => {
+                    this.isOnline = true;
+                    this.updateConnectionStatus('connected', '<i class="fas fa-cloud-check"></i> متصل بالسحابة');
+                    this.showMessage('✅ تم استعادة الاتصال بالإنترنت');
+                });
+
+                window.addEventListener('offline', () => {
+                    this.isOnline = false;
+                    this.updateConnectionStatus('disconnected', '<i class="fas fa-cloud-slash"></i> غير متصل');
+                    this.showError('⚠️ فقدان الاتصال بالإنترنت');
+                });
+            }
+
+            _checkSameStore() {
+                const fromStore = this.dom.fromStore.value;
+                const toStore = this.dom.toStore.value;
+                
+                if (fromStore && toStore && fromStore === toStore) {
+                    this.dom.sameStoreError.style.display = 'block';
+                    this.dom.toStore.classList.add('error');
+                } else {
+                    this.dom.sameStoreError.style.display = 'none';
+                    this.dom.toStore.classList.remove('error');
+                    this._updateStoreNames();
+                }
+            }
+
+            addEnterNavigation() {
+                const fields = ['fromStore', 'toStore', 'itemSearch', 'transferQty', 'batchNoInput', 'expiryDateInput'];
+                fields.forEach(fieldId => {
+                    const field = document.getElementById(fieldId);
+                    if (field) {
+                        field.addEventListener('keydown', (e) => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                this.moveToNextField(fieldId);
+                            }
+                        });
+                    }
+                });
+            }
+
+            moveToNextField(currentFieldId) {
+                const fieldOrder = ['fromStore', 'toStore', 'itemSearch', 'transferQty', 'batchNoInput', 'expiryDateInput'];
+                const currentIndex = fieldOrder.indexOf(currentFieldId);
+                if (currentIndex === -1 || currentIndex === fieldOrder.length - 1) return;
+
+                const nextFieldId = fieldOrder[currentIndex + 1];
+                const nextField = document.getElementById(nextFieldId);
+                if (nextField) nextField.focus();
+            }
+
+            async _onItemSearch() {
+                const query = this.dom.itemSearch.value.trim();
+                const storeId = this.dom.fromStore.value;
+
+                if (!query) {
+                    this.dom.itemResults.style.display = 'none';
+                    return;
+                }
+
+                if (!storeId) {
+                    this.showError('⚠️ اختر الفرع المصدر أولاً');
+                    this.dom.itemSearchError.style.display = 'block';
+                    return;
+                }
+
+                this.dom.itemSearchError.style.display = 'none';
+                clearTimeout(this.state.searchTimer);
+                
+                this.state.searchTimer = setTimeout(async () => {
+                    try {
+                        if (!this.supabase) {
+                            this.showError('غير متصل بقاعدة البيانات');
+                            return;
+                        }
+
+                        console.log(`🔍 البحث عن: "${query}" في المخزن: ${storeId}`);
+
+                        let searchResults = [];
+
+                        // البحث في جدول a_master
+                        const { data: masterData, error: masterError } = await this.supabase
+                            .from('a_master')
+                            .select('*')
+                            .eq('store_id', storeId)
+                            .ilike('item_id', `%${query}%`)
+                            .limit(10);
+
+                        if (!masterError && masterData) {
+                            searchResults = [...searchResults, ...masterData];
+                        }
+
+                        // البحث في جدول items للأسماء
+                        const { data: itemsData, error: itemsError } = await this.supabase
+                            .from('items')
+                            .select('*')
+                            .ilike('item_nm', `%${query}%`)
+                            .limit(10);
+
+                        if (itemsData && itemsData.length > 0) {
+                            const itemIds = itemsData.map(item => item.item_id);
+                            const { data: itemsMasterData, error: itemsMasterError } = await this.supabase
+                                .from('a_master')
+                                .select('*')
+                                .eq('store_id', storeId)
+                                .in('item_id', itemIds)
+                                .limit(10);
+
+                            if (!itemsMasterError && itemsMasterData) {
+                                const mergedData = itemsMasterData.map(masterItem => {
+                                    const itemInfo = itemsData.find(item => item.item_id === masterItem.item_id);
+                                    return { ...masterItem, items: itemInfo };
+                                });
+                                searchResults = [...searchResults, ...mergedData];
+                            }
+                        }
+
+                        // إزالة التكرارات
+                        const uniqueResults = searchResults.filter((item, index, self) => 
+                            index === self.findIndex(t => t.item_id === item.item_id)
+                        );
+
+                        console.log(`✅ تم العثور على ${uniqueResults.length} نتيجة`);
+                        this._displayItemResults(uniqueResults);
+
+                    } catch (error) {
+                        console.error('❌ خطأ في البحث:', error);
+                        this.showError('حدث خطأ أثناء البحث');
+                    }
+                }, 500);
+            }
+            
+            _displayItemResults(items) {
+                this.dom.itemResults.innerHTML = '';
+                
+                if (!items || items.length === 0) {
+                    this.dom.itemResults.innerHTML = '<div class="search-item">❌ لا توجد نتائج</div>';
+                    this.dom.itemResults.style.display = 'block';
+                    return;
+                }
+
+                items.forEach(item => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'search-item';
+                    itemDiv.innerHTML = `
+                        <strong>${item.item_id}</strong> - ${item.items?.item_nm || ''}
+                        <br><small>الرصيد: ${item.item_qty || 0} | الدفعة: ${item.batch_no || '-'}</small>
+                    `;
+                    itemDiv.addEventListener('click', () => this._selectItem(item));
+                    this.dom.itemResults.appendChild(itemDiv);
+                });
+                
+                this.dom.itemResults.style.display = 'block';
+            }
+
+            _selectItem(item) {
+                this.state.currentItem = item;
+                this.dom.itemResults.style.display = 'none';
+                
+                this.dom.availableStock.textContent = item.item_qty || 0;
+                this.dom.batchNo.textContent = item.batch_no || '-';
+                this.dom.expiryDate.textContent = item.expiry_date ? 
+                    new Date(item.expiry_date).toLocaleDateString('ar-EG') : '-';
+                this.dom.inventoryInfo.style.display = 'block';
+
+                this.dom.batchNoInput.value = item.batch_no || '';
+                this.dom.expiryDateInput.value = item.expiry_date ? item.expiry_date.split('T')[0] : '';
+
+                this.showMessage(`✅ تم اختيار الصنف: ${item.items?.item_nm || item.item_id}`);
+                
+                setTimeout(() => {
+                    this.dom.transferQty.focus();
+                    this.dom.transferQty.select();
+                }, 100);
+            }
+
+            _onStoreChange() {
+                this.state.fromStore = this.dom.fromStore.value;
+                this.state.currentItem = null;
+                this.dom.itemSearch.value = '';
+                this.dom.itemResults.style.display = 'none';
+                this.dom.inventoryInfo.style.display = 'none';
+                this._checkSameStore();
+            }
+
+            _updateStoreNames() {
+                const fromStoreName = this.dom.fromStore.options[this.dom.fromStore.selectedIndex]?.textContent || '-';
+                const toStoreName = this.dom.toStore.options[this.dom.toStore.selectedIndex]?.textContent || '-';
+                
+                this.dom.fromStoreName.textContent = fromStoreName;
+                this.dom.toStoreName.textContent = toStoreName;
+                
+                this.state.fromStore = this.dom.fromStore.value;
+                this.state.toStore = this.dom.toStore.value;
+            }
+
+            addTransferItem() {
+                this._hideAllErrors();
+
+                if (!this.state.currentItem) {
+                    this.showError('⚠️ اختر صنفاً أولاً من نتائج البحث');
+                    this.dom.itemSearch.focus();
+                    return;
+                }
+
+                if (!this.state.fromStore || !this.state.toStore) {
+                    this.showError('⚠️ اختر الفرع المصدر والهدف');
+                    return;
+                }
+
+                if (this.state.fromStore === this.state.toStore) {
+                    this.showError('⚠️ لا يمكن التحويل لنفس المخزن');
+                    return;
+                }
+
+                const transferQty = parseFloat(this.dom.transferQty.value) || 0;
+                const batchNo = this.dom.batchNoInput.value.trim();
+                const expiryDate = this.dom.expiryDateInput.value;
+
+                let hasError = false;
+
+                if (transferQty <= 0) {
+                    this.dom.transferQtyError.style.display = 'block';
+                    this.dom.transferQty.classList.add('error');
+                    hasError = true;
+                }
+
+                const availableStock = parseFloat(this.dom.availableStock.textContent) || 0;
+                if (transferQty > availableStock) {
+                    this.showError('⚠️ الكمية المراد تحويلها أكبر من الرصيد المتاح');
+                    this.dom.transferQty.focus();
+                    return;
+                }
+
+                if (!batchNo) {
+                    this.dom.batchNoError.style.display = 'block';
+                    this.dom.batchNoInput.classList.add('error');
+                    hasError = true;
+                }
+
+                if (!expiryDate) {
+                    this.dom.expiryDateError.style.display = 'block';
+                    this.dom.expiryDateInput.classList.add('error');
+                    hasError = true;
+                }
+
+                if (hasError) {
+                    this.showError('⚠️ يرجى تصحيح الأخطاء قبل الإضافة');
+                    return;
+                }
+
+                const transferLine = {
+                    item_id: this.state.currentItem.item_id,
+                    item_nm: this.state.currentItem.items?.item_nm || this.state.currentItem.item_id,
+                    transfer_qty: transferQty,
+                    batch_no: batchNo,
+                    expiry_date: expiryDate,
+                    unit_type: this.state.currentItem.unit_type || 'قطعة',
+                    available_stock: availableStock,
+                    buy_price: this.state.currentItem.buy_price || 0
+                };
+
+                this.state.transferLines.push(transferLine);
+                this.renderTransferItems();
+                this._clearItemSelection();
+                
+                this.showMessage('✅ تم إضافة الصنف للتحويل');
+                
+                setTimeout(() => {
+                    this.dom.itemSearch.value = '';
+                    this.dom.itemSearch.focus();
+                }, 100);
+            }
+
+            _hideAllErrors() {
+                const errorElements = ['transferQtyError', 'batchNoError', 'expiryDateError'];
+                errorElements.forEach(id => {
+                    if (this.dom[id]) this.dom[id].style.display = 'none';
+                });
+
+                const inputElements = ['transferQty', 'batchNoInput', 'expiryDateInput'];
+                inputElements.forEach(id => {
+                    if (this.dom[id]) this.dom[id].classList.remove('error');
+                });
+            }
+
+            _clearItemSelection() {
+                this.state.currentItem = null;
+                this.dom.inventoryInfo.style.display = 'none';
+                this.dom.transferQty.value = '1';
+                this.dom.batchNoInput.value = '';
+                this.dom.expiryDateInput.value = '';
+                this._hideAllErrors();
+            }
+
+            renderTransferItems() {
+                const header = this.dom.transferItemsList.querySelector('.item-row.header');
+                this.dom.transferItemsList.innerHTML = '';
+                if (header) this.dom.transferItemsList.appendChild(header);
+
+                this.state.transferLines.forEach((line, index) => {
+                    const row = document.createElement('div');
+                    row.className = 'item-row';
+                    row.innerHTML = `
+                        <div>${index + 1}</div>
+                        <div><strong>${line.item_id}</strong><br><small>${line.item_nm}</small></div>
+                        <div>${line.transfer_qty}</div>
+                        <div>${line.batch_no || '-'}</div>
+                        <div>${line.expiry_date ? new Date(line.expiry_date).toLocaleDateString('ar-EG') : '-'}</div>
+                        <div>
+                            <button onclick="transferApp.editTransferItem(${index})" class="btn" style="background: var(--warning); padding: 5px 10px; font-size: 12px;">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button onclick="transferApp.removeTransferItem(${index})" class="btn" style="background: var(--danger); padding: 5px 10px; font-size: 12px;">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    `;
+                    this.dom.transferItemsList.appendChild(row);
+                });
+
+                this._updateSummary();
+            }
+
+            _updateSummary() {
+                const totalItems = this.state.transferLines.length;
+                const totalQty = this.state.transferLines.reduce((sum, line) => sum + line.transfer_qty, 0);
+                this.dom.totalItems.textContent = totalItems;
+                this.dom.totalQty.textContent = totalQty.toFixed(2);
+            }
+
+            editTransferItem(index) {
+                const line = this.state.transferLines[index];
+                
+                this.dom.transferQty.value = line.transfer_qty;
+                this.dom.batchNoInput.value = line.batch_no || '';
+                this.dom.expiryDateInput.value = line.expiry_date || '';
+
+                this.state.currentItem = {
+                    item_id: line.item_id,
+                    items: { item_nm: line.item_nm },
+                    item_qty: line.available_stock,
+                    batch_no: line.batch_no,
+                    expiry_date: line.expiry_date,
+                    unit_type: line.unit_type,
+                    buy_price: line.buy_price
+                };
+
+                this.dom.availableStock.textContent = line.available_stock || 0;
+                this.dom.batchNo.textContent = line.batch_no || '-';
+                this.dom.expiryDate.textContent = line.expiry_date ? 
+                    new Date(line.expiry_date).toLocaleDateString('ar-EG') : '-';
+                this.dom.inventoryInfo.style.display = 'block';
+
+                this.removeTransferItem(index);
+                this.showMessage('✏️ يمكنك تعديل بيانات الصنف الآن');
+                this.dom.transferQty.focus();
+            }
+
+            removeTransferItem(index) {
+                if (confirm('هل تريد حذف هذا الصنف من التحويل؟')) {
+                    this.state.transferLines.splice(index, 1);
+                    this.renderTransferItems();
+                    this.showMessage('🗑️ تم حذف الصنف');
+                }
+            }
+
+            async processTransfer() {
+                if (this.state.transferLines.length === 0) {
+                    this.showError('⚠️ لا توجد أصناف في التحويل');
+                    return;
+                }
+
+                if (!this.state.fromStore || !this.state.toStore) {
+                    this.showError('⚠️ اختر الفرع المصدر والهدف');
+                    return;
+                }
+
+                if (this.state.fromStore === this.state.toStore) {
+                    this.showError('⚠️ لا يمكن التحويل لنفس الفرع');
+                    return;
+                }
+
+                const userId = localStorage.getItem("user_id") || sessionStorage.getItem("user_id") || 1;
+
+                try {
+                    this.showLoading(true);
+
+                    // الحصول على آخر رقم تحويل
+                    const { data: lastTransfer, error: lastError } = await this.supabase
+                        .from('transfer_stores')
+                        .select('transfer_no')
+                        .order('transfer_no', { ascending: false })
+                        .limit(1);
+
+                    let transferNo = 1;
+                    if (!lastError && lastTransfer && lastTransfer.length > 0) {
+                        transferNo = (lastTransfer[0].transfer_no || 0) + 1;
+                    }
+
+                    // إعداد بيانات التحويل
+                    const transferData = this.state.transferLines.map(line => ({
+                        tran_date: new Date().toISOString(),
+                        from_store: parseInt(this.state.fromStore),
+                        to_store: parseInt(this.state.toStore),
+                        item_id: line.item_id.toString(),
+                        qty: parseFloat(line.transfer_qty),
+                        user_id: parseInt(userId),
+                        batch_no: line.batch_no || null,
+                        expiry_date: line.expiry_date || null,
+                        unit_type: line.unit_type || 'piece',
+                        units_per_package: 1,
+                        conversion_factor: 1,
+                        remarks: this.dom.transferRemarks.value || null,
+                        status: 'معلق',
+                        transfer_no: transferNo,
+                        buy_price: parseFloat(line.buy_price) || 0,
+                        sale_price1: 0,
+                        sale_price2: 0,
+                        sale_price3: 0,
+                        rate: 0,
+                        expires_at: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
+                    }));
+
+                    console.log('🔄 إرسال بيانات التحويل:', transferData);
+
+                    // إدخال البيانات
+                    const { data, error } = await this.supabase
+                        .from('transfer_stores')
+                        .insert(transferData);
+
+                    if (error) {
+                        console.error('❌ خطأ في حفظ التحويل:', error);
+                        
+                        if (error.message.includes('transfer_no') || error.message.includes('integer')) {
+                            console.log('🔄 محاولة الحفظ بدون transfer_no...');
+                            
+                            const transferDataWithoutNo = transferData.map(item => {
+                                const { transfer_no, ...rest } = item;
+                                return rest;
+                            });
+
+                            const { data: data2, error: error2 } = await this.supabase
+                                .from('transfer_stores')
+                                .insert(transferDataWithoutNo);
+
+                            if (error2) throw new Error(error2.message || 'خطأ في حفظ التحويل');
+
+                            this.showMessage('✅ تم معالجة التحويل بنجاح (بدون رقم تحويل)');
+                            this.printTransferReceipt('مؤقت');
+                        } else {
+                            throw new Error(error.message || 'خطأ في حفظ التحويل');
+                        }
+                    } else {
+                        this.showMessage(`✅ تم معالجة التحويل بنجاح - رقم التحويل: ${transferNo}`);
+                        this.printTransferReceipt(transferNo);
+                    }
+                    
+                    this.newTransfer();
+                    
+                } catch (error) {
+                    console.error('❌ خطأ في معالجة التحويل:', error);
+                    this.showError('❌ ' + error.message);
+                } finally {
+                    this.showLoading(false);
+                }
+            }
+
+            printTransferReceipt(transferNo) {
+                try {
+                    // تحديث بيانات الإيصال
+                    document.getElementById('receiptTransferNo').textContent = transferNo;
+                    
+                    const now = new Date();
+                    document.getElementById('receiptDateTime').textContent = 
+                        now.toLocaleDateString('ar-EG') + ' - ' + now.toLocaleTimeString('ar-EG');
+                    
+                    const fromStoreName = this.dom.fromStore.options[this.dom.fromStore.selectedIndex]?.textContent || '-';
+                    const toStoreName = this.dom.toStore.options[this.dom.toStore.selectedIndex]?.textContent || '-';
+                    
+                    document.getElementById('receiptFromStore').textContent = fromStoreName;
+                    document.getElementById('receiptToStore').textContent = toStoreName;
+                    document.getElementById('receiptRemarks').textContent = this.dom.transferRemarks.value || 'لا يوجد';
+                    
+                    const userName = localStorage.getItem("username") || sessionStorage.getItem("username") || "مستخدم";
+                    document.getElementById('receiptUser').textContent = userName;
+
+                    // تعبئة العناصر
+                    const receiptItemsBody = document.getElementById('receiptItemsBody');
+                    receiptItemsBody.innerHTML = '';
+
+                    this.state.transferLines.forEach((item, index) => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${index + 1}</td>
+                            <td><strong>${item.item_id}</strong></td>
+                            <td>${item.item_nm}</td>
+                            <td>${item.transfer_qty}</td>
+                            <td>${item.unit_type || 'قطعة'}</td>
+                            <td>${item.batch_no || '-'}</td>
+                            <td>${item.expiry_date ? new Date(item.expiry_date).toLocaleDateString('ar-EG') : '-'}</td>
+                        `;
+                        receiptItemsBody.appendChild(row);
+                    });
+
+                    // تحديث الإجماليات
+                    document.getElementById('receiptTotalItems').textContent = this.state.transferLines.length;
+                    const totalQty = this.state.transferLines.reduce((sum, item) => sum + item.transfer_qty, 0);
+                    document.getElementById('receiptTotalQty').textContent = totalQty.toFixed(2);
+
+                    // عرض الإيصال
+                    document.getElementById('receiptContainer').style.display = 'block';
+
+                    // التمرير إلى الإيصال
+                    setTimeout(() => {
+                        document.getElementById('receiptContainer').scrollIntoView({ 
+                            behavior: 'smooth' 
+                        });
+                    }, 500);
+
+                    console.log('✅ تم إنشاء الإيصال بنجاح');
+
+                } catch (error) {
+                    console.error('❌ خطأ في إنشاء الإيصال:', error);
+                    this.showError('حدث خطأ أثناء إنشاء الإيصال');
+                }
+            }
+
+            printReceipt() {
+                window.print();
+            }
+
+            closeReceipt() {
+                document.getElementById('receiptContainer').style.display = 'none';
+            }
+
+            newTransfer() {
+                this.state.transferLines = [];
+                this.state.currentItem = null;
+                this.state.fromStore = null;
+                this.state.toStore = null;
+                
+                this.dom.fromStore.value = '';
+                this.dom.toStore.value = '';
+                this.dom.itemSearch.value = '';
+                this.dom.transferQty.value = '1';
+                this.dom.batchNoInput.value = '';
+                this.dom.expiryDateInput.value = '';
+                this.dom.transferRemarks.value = '';
+                this.dom.itemResults.style.display = 'none';
+                this.dom.inventoryInfo.style.display = 'none';
+                this.dom.sameStoreError.style.display = 'none';
+                
+                this._hideAllErrors();
+                this._updateStoreNames();
+                this.renderTransferItems();
+                this.showMessage('📝 تحويل جديد');
+                
+                this.dom.fromStore.focus();
+            }
+
+            cancelTransfer() {
+                if (confirm('هل تريد إلغاء التحويل الحالي؟ سيتم فقدان جميع البيانات.')) {
+                    this.newTransfer();
+                }
+            }
+
+            showMessage(message, type = 'success') {
+                const toast = this.dom.toast;
+                toast.textContent = message;
+                toast.style.display = 'block';
+                toast.style.background = 
+                    type === 'success' ? 'var(--success)' :
+                    type === 'error' ? 'var(--danger)' :
+                    type === 'warning' ? 'var(--warning)' : 'var(--primary)';
+
+                setTimeout(() => {
+                    toast.style.display = 'none';
+                }, 4000);
+            }
+
+            showError(message) {
+                this.showMessage(message, 'error');
+            }
+        }
+
+        // تهيئة التطبيق
+        document.addEventListener('DOMContentLoaded', () => {
+            window.transferApp = new TransferApp();
+        });
+    </script>
+</body>
+</html>

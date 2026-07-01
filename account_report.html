@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تقارير كشوف الحساب</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">     
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        .connection-status {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: #fff;
+            padding: 8px 12px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1000;
+            font-size: 12px;
+        }
+        .connection-status.supabase {
+            border-left: 4px solid #28a745;
+        }
+        .connection-status.local {
+            border-left: 4px solid #dc3545;
+        }
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+            margin-left: 8px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .switch-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            margin-left: 10px;
+            font-size: 12px;
+        }
+        .switch-btn:hover {
+            background: #5a6268;
+        }
+        .search-box {
+            max-width: 300px;
+        }
+        .pagination {
+            margin-top: 1rem;
+        }
+        .page-btn {
+            margin: 0 2px;
+            padding: 5px 10px;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+        }
+        .page-btn.active {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+   
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2rem 0; margin-bottom: 2rem; }
+        .card { box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); border: none; border-radius: 10px; }
+        .nav-tabs .nav-link { border: none; color: #6c757d; font-weight: 500; }
+        .nav-tabs .nav-link.active { color: #667eea; border-bottom: 3px solid #667eea; background: transparent; }
+        .filter-section { background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+        .loading { display: none; text-align: center; padding: 2rem; }
+        .table-hover tbody tr:hover { background-color: rgba(0, 123, 255, 0.1); }
+        .journal-entry .card-header { font-size: 1.1em; }
+        .report-summary .card { margin-bottom: 1rem; }
+        .report-summary .card-body { text-align: center; }
+        .report-summary h5 { font-size: 1.8em; margin-bottom: 0.5rem; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <h1><i class="fas fa-chart-line me-2"></i>تقارير كشوف الحساب</h1>
+            <p class="mb-0">تقارير مالية متقدمة مع فلاتر متعددة</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- تبويبات التقارير -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <ul class="nav nav-tabs">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#" data-report="account-statement">
+                            <i class="fas fa-file-invoice me-2"></i>كشف حساب مفصل
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-report="accounts-summary">
+                            <i class="fas fa-list-alt me-2"></i>كشف إجمالي
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-report="journal-ledger">
+                            <i class="fas fa-book me-2"></i>كشف اليومية
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- عنوان التقرير -->
+        <div class="row mb-4">
+            <div class="col">
+                <h3 id="reportTitle" class="text-primary">كشف حساب مفصل</h3>
+            </div>
+        </div>
+
+        <!-- فلاتر كشف حساب مفصل -->
+        <div id="account-statement-filters" class="filter-section">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="accountId" class="form-label">الحساب *</label>
+                    <select class="form-select" id="accountId" required>
+                        <option value="">اختر الحساب</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="startDate" class="form-label">من تاريخ</label>
+                    <input type="date" class="form-control" id="startDate">
+                </div>
+                <div class="col-md-3">
+                    <label for="endDate" class="form-label">إلى تاريخ</label>
+                    <input type="date" class="form-control" id="endDate">
+                </div>
+                <div class="col-md-2">
+                    <div class="form-check mt-4">
+                        <input class="form-check-input" type="checkbox" id="showZeroBalance">
+                        <label class="form-check-label" for="showZeroBalance">إظهار صافي الرصيد</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- فلاتر كشف إجمالي -->
+        <div id="accounts-summary-filters" class="filter-section" style="display: none;">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="accountTypeId" class="form-label">نوع الحساب</label>
+                    <select class="form-select" id="accountTypeId">
+                    <option value="">جميع أنواع الحسابات</option>
+                </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="balanceFilter" class="form-label">فلترة الرصيد</label>
+                    <select class="form-select" id="balanceFilter">
+                        <option value="">جميع الأرصدة</option>
+                        <option value="positive">رصيد مدين (موجب)</option>
+                        <option value="negative">رصيد دائن (سالب)</option>
+                        <option value="zero">رصيد صفر</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-check mt-4">
+                        <input class="form-check-input" type="checkbox" id="showInactive">
+                        <label class="form-check-label" for="showInactive">إظهار الحسابات غير النشطة</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- فلاتر كشف اليومية -->
+        <div id="journal-ledger-filters" class="filter-section" style="display: none;">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label for="journalStartDate" class="form-label">من تاريخ</label>
+                    <input type="date" class="form-control" id="journalStartDate">
+                </div>
+                <div class="col-md-3">
+                    <label for="journalEndDate" class="form-label">إلى تاريخ</label>
+                    <input type="date" class="form-control" id="journalEndDate">
+                </div>
+                <div class="col-md-3">
+                    <label for="journalAccountId" class="form-label">الحساب</label>
+                    <select class="form-select" id="journalAccountId">
+                        <option value="">جميع الحسابات</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="journalEntryNumber" class="form-label">رقم القيد</label>
+                    <input type="text" class="form-control" id="journalEntryNumber" placeholder="ابحث برقم القيد...">
+                </div>
+            </div>
+        </div>
+
+        <!-- أزرار التحكم -->
+        <div class="row mb-4">
+            <div class="col">
+                <button class="btn btn-primary me-2" id="generateBtn">
+                    <i class="fas fa-play me-2"></i>إنشاء التقرير
+                </button>
+                <button class="btn btn-success me-2" id="printBtn">
+                    <i class="fas fa-print me-2"></i>طباعة
+                </button>
+                <button class="btn btn-info" id="exportBtn">
+                    <i class="fas fa-download me-2"></i>تصدير Excel
+                </button>
+            </div>
+        </div>
+
+        <!-- نتائج التقرير -->
+        <div class="card">
+            <div class="card-body">
+                <div class="loading" id="loading">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">جاري التحميل...</span>
+                    </div>
+                    <p class="mt-2">جاري إنشاء التقرير...</p>
+                </div>
+                <div id="reportResults">
+                    <div class="text-center text-muted">
+                        <i class="fas fa-chart-bar fa-3x mb-3"></i>
+                        <p>اختر نوع التقرير واضبط الفلاتر ثم انقر على "إنشاء التقرير"</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="account_report.js"></script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+[build]
+  command = "npm install"
+  publish = "public"
+  functions = "."
+
+[functions]
+  node_bundler = "esbuild"
+  directory = "."
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/server/:splat"
+  status = 200
+
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  force = false
+
+[[redirects]]
+  from = "/"
+  to = "/index.html"
+  status = 200
+
+[dev]
+  framework = "#static"
+  publish = "public"
+  targetPort = 3000
+  autolaunch = true

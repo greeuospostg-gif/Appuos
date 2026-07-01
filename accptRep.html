@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>تقرير استلام التحويلات الواردة</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <!-- تحميل ملفات الإعداد أولاً -->
+  <script src="./config-env.js"></script>
+  <script src="./config.js"></script>
+  <!-- إضافة Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  body {
+      background-color: #f8f9fa;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+  .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 2rem 0;
+      margin-bottom: 2rem;
+  }
+  .card {
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      border: none;
+      border-radius: 10px;
+  }
+  .table-hover tbody tr:hover {
+      background-color: rgba(0, 123, 255, 0.1);
+  }
+  .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+  }
+  .loading {
+      display: none;
+      text-align: center;
+      padding: 2rem;
+  }
+  
+  :root{--accent:#2f80ed;--ok:#16a34a;--warn:#f59e0b;--err:#ef4444}
+  body{font-family: "Segoe UI", Tahoma, Arial; background:#f3f6fb; margin:0; padding:14px; color:#0f172a}
+  .card{background:#fff;border-radius:8px;padding:12px;box-shadow:0 6px 18px rgba(12,17,43,0.08); margin-bottom:12px}
+  .row{display:flex;gap:10px;align-items:center}
+  .col{flex:1}
+  label{font-size:13px;margin-bottom:6px;display:block}
+  input[type="date"], select, input[type="text"]{width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:6px}
+  button{padding:9px 14px;border-radius:6px;border:0;cursor:pointer;font-weight:600}
+  .btn-primary{background:var(--accent);color:#fff}
+  .btn-outline{background:transparent;border:1px solid #cbd5e1}
+  .controls{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  @media(max-width:900px){.controls{grid-template-columns:repeat(2,1fr)}}
+  .table-wrap{overflow:auto;max-height:62vh;border:1px solid #e6eef8;border-radius:6px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{padding:8px 10px;border-bottom:1px solid #eef2f7;text-align:center}
+  th{background:linear-gradient(90deg,var(--accent),#2563eb);color:#fff;position:sticky;top:0}
+  .status-pending{background:#fde68a;color:#92400e;padding:6px 10px;border-radius:16px;display:inline-block}
+  .status-completed{background:#bbf7d0;color:#064e3b;padding:6px 10px;border-radius:16px;display:inline-block}
+  .status-rejected{background:#fecaca;color:#7f1d1d;padding:6px 10px;border-radius:16px;display:inline-block}
+  .status-auto_returned{background:#e0e7ff;color:#1e3a8a;padding:6px 10px;border-radius:16px;display:inline-block}
+  .small{font-size:12px;color:#475569}
+  .top-actions{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .summary{display:flex;gap:12px;align-items:center}
+  .summary .item{background:#f8fafc;padding:8px;border-radius:6px;border:1px solid #e6eef8;font-weight:600}
+  /* طباعة */
+  @media print {
+    body *{visibility:hidden}
+    #printArea, #printArea *{visibility:visible}
+    #printArea{position:fixed;left:0;top:0;width:100%}
+  }
+  
+  /* شريط معلومات المستخدم */
+  .user-info-badge {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 14px;
+      z-index: 1000;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      color: white;
+      font-weight: 600;
+  }
+  .user-super-admin {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      border: 2px solid #047857;
+  }
+  .user-normal {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      border: 2px solid #1d4ed8;
+  }
+  
+  /* شريط حالة الاتصال */
+  .connection-status {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      background: #fff;
+      padding: 8px 16px;
+      border-radius: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      z-index: 1000;
+      font-size: 12px;
+      font-weight: 600;
+      color: #374151;
+      border-left: 4px solid #10b981;
+  }
+</style>
+</head>
+<body>
+<!-- شريط معلومات المستخدم -->
+<div id="userInfo" class="user-info-badge">
+    <i class="fas fa-user-circle me-2"></i>جاري التحميل...
+</div>
+
+<!-- شريط حالة الاتصال -->
+<div class="connection-status">
+    <i class="fas fa-database me-2"></i>Supabase مباشر
+</div>
+
+<div class="card">
+  <div class="top-actions">
+    <div style="display:flex;gap:10px;align-items:center">
+      <h3 style="margin:0">📥 تقرير استلام التحويلات الواردة</h3>
+      <div class="small">اختر فرع الهدف وفترة التقرير</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <div class="summary">
+        <div class="item">عدد التحويلات: <span id="resultCount">0</span></div>
+        <div class="item">إجمالي الكميات: <span id="resultQty">0.00</span></div>
+      </div>
+      <button class="btn btn-primary" id="btnReload">تحديث</button>
+    </div>
+  </div>
+
+  <div class="controls card" style="padding:12px">
+    <div>
+      <label for="fromDate">من تاريخ</label>
+      <input type="date" id="fromDate">
+    </div>
+    <div>
+      <label for="toDate">إلى تاريخ</label>
+      <input type="date" id="toDate">
+    </div>
+    <div>
+      <label for="filterToStore">فرع الهدف</label>
+      <select id="filterToStore"><option value="0">الكل</option></select>
+    </div>
+    <div>
+      <label for="qSearch">بحث (رقم تحويل / صنف / ملاحظة)</label>
+      <input type="text" id="qSearch" placeholder="اكتب للبحث...">
+    </div>
+    <div style="display:flex;align-items:end;gap:8px">
+      <button class="btn btn-primary" id="btnSearch">عرض التقرير</button>
+      <button class="btn btn-outline" id="btnClear">مسح</button>
+      <button class="btn btn-outline" id="btnPrint">🖨️ طباعة</button>
+    </div>
+  </div>
+</div>
+
+<div id="printArea" class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <div><strong>تقرير استلام التحويلات الواردة</strong><div class="small" id="periodText"></div></div>
+    <div class="small">تاريخ التقرير: <span id="reportDate"></span></div>
+  </div>
+
+  <div class="table-wrap">
+    <table id="reportTable">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>رقم التحويل</th>
+          <th>التاريخ</th>
+          <th>من مخزن</th>
+          <th>إلى مخزن</th>
+          <th>رمز الصنف</th>
+          <th>اسم الصنف</th>
+          <th>الكمية</th>
+          <th>الدفعة</th>
+          <th>الصلاحية</th>
+          <th>حالة</th>
+          <th>ملاحظات</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- تُملأ ديناميكياً -->
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  // transfer_report.js - Frontend for Transfer Reports with Golden Permissions System
+  class TransferReportsApp {
+    constructor() {
+      this.SUPABASE_URL = 'https://rvjacvrrpguehbapvewe.supabase.co';
+      this.SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2amFjdnJycGd1ZWhiYXB2ZXdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwMjUxNTksImV4cCI6MjA3ODYwMTE1OX0.wSavKzxKOF7-56G-pzDMtbXNrCNAbGs0wvadw-cilBg';
+      
+      this.supabase = null;
+      this.state = {
+        stores: [],
+        transfers: [],
+        filters: {
+          from_date: '',
+          to_date: '',
+          to_store: '0',
+          search_query: ''
+        },
+        isLoading: false
+      };
+      
+      // ======================== 🔑 تطبيق قاعدة الصلاحيات الذهبية ========================
+      this.userStoreId = localStorage.getItem('store_id') || '0';
+      this.userName = localStorage.getItem('username') || 'مستخدم';
+      this.isSuperAdmin = this.userStoreId === '9999'; // المستخدم الخاص (9999)
+      // 💎 قاعدة الصلاحيات: "9999 = كل المخازن | ≠9999 = مخزنه فقط"
+      
+      this.dom = this._initDOM();
+      this.supabase = this._initSupabase();
+      this._setupEventListeners();
+      this.init();
+    }
+
+    // ======================== 🔌 تهيئة Supabase ========================
+    _initSupabase() {
+      try {
+        if (typeof supabaseUrl !== 'undefined' && typeof supabaseKey !== 'undefined') {
+          return supabase.createClient(supabaseUrl, supabaseKey);
+        } else {
+          return supabase.createClient(this.SUPABASE_URL, this.SUPABASE_KEY);
+        }
+      } catch (error) {
+        console.error('❌ Failed to initialize Supabase:', error);
+        return null;
+      }
+    }
+
+    // ======================== 🏗️ تهيئة DOM ========================
+    _initDOM() {
+      return {
+        // عناصر الفلاتر
+        fromDate: document.getElementById('fromDate'),
+        toDate: document.getElementById('toDate'),
+        filterToStore: document.getElementById('filterToStore'),
+        qSearch: document.getElementById('qSearch'),
+        
+        // الأزرار
+        btnSearch: document.getElementById('btnSearch'),
+        btnReload: document.getElementById('btnReload'),
+        btnClear: document.getElementById('btnClear'),
+        btnPrint: document.getElementById('btnPrint'),
+        
+        // عناصر العرض
+        resultCount: document.getElementById('resultCount'),
+        resultQty: document.getElementById('resultQty'),
+        periodText: document.getElementById('periodText'),
+        reportDate: document.getElementById('reportDate'),
+        reportTable: document.getElementById('reportTable'),
+        tableBody: document.querySelector('#reportTable tbody'),
+        userInfo: document.getElementById('userInfo')
+      };
+    }
+
+    // ======================== 🎯 إعداد مستمعي الأحداث ========================
+    _setupEventListeners() {
+      // أزرار التحكم
+      this.dom.btnSearch.addEventListener('click', () => this._generateReport());
+      this.dom.btnReload.addEventListener('click', () => this._generateReport());
+      this.dom.btnClear.addEventListener('click', () => this._clearFilters());
+      this.dom.btnPrint.addEventListener('click', () => this._printReport());
+
+      // تفعيل Enter في حقل البحث
+      this.dom.qSearch.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          this._generateReport();
+        }
+      });
+    }
+
+    // ======================== 🚀 تهيئة التطبيق ========================
+    async init() {
+      this._updateUserInfoUI();
+      await this._loadStores();
+      this._setDefaultDates();
+      await this._generateReport();
+      this._showAlert('✅ تم تهيئة نظام تقارير التحويلات مع تطبيق الصلاحيات', 'success');
+    }
+
+    // ======================== 🔑 تحديث معلومات المستخدم في الواجهة ========================
+    _updateUserInfoUI() {
+      if (!this.dom.userInfo) return;
+      
+      // تحديث شريط معلومات المستخدم
+      this.dom.userInfo.className = this.isSuperAdmin ? 'user-info-badge user-super-admin' : 'user-info-badge user-normal';
+      
+      this.dom.userInfo.innerHTML = `
+        <i class="fas ${this.isSuperAdmin ? 'fa-crown' : 'fa-store'} me-2"></i>
+        ${this.userName} | 
+        ${this.isSuperAdmin ? '👑 مدير عام (صلاحيات كاملة)' : `🏪 مخزن: ${this.userStoreId}`}
+      `;
+    }
+
+    // ======================== 📥 تحميل المخازن مع تطبيق الصلاحيات ========================
+    async _loadStores() {
+      try {
+        console.log('🔄 جاري جلب المخازن من Supabase');
+        
+        if (!this.supabase) {
+          throw new Error('Supabase client not initialized');
+        }
+        
+        const { data, error } = await this.supabase
+          .from('stores')
+          .select('*')
+          .order('store_id');
+        
+        if (error) throw error;
+        
+        this.state.stores = data || [];
+        console.log(`✅ تم تحميل ${this.state.stores.length} مخزن من Supabase`);
+        
+        // تطبيق الصلاحيات في عرض المخازن
+        this._renderStoresDropdown();
+        
+      } catch (error) {
+        console.error("❌ Error loading stores:", error);
+        this._showAlert("خطأ في تحميل المخازن", "danger");
+      }
+    }
+
+    // ======================== 🎨 عرض المخازن في Dropdown مع تطبيق الصلاحيات ========================
+    _renderStoresDropdown() {
+      if (!this.dom.filterToStore) return;
+      
+      let storesOptions = '<option value="0">الكل</option>';
+      
+      // 🔐 تطبيق قاعدة الصلاحيات الذهبية
+      if (this.isSuperAdmin) {
+        // 💎 المستخدم الخاص (9999): يرى جميع المخازن
+        storesOptions += this.state.stores.map(store => `
+          <option value="${store.store_id}">${this._escapeHtml(store.store_name)}</option>
+        `).join('');
+      } else {
+        // 💎 المستخدم العادي: يرى مخزنه فقط
+        const userStore = this.state.stores.find(store => store.store_id == this.userStoreId);
+        if (userStore) {
+          storesOptions += `<option value="${userStore.store_id}">${this._escapeHtml(userStore.store_name)}</option>`;
+        }
+      }
+      
+      this.dom.filterToStore.innerHTML = storesOptions;
+      
+      // 🔒 تحديد مخزن المستخدم العادي تلقائياً وعدم السماح بالتعديل
+      if (!this.isSuperAdmin && this.userStoreId !== '0') {
+        this.dom.filterToStore.value = this.userStoreId;
+        this.dom.filterToStore.disabled = true; // غير قابل للتعديل للمستخدم العادي
+      }
+    }
+
+    // ======================== 📅 تعيين التواريخ الافتراضية ========================
+    _setDefaultDates() {
+      const today = new Date().toISOString().split('T')[0];
+      const firstDay = new Date();
+      firstDay.setDate(1);
+      
+      if (this.dom.fromDate) {
+        this.dom.fromDate.value = firstDay.toISOString().split('T')[0];
+      }
+      
+      if (this.dom.toDate) {
+        this.dom.toDate.value = today;
+      }
+    }
+
+    // ======================== 🚀 إنشاء التقرير مع تطبيق الصلاحيات ========================
+    async _generateReport() {
+      this._setLoading(true);
+      
+      try {
+        const filters = this._getCurrentFilters();
+        const transfers = await this._generateReportFromSupabase(filters);
+
+        if (transfers) {
+          this.state.transfers = transfers;
+          this._renderReport();
+          this._updateSummary();
+          this._showAlert('✅ تم إنشاء التقرير بنجاح', 'success');
+        } else {
+          this._showAlert("❌ لم يتم العثور على بيانات", "warning");
+        }
+      } catch (error) {
+        console.error("❌ Error generating report:", error);
+        this._showAlert(`❌ خطأ في إنشاء التقرير: ${error.message}`, "danger");
+      } finally {
+        this._setLoading(false);
+      }
+    }
+
+    // ======================== ☁️ إنشاء التقرير من Supabase مع تطبيق الصلاحيات ========================
+    async _generateReportFromSupabase(filters) {
+      console.log('🔄 جاري إنشاء تقرير التحويلات من Supabase');
+      
+      if (!this.supabase) {
+        throw new Error('Supabase client not initialized');
+      }
+
+      try {
+        let query = this.supabase
+          .from('transfer_stores')
+          .select('*');
+
+        // تطبيق الفلاتر الأساسية
+        if (filters.from_date) {
+          query = query.gte('tran_date', filters.from_date);
+        }
+
+        if (filters.to_date) {
+          query = query.lte('tran_date', filters.to_date);
+        }
+
+        // 🔐 تطبيق قاعدة الصلاحيات الذهبية على الاستعلام
+        if (!this.isSuperAdmin) {
+          // 💎 المستخدم العادي: يرَى فقط التحويلات الموجهة لمخزنه
+          console.log(`🔒 تطبيق الصلاحيات: المستخدم العادي (مخزن ${this.userStoreId})`);
+          query = query.eq('to_store', parseInt(this.userStoreId));
+        } else if (filters.to_store && filters.to_store !== '0') {
+          // 💎 المستخدم الخاص (9999): يمكنه اختيار أي مخزن
+          console.log(`👑 صلاحيات كاملة: اختيار مخزن ${filters.to_store}`);
+          query = query.eq('to_store', parseInt(filters.to_store));
+        } else if (this.isSuperAdmin && filters.to_store === '0') {
+          // 💎 المستخدم الخاص (9999): اختيار "الكل" يعني جميع المخازن
+          console.log('👑 صلاحيات كاملة: عرض جميع المخازن');
+        }
+
+        if (filters.search_query) {
+          query = query.or(`transfer_no.ilike.%${filters.search_query}%,item_id.ilike.%${filters.search_query}%,remarks.ilike.%${filters.search_query}%`);
+        }
+
+        const { data, error } = await query.order('tran_date', { ascending: false });
+
+        if (error) {
+          throw new Error(`خطأ في جلب البيانات: ${error.message}`);
+        }
+
+        console.log(`✅ تم تحميل ${data.length} تحويل من جدول transfer_stores`);
+        return this._formatTransferData(data);
+
+      } catch (error) {
+        console.error('❌ Error fetching from Supabase:', error);
+        throw error;
+      }
+    }
+
+    // ======================== 🎨 تنسيق بيانات التحويل ========================
+    _formatTransferData(data) {
+      return data.map(transfer => {
+        // البحث عن اسم المخزن المصدر والهدف من قائمة المخازن المحملة
+        const fromStore = this.state.stores.find(store => store.store_id === transfer.from_store);
+        const toStore = this.state.stores.find(store => store.store_id === transfer.to_store);
+        
+        return {
+          transfer_no: transfer.transfer_no,
+          tran_date: transfer.tran_date,
+          from_store_name: fromStore ? fromStore.store_name : `الفرع ${transfer.from_store}`,
+          to_store_name: toStore ? toStore.store_name : `الفرع ${transfer.to_store}`,
+          item_id: transfer.item_id,
+          item_nm: transfer.item_id, // يمكن تعديل هذا إذا كان هناك جدول items
+          qty: transfer.qty,
+          batch_no: transfer.batch_no,
+          expiry_date: transfer.expiry_date,
+          status: this._mapTransferStatus(transfer.status),
+          remarks: transfer.remarks
+        };
+      });
+    }
+
+    // ======================== 🗺️ تعيين حالة التحويل ========================
+    _mapTransferStatus(status) {
+      if (!status) return 'pending';
+      
+      const statusMap = {
+        '0': 'pending',
+        '1': 'completed', 
+        '2': 'rejected',
+        '3': 'auto_returned',
+        'معلق': 'pending',
+        'مكتمل': 'completed',
+        'مرفوض': 'rejected',
+        'مرتجع': 'auto_returned'
+      };
+      
+      return statusMap[status] || status;
+    }
+
+    // ======================== 🎯 جمع الفلاتر الحالية مع معلومات الصلاحيات ========================
+    _getCurrentFilters() {
+      const filters = {
+        from_date: this.dom.fromDate?.value || '',
+        to_date: this.dom.toDate?.value || '',
+        to_store: this.dom.filterToStore?.value || '0',
+        search_query: this.dom.qSearch?.value || '',
+        user_store_id: this.userStoreId,
+        is_super_admin: this.isSuperAdmin
+      };
+      
+      // 🔒 للمستخدم العادي، إجبار فلتر المخزن على مخزنه فقط
+      if (!this.isSuperAdmin) {
+        filters.to_store = this.userStoreId;
+      }
+      
+      return filters;
+    }
+
+    // ======================== 🎨 عرض التقرير مع معلومات الصلاحيات ========================
+    _renderReport() {
+      const { transfers } = this.state;
+      
+      if (!transfers || transfers.length === 0) {
+        this.dom.tableBody.innerHTML = `
+          <tr>
+            <td colspan="12" class="text-center text-muted">
+              <i class="fas fa-inbox me-2"></i>لا توجد بيانات للعرض
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      this.dom.tableBody.innerHTML = transfers.map((transfer, index) => `
+        <tr>
+          <td>${index + 1}</td>
+          <td>${this._escapeHtml(transfer.transfer_no || '-')}</td>
+          <td>${this._formatDateTime(transfer.tran_date)}</td>
+          <td>${this._escapeHtml(transfer.from_store_name)}</td>
+          <td>${this._escapeHtml(transfer.to_store_name)}</td>
+          <td>${this._escapeHtml(transfer.item_id || '-')}</td>
+          <td style="text-align:right">${this._escapeHtml(transfer.item_nm || '-')}</td>
+          <td>${Number(transfer.qty || 0).toFixed(2)}</td>
+          <td>${this._escapeHtml(transfer.batch_no || '-')}</td>
+          <td>${this._formatDate(transfer.expiry_date)}</td>
+          <td>${this._renderStatusBadge(transfer.status)}</td>
+          <td style="text-align:right">${this._escapeHtml(transfer.remarks || '')}</td>
+        </tr>
+      `).join('');
+
+      // تحديث نص الفترة مع معلومات الصلاحيات
+      const filters = this._getCurrentFilters();
+      if (this.dom.periodText) {
+        let periodText = `من ${filters.from_date} إلى ${filters.to_date}`;
+        
+        if (this.isSuperAdmin) {
+          const storeText = filters.to_store === '0' ? 'جميع المخازن' : 
+                            this.dom.filterToStore.selectedOptions[0]?.textContent;
+          periodText += ` | فرع الهدف: ${storeText}`;
+        } else {
+          const userStore = this.state.stores.find(store => store.store_id == this.userStoreId);
+          periodText += ` | مخزنك: ${userStore?.store_name || this.userStoreId}`;
+        }
+        
+        this.dom.periodText.textContent = periodText;
+      }
+      if (this.dom.reportDate) {
+        this.dom.reportDate.textContent = new Date().toLocaleString('ar-EG');
+      }
+    }
+
+    // ======================== 📊 تحديث الملخص ========================
+    _updateSummary() {
+      const { transfers } = this.state;
+      const totalQty = transfers.reduce((sum, transfer) => sum + (parseFloat(transfer.qty) || 0), 0);
+      
+      if (this.dom.resultCount) {
+        this.dom.resultCount.textContent = transfers.length;
+      }
+      if (this.dom.resultQty) {
+        this.dom.resultQty.textContent = totalQty.toFixed(2);
+      }
+    }
+
+    // ======================== 🎨 عرض حالة التحويل ========================
+    _renderStatusBadge(status) {
+      if (!status) return '-';
+      
+      const statusMap = {
+        pending: '<span class="status-pending">معلق</span>',
+        completed: '<span class="status-completed">مكتمل</span>',
+        rejected: '<span class="status-rejected">مرفوض</span>',
+        auto_returned: '<span class="status-auto_returned">مرتجع تلقائي</span>'
+      };
+      
+      return statusMap[status] || `<span>${status}</span>`;
+    }
+
+    // ======================== 🔐 التحقق من الصلاحيات ========================
+    _checkPermissions(operation, targetStoreId = null) {
+      // 💎 قاعدة الصلاحيات الذهبية الأساسية
+      if (this.isSuperAdmin) {
+        return true; // المستخدم الخاص (9999) لديه صلاحيات كاملة
+      }
+      
+      // 💎 المستخدم العادي: فقط مخزنه
+      if (targetStoreId && targetStoreId != this.userStoreId) {
+        this._showAlert(`⛔ غير مصرح لك بتنفيذ ${operation} على مخزن آخر`, 'danger');
+        return false;
+      }
+      
+      return true;
+    }
+
+    // ======================== 🗑️ مسح الفلاتر مع تطبيق الصلاحيات ========================
+    _clearFilters() {
+      // مسح جميع الفلاتر ما عدا مخزن المستخدم العادي
+      this.dom.fromDate.value = '';
+      this.dom.toDate.value = '';
+      this.dom.qSearch.value = '';
+      
+      // 🔒 إعادة تعيين مخزن الهدف بناءً على الصلاحيات
+      if (this.isSuperAdmin) {
+        this.dom.filterToStore.value = '0';
+      } else {
+        this.dom.filterToStore.value = this.userStoreId;
+      }
+      
+      // تحديث الملخص
+      if (this.dom.resultCount) this.dom.resultCount.textContent = '0';
+      if (this.dom.resultQty) this.dom.resultQty.textContent = '0.00';
+      this.dom.tableBody.innerHTML = '';
+      
+      this._showAlert('تم مسح الفلاتر', 'info');
+    }
+
+    // ======================== 🖨️ طباعة التقرير ========================
+    _printReport() {
+      if (!this.state.transfers || this.state.transfers.length === 0) {
+        this._showAlert("لا توجد بيانات للطباعة", "warning");
+        return;
+      }
+
+      window.print();
+    }
+
+    // ======================== ⏳ تعيين حالة التحميل ========================
+    _setLoading(loading) {
+      this.state.isLoading = loading;
+      const buttons = [this.dom.btnSearch, this.dom.btnReload, this.dom.btnClear, this.dom.btnPrint];
+      
+      buttons.forEach(btn => {
+        if (btn) {
+          btn.disabled = loading;
+          if (loading) {
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري التحميل...';
+            btn.dataset.originalText = originalText;
+          } else {
+            btn.innerHTML = btn.dataset.originalText || btn.textContent;
+          }
+        }
+      });
+    }
+
+    // ======================== 💬 عرض التنبيهات ========================
+    _showAlert(message, type) {
+      // إزالة التنبيهات القديمة
+      const oldAlerts = document.querySelectorAll('.alert');
+      oldAlerts.forEach(alert => alert.remove());
+
+      const alertDiv = document.createElement("div");
+      alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+      alertDiv.style.cssText = `
+        position: fixed;
+        top: 70px;
+        right: 20px;
+        z-index: 1000;
+        min-width: 300px;
+        text-align: right;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      `;
+      alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      `;
+      
+      document.body.appendChild(alertDiv);
+      
+      setTimeout(() => {
+        if (alertDiv.parentElement) {
+          alertDiv.remove();
+        }
+      }, 5000);
+    }
+
+    // ======================== 📅 تنسيق التاريخ والوقت ========================
+    _formatDateTime(dt) {
+      return dt ? new Date(dt).toLocaleString('ar-EG') : '-';
+    }
+
+    // ======================== 📅 تنسيق التاريخ ========================
+    _formatDate(dt) {
+      return dt ? new Date(dt).toLocaleDateString('ar-EG') : '-';
+    }
+
+    // ======================== 🛡️ حماية من XSS ========================
+    _escapeHtml(unsafe) {
+      if (!unsafe) return '';
+      return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+  }
+
+  // ======================== 🚀 تشغيل التطبيق ========================
+  let transferReportsApp;
+  document.addEventListener("DOMContentLoaded", function() {
+    transferReportsApp = new TransferReportsApp();
+  });
+</script>
+
+</body>
+</html>

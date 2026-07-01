@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة أنواع الحسابات</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --warning-color: #ffc107;
+            --info-color: #17a2b8;
+            --light-color: #f8f9fa;
+            --dark-color: #343a40;
+            --border-radius: 10px;
+            --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --transition: all 0.3s ease;
+        }
+
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', 'Tahoma', 'Geneva', 'Verdana', sans-serif;
+            line-height: 1.6;
+        }
+        
+        .header {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        .header h1 {
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+        
+        .card {
+            box-shadow: var(--box-shadow);
+            border: none;
+            border-radius: var(--border-radius);
+            transition: var(--transition);
+        }
+        
+        .card:hover {
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+        }
+        
+        .card-header {
+            background: rgba(0, 123, 255, 0.05);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+            padding: 1rem 1.5rem;
+            border-radius: var(--border-radius) var(--border-radius) 0 0 !important;
+        }
+        
+        .card-title {
+            color: var(--primary-color);
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        .table-hover tbody tr:hover {
+            background-color: rgba(102, 126, 234, 0.06);
+            transform: translateY(-1px);
+            transition: var(--transition);
+        }
+        
+        .btn-primary {
+            background: var(--primary-gradient);
+            border: none;
+            padding: 10px 20px;
+            font-weight: 600;
+            transition: var(--transition);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-outline-secondary {
+            border-color: #dee2e6;
+            color: #6c757d;
+        }
+        
+        .btn-outline-secondary:hover {
+            background-color: #f8f9fa;
+            border-color: #adb5bd;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+        
+        .connection-status {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            background: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            font-size: 13px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .connection-status.supabase {
+            border-left: 4px solid var(--success-color);
+        }
+        
+        .connection-status.local {
+            border-left: 4px solid var(--danger-color);
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .search-box {
+            max-width: 300px;
+            border-radius: 8px;
+            border: 1.5px solid #dee2e6;
+            padding: 10px 15px;
+            transition: var(--transition);
+        }
+        
+        .search-box:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+        }
+        
+        .pagination {
+            margin-top: 1rem;
+        }
+        
+        .page-btn {
+            margin: 0 3px;
+            padding: 6px 12px;
+            border: 1.5px solid #dee2e6;
+            background: white;
+            cursor: pointer;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: var(--transition);
+        }
+        
+        .page-btn:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .page-btn.active {
+            background: var(--primary-gradient);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        /* تحسينات الجدول */
+        #accountTypesTable {
+            margin-bottom: 0;
+        }
+        
+        #accountTypesTable thead th {
+            background-color: rgba(0, 123, 255, 0.05);
+            color: var(--dark-color);
+            font-weight: 600;
+            padding: 14px 12px;
+            border-bottom: 2px solid rgba(0, 0, 0, 0.08);
+            cursor: pointer;
+            position: relative;
+            user-select: none;
+        }
+        
+        #accountTypesTable thead th.sortable:hover {
+            background-color: rgba(0, 123, 255, 0.1);
+        }
+        
+        #accountTypesTable thead th.sortable::after {
+            content: "↕";
+            margin-right: 5px;
+            font-size: 11px;
+            opacity: 0.6;
+        }
+        
+        #accountTypesTable thead th.sorted-asc::after {
+            content: "↑";
+            opacity: 1;
+        }
+        
+        #accountTypesTable thead th.sorted-desc::after {
+            content: "↓";
+            opacity: 1;
+        }
+        
+        #accountTypesTable tbody td {
+            padding: 12px;
+            vertical-align: middle;
+        }
+        
+        /* أزرار الإجراءات */
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .btn-edit {
+            background-color: rgba(40, 167, 69, 0.1);
+            color: var(--success-color);
+            border: 1px solid rgba(40, 167, 69, 0.3);
+        }
+        
+        .btn-edit:hover {
+            background-color: rgba(40, 167, 69, 0.2);
+            color: var(--success-color);
+        }
+        
+        .btn-delete {
+            background-color: rgba(220, 53, 69, 0.1);
+            color: var(--danger-color);
+            border: 1px solid rgba(220, 53, 69, 0.3);
+        }
+        
+        .btn-delete:hover {
+            background-color: rgba(220, 53, 69, 0.2);
+            color: var(--danger-color);
+        }
+        
+        /* المودال */
+        .modal-content {
+            border-radius: var(--border-radius);
+            border: none;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        .modal-header {
+            background: rgba(0, 123, 255, 0.05);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: var(--border-radius) var(--border-radius) 0 0;
+        }
+        
+        .modal-title {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+        
+        .invalid-feedback {
+            font-size: 13px;
+        }
+        
+        /* رسائل التنبيه */
+        .alert-message {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 1050;
+            min-width: 300px;
+            max-width: 400px;
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        /* تحسين عرض كود الحساب */
+        .code-cell {
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            color: var(--primary-color);
+            background-color: rgba(102, 126, 234, 0.08);
+            padding: 4px 10px;
+            border-radius: 6px;
+            display: inline-block;
+            min-width: 50px;
+            text-align: center;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+        }
+        
+        /* تحسين عرض التواريخ */
+        .date-cell {
+            font-family: monospace;
+            font-size: 13px;
+            color: #6c757d;
+            direction: ltr;
+        }
+        
+        /* التجاوب */
+        @media (max-width: 768px) {
+            .header {
+                padding: 1.5rem 0;
+            }
+            
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .search-box {
+                max-width: 100%;
+                margin-top: 10px;
+            }
+            
+            .connection-status {
+                top: 10px;
+                left: 10px;
+                font-size: 12px;
+                padding: 8px 12px;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+                gap: 5px;
+            }
+            
+            .btn-sm {
+                justify-content: center;
+                width: 100%;
+            }
+            
+            #accountTypesTable thead th {
+                font-size: 14px;
+                padding: 10px 8px;
+            }
+            
+            #accountTypesTable tbody td {
+                font-size: 13px;
+                padding: 8px 6px;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .header {
+                text-align: center;
+                padding: 1.2rem 0;
+            }
+            
+            .card-header {
+                text-align: center;
+            }
+            
+            .table-responsive {
+                font-size: 13px;
+            }
+            
+            .pagination {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .code-cell {
+                font-size: 12px;
+                padding: 3px 6px;
+                min-width: 40px;
+            }
+        }
+        
+        /* تحسينات إضافية */
+        #itemCount {
+            font-size: 14px;
+            color: #6c757d;
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.25rem rgba(102, 126, 234, 0.25);
+        }
+        
+        .form-text {
+            font-size: 12px;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <!-- شريط حالة الاتصال -->
+    <div id="connectionStatus" class="connection-status">
+        <span class="loading-spinner"></span>
+        <span>جاري التحميل...</span>
+    </div>
+
+    <!-- رسائل التنبيه -->
+    <div id="alertContainer"></div>
+
+    <!-- الهيدر -->
+    <div class="header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h1><i class="fas fa-chart-pie me-2"></i>إدارة الحسابات الرئيسية</h1>
+                    <p class="mb-0">إضافة وتعديل وحذف أنواع الحسابات المحاسبية</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- زر الإضافة والبحث -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <button class="btn btn-primary" id="addAccountTypeBtn">
+                    <i class="fas fa-plus me-2"></i>إضافة نوع حساب جديد
+                </button>
+            </div>
+            <div class="col-md-6">
+                <div class="d-flex justify-content-end">
+                    <input type="text" id="searchBox" class="form-control search-box" placeholder="🔎 ابحث باسم أو كود الحساب...">
+                </div>
+            </div>
+        </div>
+
+        <!-- جدول البيانات -->
+        <div class="row">
+            <div class="col">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0"><i class="fas fa-list me-2"></i>قائمة الحسابات الرئيسية</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="loading" id="loading">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">جاري التحميل...</span>
+                            </div>
+                            <p class="mt-2">جاري تحميل البيانات...</p>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="accountTypesTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th class="sortable" data-sort="account_type_id">كود الحساب</th>
+                                        <th class="sortable" data-sort="account_type_name">اسم الحساب الرئيسي</th>
+                                        <th class="sortable" data-sort="created_at">تاريخ الإضافة</th>
+                                        <th>الإجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tableBody">
+                                    <!-- البيانات تأتي من JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- الترقيم وعرض العدد -->
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <div id="itemCount" class="text-muted"></div>
+                            <div id="pagination" class="pagination"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- مودال الإضافة والتعديل -->
+    <div class="modal fade" id="accountTypeModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">إضافة نوع حساب جديد</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="accountTypeForm">
+                        <input type="hidden" id="accountTypeId">
+                        <div class="mb-3">
+                            <label for="accountTypeCode" class="form-label">كود الحساب</label>
+                            <input type="number" class="form-control" id="accountTypeCode" required 
+                                   placeholder="أدخل كود الحساب (رقم)" min="1" step="1">
+                            <div class="form-text">يجب أن يكون كود الحساب رقماً فريداً (مثل: 101، 102، إلخ)</div>
+                            <div class="invalid-feedback">يرجى إدخال كود الحساب (رقم صحيح موجب)</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="accountTypeName" class="form-label">اسم الحساب الرئيسي</label>
+                            <input type="text" class="form-control" id="accountTypeName" required 
+                                   placeholder="أدخل اسم الحساب الرئيسي">
+                            <div class="invalid-feedback">يرجى إدخال اسم الحساب الرئيسي</div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="button" class="btn btn-primary" id="saveAccountTypeBtn">حفظ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- السكريبتات -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="./acc_type.js"></script>
+</body>
+</html>

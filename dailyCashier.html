@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>شاشة الكاشير اليومية</title>
+    <!-- الخطوط والمكتبات -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <div id="connectionStatus"></div>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --success-color: #27ae60;
+            --danger-color: #e74c3c;
+            --warning-color: #f39c12;
+            --light-color: #ecf0f1;
+            --dark-color: #34495e;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 15px 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            border: none;
+        }
+        
+        .card-header {
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 10px 10px 0 0 !important;
+            font-weight: bold;
+        }
+        
+        .summary-card {
+            text-align: center;
+            padding: 15px;
+            transition: transform 0.3s;
+        }
+        
+        .summary-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .sales-card {
+            border-top: 4px solid var(--success-color);
+        }
+        
+        .returns-card {
+            border-top: 4px solid var(--danger-color);
+        }
+        
+        .net-card {
+            border-top: 4px solid var(--secondary-color);
+        }
+        
+        .summary-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        .filter-section {
+            background-color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th {
+            background-color: var(--light-color);
+            color: var(--dark-color);
+            font-weight: bold;
+            padding: 12px 15px;
+            text-align: right;
+        }
+        
+        td {
+            padding: 10px 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        
+        .sale-row {
+            border-right: 4px solid var(--success-color);
+        }
+        
+        .return-row {
+            border-right: 4px solid var(--danger-color);
+        }
+        
+        .positive {
+            color: var(--success-color);
+            font-weight: bold;
+        }
+        
+        .negative {
+            color: var(--danger-color);
+            font-weight: bold;
+        }
+        
+        .btn-primary {
+            background-color: var(--secondary-color);
+            border: none;
+        }
+        
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+        
+        /* تنسيقات للعرض على الموبايل */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .filters-section .row {
+                margin-bottom: 10px;
+            }
+            
+            .filters-section .col-md-3 {
+                margin-bottom: 10px;
+            }
+            
+            .summary-cards .col-md-4 {
+                margin-bottom: 15px;
+            }
+            
+            .table-responsive {
+                font-size: 12px;
+            }
+            
+            .table th, .table td {
+                padding: 6px 4px;
+            }
+            
+            .connection-status {
+                position: relative;
+                top: 0;
+                left: 0;
+                margin-bottom: 10px;
+                width: 100%;
+                text-align: center;
+            }
+            
+            .btn-group {
+                flex-direction: column;
+            }
+            
+            .btn-group .btn {
+                margin-bottom: 5px;
+                width: 100%;
+            }
+            
+            /* إخفاء بعض الأعمدة في الجدول على الشاشات الصغيرة */
+            .mobile-hidden {
+                display: none;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .main-content {
+                padding: 10px;
+            }
+            
+            .section-title {
+                font-size: 1.2rem;
+                padding: 10px;
+            }
+            
+            .form-control {
+                font-size: 14px;
+            }
+            
+            .btn {
+                padding: 8px 16px;
+                font-size: 14px;
+            }
+            
+            /* تحسين عرض الجدول */
+            .table-responsive {
+                border: 1px solid #dee2e6;
+            }
+            
+            .badge {
+                font-size: 10px;
+            }
+        }
+
+        /* تحسينات اللمس للجوال */
+        @media (hover: none) and (pointer: coarse) {
+            .btn, .form-control, .table td {
+                min-height: 44px;
+            }
+            
+            .table td {
+                display: flex;
+                align-items: center;
+            }
+        }
+
+        /* تنسيقات إضافية للجدول */
+        .sale-row {
+            background-color: rgba(40, 167, 69, 0.05);
+        }
+
+        .return-row {
+            background-color: rgba(220, 53, 69, 0.05);
+        }
+
+        .positive {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .negative {
+            color: #dc3545;
+            font-weight: bold;
+        }
+
+        /* تحسينات للشاشات الصغيرة جداً */
+        @media (max-width: 400px) {
+            .header h1 {
+                font-size: 1.2rem;
+            }
+            
+            .user-info {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .user-info > div {
+                margin-bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- رأس الصفحة -->
+    <div class="header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h1><i class="fas fa-cash-register me-2"></i>شاشة الخزينة اليومية</h1>
+                    <div class="mt-2">
+                        <span id="cashierName" class="me-3">الكاشير: </span>
+                        <span id="branchName">الفرع: </span>
+                        <span id="currentDate" class="ms-3"></span>
+                    </div>
+                </div>
+                <div class="col-md-6 text-start">
+                    <div class="d-flex justify-content-start">
+                        <button class="btn btn-light me-2" id="refreshData">
+                            <i class="fas fa-sync-alt me-1"></i>تحديث
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mt-4">
+        <!-- بطاقات الملخص -->
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card summary-card sales-card">
+                    <div class="card-body">
+                        <i class="fas fa-shopping-cart fa-2x text-success"></i>
+                        <h5 class="card-title mt-2">إجمالي المبيعات</h5>
+                        <div class="summary-value text-success" id="totalSales">0 ر.س</div>
+                        <p class="card-text" id="totalSalesInvoices">0 فاتورة</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card summary-card returns-card">
+                    <div class="card-body">
+                        <i class="fas fa-undo fa-2x text-danger"></i>
+                        <h5 class="card-title mt-2">إجمالي المرتجعات</h5>
+                        <div class="summary-value text-danger" id="totalReturns">0 ر.س</div>
+                        <p class="card-text" id="totalReturnsInvoices">0 فاتورة</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card summary-card net-card">
+                    <div class="card-body">
+                        <i class="fas fa-chart-line fa-2x text-primary"></i>
+                        <h5 class="card-title mt-2">صافي المبيعات</h5>
+                        <div class="summary-value text-primary" id="netSales">0 ر.س</div>
+                        <p class="card-text" id="netSalesInvoices">0 فاتورة صافية</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- قسم الفلاتر -->
+        <div class="filter-section card">
+            <div class="card-body">
+                <h5 class="card-title"><i class="fas fa-filter me-2"></i>فلاتر البحث</h5>
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="mb-3">
+                            <label for="startDateFilter" class="form-label">من تاريخ</label>
+                            <input type="date" class="form-control" id="startDateFilter">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="mb-3">
+                            <label for="endDateFilter" class="form-label">إلى تاريخ</label>
+                            <input type="date" class="form-control" id="endDateFilter">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="mb-3">
+                            <label for="storeFilter" class="form-label">الفرع</label>
+                            <select class="form-select" id="storeFilter">
+                                <option value="">جميع الفروع</option>
+                                <!-- سيتم تعبئتها من قاعدة البيانات -->
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="mb-3">
+                            <label for="cashierFilter" class="form-label">الكاشير</label>
+                            <select class="form-select" id="cashierFilter">
+                                <option value="">جميع الكاشيرات</option>
+                                <!-- سيتم تعبئتها من قاعدة البيانات -->
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="searchInput" class="form-label">بحث بالمنتج أو رقم الفاتورة</label>
+                            <input type="text" class="form-control" id="searchInput" placeholder="أدخل اسم المنتج أو رقم الفاتورة">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="mb-3">
+                            <label for="typeFilter" class="form-label">نوع الحركة</label>
+                            <select class="form-select" id="typeFilter">
+                                <option value="all">الكل</option>
+                                <option value="sale">مبيعات</option>
+                                <option value="return">مرتجعات</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button class="btn btn-primary w-100 me-2" id="applyFilters">
+                            <i class="fas fa-search me-2"></i>تطبيق الفلاتر
+                        </button>
+                        <button class="btn btn-outline-secondary w-100" id="resetFilters">
+                            <i class="fas fa-undo me-2"></i>إعادة تعيين
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- جدول البيانات -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-table me-2"></i>تفاصيل المبيعات والمرتجعات</h5>
+                <div class="spinner-border spinner-border-sm text-light d-none" id="loadingSpinner" role="status">
+                    <span class="visually-hidden">جاري التحميل...</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>نوع الحركة</th>
+                                <th>التاريخ والوقت</th>
+                                <th>رقم الفاتورة</th>
+                                <th>المنتج</th>
+                                <th>الكمية</th>
+                                <th>سعر البيع</th>
+                                <th>الخصم</th>
+                                <th>الإجمالي</th>
+                                <th>الكاشير</th>
+                                <th>الفرع</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transactionsTable">
+                            <!-- البيانات سيتم إضافتها بواسطة JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="dailyCashier.js"></script>
+</body>
+</html>

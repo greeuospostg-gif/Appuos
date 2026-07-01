@@ -1,0 +1,1607 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+<title>📊 تقرير تحليلي شامل - الفروع</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+:root {
+    --primary-color: #3498db;
+    --secondary-color: #2c3e50;
+    --success-color: #27ae60;
+    --warning-color: #f39c12;
+    --danger-color: #e74c3c;
+    --light-color: #ecf0f1;
+    --dark-color: #34495e;
+    --text-color: #333;
+    --border-radius: 12px;
+    --box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+    --transition: all 0.3s ease;
+}
+
+* { 
+    box-sizing: border-box; 
+    margin:0; 
+    padding:0; 
+    font-family: 'Segoe UI', 'Cairo', Tahoma, Geneva, Verdana, sans-serif; 
+}
+
+body { 
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+    min-height:100vh; 
+    padding:15px;
+    font-size: 14px;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.container { 
+    max-width:100%; 
+    margin:0 auto; 
+    background:white; 
+    border-radius:var(--border-radius); 
+    box-shadow:var(--box-shadow); 
+    overflow:hidden; 
+}
+
+/* ====== شريط الهيدر للجوال ====== */
+.mobile-header {
+    display: none;
+    background: var(--secondary-color);
+    color: white;
+    padding: 15px;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+.mobile-header .menu-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 5px;
+}
+
+.header { 
+    background: linear-gradient(135deg, var(--secondary-color), var(--dark-color)); 
+    color:white; 
+    padding:25px 20px; 
+    text-align:center;
+    position: relative;
+}
+
+.header h1 { 
+    font-size:26px; 
+    margin-bottom:8px;
+    font-weight: 600;
+}
+
+.header p { 
+    opacity: 0.9;
+    font-size: 14px;
+}
+
+/* ====== شريط معلومات المستخدم مع الصلاحيات ====== */
+.user-info { 
+    background:var(--light-color); 
+    padding:12px 15px; 
+    display:flex; 
+    justify-content:space-between; 
+    align-items:center; 
+    flex-wrap: wrap;
+    gap: 10px;
+    border-bottom:2px solid #bdc3c7; 
+}
+
+.user-info .user-name {
+    font-weight: 600;
+    color: var(--secondary-color);
+    font-size: 14px;
+}
+
+/* ====== شريط الصلاحيات الذهبية ====== */
+.permissions-badge {
+    position: fixed;
+    top: 15px;
+    right: 15px;
+    padding: 8px 15px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 1000;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: var(--transition);
+}
+
+.permissions-super-admin {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border: 2px solid #047857;
+    color: white;
+}
+
+.permissions-normal {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    border: 2px solid #1d4ed8;
+    color: white;
+}
+
+.form-group { 
+    margin-bottom:15px; 
+    width: 100%;
+}
+
+.form-group label { 
+    display:block; 
+    margin-bottom:6px; 
+    font-weight:600; 
+    color:var(--secondary-color);
+    font-size: 13px;
+}
+
+.form-control { 
+    width:100%; 
+    padding:12px 15px; 
+    border:2px solid #ddd; 
+    border-radius:8px; 
+    font-size:14px; 
+    transition: var(--transition);
+    background: white;
+}
+
+.form-control:focus { 
+    border-color:var(--primary-color); 
+    outline:none; 
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.form-control:disabled {
+    background-color: #f5f5f5;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.btn { 
+    padding:12px 20px; 
+    border:none; 
+    border-radius:8px; 
+    cursor:pointer; 
+    font-size:14px; 
+    font-weight:600; 
+    display:flex; 
+    align-items:center; 
+    justify-content: center;
+    gap:8px; 
+    transition:var(--transition);
+    min-height: 44px;
+}
+
+.btn:hover { 
+    transform: translateY(-2px); 
+    box-shadow: 0 5px 15px rgba(0,0,0,0.15); 
+}
+
+.btn-primary { 
+    background:linear-gradient(135deg,var(--primary-color),#2980b9); 
+    color:white; 
+}
+
+.btn-success { 
+    background:linear-gradient(135deg,var(--success-color),#229954); 
+    color:white; 
+}
+
+.btn-secondary { 
+    background:linear-gradient(135deg,#6c757d,#5a6268); 
+    color:white; 
+}
+
+.btn-warning { 
+    background:linear-gradient(135deg,var(--warning-color),#e67e22); 
+    color:white; 
+}
+
+.btn-danger { 
+    background:linear-gradient(135deg,var(--danger-color),#c0392b); 
+    color:white; 
+}
+
+.btn-sm {
+    padding: 8px 15px;
+    font-size: 13px;
+    min-height: 38px;
+}
+
+.btn-block {
+    width: 100%;
+}
+
+.results-section { 
+    padding:15px; 
+}
+
+.section-title { 
+    background:linear-gradient(135deg,var(--primary-color),#2980b9); 
+    color:white; 
+    padding:15px; 
+    border-radius:10px; 
+    margin-bottom:20px; 
+    text-align:center; 
+    font-size:16px; 
+    font-weight:bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.results-table { 
+    width:100%; 
+    border-collapse:collapse; 
+    background:white; 
+    border-radius:10px; 
+    overflow:hidden; 
+    box-shadow:0 4px 15px rgba(0,0,0,0.1);
+    font-size: 13px;
+}
+
+.results-table th { 
+    background:var(--dark-color); 
+    color:white; 
+    padding:12px 6px; 
+    text-align:center; 
+    font-weight:bold; 
+    border:1px solid var(--secondary-color); 
+    white-space: nowrap;
+    font-size: 12px;
+}
+
+.results-table td { 
+    padding:10px 6px; 
+    text-align:center; 
+    border:1px solid #ecf0f1; 
+    word-break: break-word;
+}
+
+.results-table tr:nth-child(even) { 
+    background:#f8f9fa; 
+}
+
+.results-table tr:hover { 
+    background:#e8f6f3; 
+}
+
+.loading-overlay { 
+    position:fixed; 
+    top:0; 
+    left:0; 
+    right:0; 
+    bottom:0; 
+    background:rgba(255,255,255,0.9); 
+    display:flex; 
+    justify-content:center; 
+    align-items:center; 
+    z-index:10000; 
+    display:none; 
+    backdrop-filter: blur(3px);
+}
+
+.spinner { 
+    width:50px; 
+    height:50px; 
+    border:5px solid #f3f3f3; 
+    border-top:5px solid var(--primary-color); 
+    border-radius:50%; 
+    animation:spin 1s linear infinite; 
+}
+
+@keyframes spin { 
+    to { transform: rotate(360deg); } 
+}
+
+.error-message { 
+    background-color:#ffebee; 
+    color:#c62828; 
+    padding:15px; 
+    border-radius:8px; 
+    margin:15px 0; 
+    text-align:center; 
+    border-left:4px solid #f44336; 
+    display:none;
+    font-size: 14px;
+}
+
+.toast { 
+    position:fixed; 
+    top:20px; 
+    right:15px; 
+    left:15px;
+    background:var(--success-color); 
+    color:white; 
+    padding:15px; 
+    border-radius:8px; 
+    box-shadow:0 5px 15px rgba(0,0,0,0.3); 
+    z-index:1000; 
+    display:none;
+    text-align: center;
+    font-size: 14px;
+}
+
+.toast.error { 
+    background:var(--danger-color); 
+}
+
+.toast.warning { 
+    background:var(--warning-color); 
+}
+
+.chart-container { 
+    margin:15px 0; 
+    padding:15px; 
+    background:#f8f9fa; 
+    border-radius:8px; 
+    border:1px solid #dee2e6;
+    height: 300px;
+    position: relative;
+}
+
+.controls-row { 
+    display:grid; 
+    grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); 
+    gap:12px; 
+    margin-bottom:20px; 
+}
+
+.action-buttons { 
+    display:flex; 
+    gap:10px; 
+    flex-wrap:wrap; 
+    margin-top:15px; 
+    justify-content: center;
+}
+
+.table-responsive { 
+    overflow-x:auto; 
+    -webkit-overflow-scrolling: touch;
+    border-radius: 8px;
+    margin: 10px 0;
+    position: relative;
+}
+
+.table-responsive::-webkit-scrollbar {
+    height: 6px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 3px;
+}
+
+.no-results { 
+    text-align:center; 
+    padding:30px; 
+    color:#6c757d; 
+    font-size:15px; 
+}
+
+.stats-grid { 
+    display:grid; 
+    grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); 
+    gap:12px; 
+    margin:15px 0; 
+}
+
+.stat-card { 
+    background:white; 
+    padding:15px; 
+    border-radius:10px; 
+    box-shadow:0 5px 15px rgba(0,0,0,0.1); 
+    text-align:center; 
+    border-top:4px solid var(--primary-color);
+    transition: var(--transition);
+}
+
+.stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+}
+
+.stat-card h3 { 
+    color:var(--secondary-color); 
+    margin-bottom:8px; 
+    font-size:13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+}
+
+.stat-value { 
+    font-size:22px; 
+    font-weight:bold; 
+    color:var(--success-color);
+    direction: ltr;
+    font-family: 'Courier New', monospace;
+}
+
+.stat-value.negative { 
+    color:var(--danger-color); 
+}
+
+.mobile-sidebar {
+    position: fixed;
+    top: 0;
+    right: -300px;
+    width: 280px;
+    height: 100%;
+    background: white;
+    z-index: 1001;
+    transition: var(--transition);
+    box-shadow: -5px 0 25px rgba(0,0,0,0.2);
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.mobile-sidebar.active {
+    right: 0;
+}
+
+.sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 1000;
+    display: none;
+    backdrop-filter: blur(3px);
+}
+
+.sidebar-overlay.active {
+    display: block;
+}
+
+.back-to-top {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: var(--primary-color);
+    color: white;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    cursor: pointer;
+    z-index: 999;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    opacity: 0;
+    transition: var(--transition);
+}
+
+.back-to-top.show {
+    opacity: 1;
+}
+
+.back-to-top:hover {
+    transform: translateY(-3px);
+    background: #2980b9;
+}
+
+/* تنسيق الأعمدة الجديدة */
+.returns-cell {
+    color: var(--danger-color);
+    font-weight: bold;
+}
+
+.net-cell {
+    background-color: rgba(52, 152, 219, 0.1);
+    font-weight: bold;
+}
+
+.return-icon {
+    color: var(--danger-color);
+    margin-left: 5px;
+}
+
+.purchase-icon {
+    color: var(--primary-color);
+    margin-left: 5px;
+}
+
+.sale-icon {
+    color: var(--success-color);
+    margin-left: 5px;
+}
+
+/* إظهار صلاحيات المستخدم في الجدول */
+.permissions-info {
+    background: #f8f9fa;
+    padding: 10px;
+    border-radius: 8px;
+    margin: 10px 0;
+    text-align: center;
+    font-size: 13px;
+    border-left: 4px solid var(--primary-color);
+}
+
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+        font-size: 13px;
+    }
+    
+    .mobile-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .header {
+        display: none;
+    }
+    
+    .user-info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .controls-row {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+    }
+    
+    .btn {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .results-table {
+        font-size: 11px;
+        min-width: 900px;
+    }
+    
+    .results-table th {
+        padding: 8px 4px;
+        font-size: 10px;
+    }
+    
+    .results-table td {
+        padding: 8px 4px;
+        font-size: 10px;
+    }
+    
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .chart-container {
+        height: 250px;
+        padding: 10px;
+    }
+    
+    .toast {
+        top: 70px;
+        right: 10px;
+        left: 10px;
+        font-size: 13px;
+        padding: 12px;
+    }
+    
+    .permissions-badge {
+        top: 70px;
+        right: 10px;
+        left: 10px;
+        font-size: 11px;
+        padding: 6px 10px;
+        justify-content: center;
+    }
+}
+</style>
+</head>
+<body>
+<!-- شريط الصلاحيات الذهبية -->
+<div id="permissionsBadge" class="permissions-badge">
+    <i class="fas fa-user-circle"></i> جاري التحميل...
+</div>
+
+<!-- Mobile Header -->
+<div class="mobile-header">
+    <button class="menu-btn" id="mobileMenuBtn"><i class="fas fa-bars"></i></button>
+    <div>
+        <div style="font-size: 16px; font-weight: 600;">📊 تقرير الفروع</div>
+        <div style="font-size: 12px; opacity: 0.8;">تحليل المشتريات - المبيعات - الأرباح</div>
+    </div>
+    <button class="menu-btn" onclick="window.location.href='main.html'"><i class="fas fa-home"></i></button>
+</div>
+
+<!-- Mobile Sidebar -->
+<div class="mobile-sidebar" id="mobileSidebar">
+    <div style="margin-bottom: 20px;">
+        <button class="btn btn-sm btn-secondary btn-block" onclick="closeSidebar()"><i class="fas fa-times"></i> إغلاق</button>
+    </div>
+    <div class="form-group"><label for="sidebarFromDate"><i class="fas fa-calendar-alt"></i> من تاريخ:</label><input type="date" id="sidebarFromDate" class="form-control"></div>
+    <div class="form-group"><label for="sidebarToDate"><i class="fas fa-calendar-alt"></i> إلى تاريخ:</label><input type="date" id="sidebarToDate" class="form-control"></div>
+    <div class="form-group"><label for="sidebarStoreSelect"><i class="fas fa-store"></i> الفرع:</label><select id="sidebarStoreSelect" class="form-control"><option value="">كل الفروع</option></select></div>
+    <div style="margin-top: 20px;">
+        <button class="btn btn-success btn-block" onclick="applySidebarFilters()"><i class="fas fa-filter"></i> تطبيق</button>
+        <button class="btn btn-secondary btn-block" onclick="resetSidebarFilters()" style="margin-top: 10px;"><i class="fas fa-redo"></i> إعادة تعيين</button>
+    </div>
+</div>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+<button class="back-to-top" id="backToTop" onclick="scrollToTop()"><i class="fas fa-arrow-up"></i></button>
+
+<div class="container">
+    <!-- Header -->
+    <div class="header">
+        <h1><i class="fas fa-chart-line"></i> 📊 التقرير التحليلي الشامل للفروع</h1>
+        <p>تحليل المشتريات - المبيعات - المرتجعات - الأرباح</p>
+    </div>
+
+    <!-- User Info -->
+    <div class="user-info">
+        <div>
+            <span class="user-name">مرحباً: <span id="username">مستخدم</span></span>
+            <div style="font-size: 12px; color: #666; margin-top: 5px;"><i class="fas fa-calendar"></i> <span id="currentDate">--/--/----</span></div>
+        </div>
+        <div>
+            <button class="btn btn-primary" onclick="window.location.href='main.html'"><i class="fas fa-home"></i> الرئيسية</button>
+            <button class="btn btn-warning" onclick="exportExcel()" style="margin-left: 10px;"><i class="fas fa-file-excel"></i> Excel</button>
+        </div>
+    </div>
+
+    <!-- Search Section -->
+    <div class="search-section">
+        <div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div><div>جاري تحميل البيانات...</div></div>
+        <div id="errorMessage" class="error-message"></div>
+        
+        <div id="desktopFilters">
+            <div class="controls-row">
+                <div class="form-group"><label for="fromDate"><i class="fas fa-calendar-alt"></i> من تاريخ:</label><input type="date" id="fromDate" class="form-control"></div>
+                <div class="form-group"><label for="toDate"><i class="fas fa-calendar-alt"></i> إلى تاريخ:</label><input type="date" id="toDate" class="form-control"></div>
+                <div class="form-group"><label for="storeSelect"><i class="fas fa-store"></i> الفرع:</label><select id="storeSelect" class="form-control"><option value="">كل الفروع</option></select></div>
+            </div>
+            <div class="action-buttons">
+                <button id="btnFilter" class="btn btn-success"><i class="fas fa-chart-line"></i> عرض التقرير</button>
+                <button id="btnExportExcel" class="btn btn-warning"><i class="fas fa-file-excel"></i> تصدير Excel</button>
+                <button id="btnExportPDF" class="btn btn-danger"><i class="fas fa-file-pdf"></i> تصدير PDF</button>
+                <button id="btnReset" class="btn btn-secondary"><i class="fas fa-redo"></i> إعادة تعيين</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Section -->
+    <div class="results-section">
+        <div class="section-title"><i class="fas fa-table"></i> بيانات التقرير التفصيلي للفروع</div>
+        
+        <!-- معلومات الصلاحيات -->
+        <div id="permissionsInfo" class="permissions-info" style="display: none;">
+            <i class="fas fa-info-circle"></i> <span id="permissionsText">جاري تحميل معلومات الصلاحيات...</span>
+        </div>
+        
+        <div class="chart-container"><canvas id="reportChart"></canvas></div>
+        
+        <div class="table-responsive">
+            <table id="reportTable" class="results-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>اسم الفرع</th>
+                        <th><i class="fas fa-shopping-cart purchase-icon"></i> المشتريات الإجمالية</th>
+                        <th><i class="fas fa-undo-alt return-icon"></i> مرتجع المشتريات</th>
+                        <th><i class="fas fa-shopping-cart purchase-icon"></i> المشتريات الصافية</th>
+                        <th><i class="fas fa-cash-register sale-icon"></i> المبيعات الإجمالية</th>
+                        <th><i class="fas fa-undo-alt return-icon"></i> مرتجع المبيعات</th>
+                        <th><i class="fas fa-cash-register sale-icon"></i> المبيعات الصافية</th>
+                        <th><i class="fas fa-money-bill"></i> المصاريف</th>
+                        <th><i class="fas fa-chart-line"></i> الأرباح الصافية</th>
+                        <th><i class="fas fa-percentage"></i> هامش الربح %</th>
+                    </tr>
+                </thead>
+                <tbody id="reportTableBody">
+                    <tr>
+                        <td colspan="11" style="text-align:center; padding:40px; color:#999;">
+                            <i class="fas fa-chart-bar" style="font-size: 40px; margin-bottom: 15px; display: block; opacity: 0.3;"></i>
+                            ⏳ اختر الفلاتر ثم اضغط "عرض التقرير"
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+    <script>
+        // ======================== 🎯 إعداد Supabase ========================
+        // تغيير اسم المتغير لمنع التضارب
+        const SUPABASE_CONFIG = {
+            URL: 'https://rvjacvrrpguehbapvewe.supabase.co',
+            KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2amFjdnJycGd1ZWhiYXB2ZXdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwMjUxNTksImV4cCI6MjA3ODYwMTE1OX0.wSavKzxKOF7-56G-pzDMtbXNrCNAbGs0wvadw-cilBg'
+        };
+
+        // إنشاء عميل Supabase فريد
+        const supabaseClient = window.supabase.createClient(SUPABASE_CONFIG.URL, SUPABASE_CONFIG.KEY);
+
+        // ======================== 🎯 فئة إدارة التقرير مع الصلاحيات الذهبية ========================
+        class StoreReportManager {
+            constructor() {
+                // 🔑 بيانات المستخدم من نظام الصلاحيات الذهبية
+                this.userStoreId = localStorage.getItem('store_id') || sessionStorage.getItem('store_id') || '0';
+                this.userName = localStorage.getItem('username') || sessionStorage.getItem('username') || 'مستخدم';
+                this.isSuperAdmin = this.userStoreId === '9999'; // 💎 قاعدة الصلاحيات الذهبية
+                
+                this.currentData = [];
+                this.chartInstance = null;
+                this.init();
+            }
+
+            init() {
+                this.cacheElements();
+                this.setupEventListeners();
+                this.setDefaultDates();
+                this.updateCurrentDate();
+                this.updateUserInfo();
+                this.loadStores();
+                this.setupMobileMenu();
+                this.updatePermissionsUI(); // 🔑 تحديث واجهة الصلاحيات
+                
+                // توليد تقرير تلقائي عند التحميل
+                setTimeout(() => this.generateReport(), 1000);
+            }
+
+            cacheElements() {
+                this.el = {};
+                
+                // العناصر الأساسية
+                const ids = [
+                    'fromDate', 'toDate', 'storeSelect', 'reportTableBody',
+                    'btnFilter', 'btnExportExcel', 'btnExportPDF', 'btnReset',
+                    'reportChart', 'loadingOverlay', 'errorMessage',
+                    'username', 'currentDate', 'permissionsBadge',
+                    'permissionsInfo', 'permissionsText'
+                ];
+                
+                ids.forEach(id => {
+                    this.el[id] = document.getElementById(id);
+                });
+            }
+
+            setupEventListeners() {
+                if (this.el.btnFilter) this.el.btnFilter.addEventListener('click', () => this.generateReport());
+                if (this.el.btnExportExcel) this.el.btnExportExcel.addEventListener('click', () => this.exportExcel());
+                if (this.el.btnExportPDF) this.el.btnExportPDF.addEventListener('click', () => this.exportPDF());
+                if (this.el.btnReset) this.el.btnReset.addEventListener('click', () => this.resetFilters());
+                window.addEventListener('scroll', () => this.handleScroll());
+            }
+
+            setupMobileMenu() {
+                const menuBtn = document.getElementById('mobileMenuBtn');
+                const sidebar = document.getElementById('mobileSidebar');
+                const overlay = document.getElementById('sidebarOverlay');
+                
+                if (menuBtn && sidebar && overlay) {
+                    menuBtn.addEventListener('click', () => {
+                        sidebar.classList.add('active');
+                        overlay.classList.add('active');
+                    });
+                    
+                    overlay.addEventListener('click', () => {
+                        sidebar.classList.remove('active');
+                        overlay.classList.remove('active');
+                    });
+                }
+            }
+
+            setDefaultDates() {
+                const today = new Date();
+                const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+                
+                if (this.el.fromDate) {
+                    this.el.fromDate.value = firstDay.toISOString().split('T')[0];
+                }
+                if (this.el.toDate) {
+                    this.el.toDate.value = today.toISOString().split('T')[0];
+                }
+            }
+
+            updateCurrentDate() {
+                const now = new Date();
+                if (this.el.currentDate) {
+                    this.el.currentDate.textContent = now.toLocaleDateString('ar-EG', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                }
+            }
+
+            updateUserInfo() {
+                if (this.el.username) {
+                    this.el.username.textContent = this.userName;
+                }
+            }
+
+            // 🔑 تحديث واجهة الصلاحيات الذهبية
+            updatePermissionsUI() {
+                // تحديث شريط الصلاحيات
+                if (this.el.permissionsBadge) {
+                    this.el.permissionsBadge.className = this.isSuperAdmin ? 
+                        'permissions-badge permissions-super-admin' : 
+                        'permissions-badge permissions-normal';
+                    
+                    this.el.permissionsBadge.innerHTML = `
+                        <i class="fas ${this.isSuperAdmin ? 'fa-crown' : 'fa-store'}"></i>
+                        ${this.userName} | 
+                        ${this.isSuperAdmin ? '👑 مدير عام (صلاحيات كاملة)' : `🏪 مخزن: ${this.userStoreId}`}
+                    `;
+                }
+
+                // تحديث نص معلومات الصلاحيات
+                if (this.el.permissionsText) {
+                    if (this.isSuperAdmin) {
+                        this.el.permissionsText.textContent = '👑 صلاحيات كاملة: يمكنك عرض جميع الفروع';
+                    } else {
+                        this.el.permissionsText.textContent = `🏪 صلاحيات محدودة: يتم عرض مخزنك فقط (${this.userStoreId})`;
+                    }
+                    this.el.permissionsInfo.style.display = 'block';
+                }
+            }
+
+            showLoading(show) {
+                if (this.el.loadingOverlay) {
+                    this.el.loadingOverlay.style.display = show ? 'flex' : 'none';
+                }
+            }
+
+            showError(message) {
+                if (this.el.errorMessage) {
+                    this.el.errorMessage.textContent = message;
+                    this.el.errorMessage.style.display = 'block';
+                    setTimeout(() => {
+                        this.el.errorMessage.style.display = 'none';
+                    }, 5000);
+                }
+            }
+
+            showToast(message, type = 'success') {
+                const toast = document.getElementById('toast');
+                if (toast) {
+                    toast.textContent = message;
+                    toast.className = `toast ${type}`;
+                    toast.style.display = 'block';
+                    
+                    setTimeout(() => {
+                        toast.style.display = 'none';
+                    }, 3000);
+                }
+            }
+
+            // 🔑 تحميل المخازن مع تطبيق الصلاحيات الذهبية
+            async loadStores() {
+                try {
+                    let query = supabaseClient
+                        .from('stores')
+                        .select('store_id, store_name')
+                        .order('store_name');
+                        
+                    const { data, error } = await query;
+                    if (error) throw error;
+                    
+                    const stores = data || [];
+                    const select = this.el.storeSelect;
+                    const sidebarSelect = document.getElementById('sidebarStoreSelect');
+                    
+                    // 🔐 تطبيق قاعدة الصلاحيات الذهبية
+                    let filteredStores = [];
+                    if (this.isSuperAdmin) {
+                        // 💎 المستخدم الخاص (9999): يرى جميع المخازن
+                        filteredStores = stores;
+                        console.log(`👑 صلاحيات كاملة: تحميل جميع ${stores.length} مخزن`);
+                    } else {
+                        // 💎 المستخدم العادي: يرى مخزنه فقط
+                        const userStore = stores.find(store => store.store_id == this.userStoreId);
+                        filteredStores = userStore ? [userStore] : [];
+                        console.log(`🔒 صلاحيات محدودة: تحميل مخزن المستخدم فقط (${this.userStoreId})`);
+                    }
+                    
+                    if (select) {
+                        select.innerHTML = '<option value="">كل الفروع</option>';
+                        filteredStores.forEach(store => {
+                            const option = document.createElement('option');
+                            option.value = store.store_id;
+                            option.textContent = store.store_name;
+                            select.appendChild(option);
+                        });
+                        
+                        // 🔒 إعدادات فلتر المخزن للمستخدم العادي
+                        if (!this.isSuperAdmin && this.userStoreId !== '9999') {
+                            select.value = this.userStoreId;
+                            select.disabled = true; // غير قابل للتعديل للمستخدم العادي
+                            console.log(`🔒 تم قفل فلتر المخزن على: ${this.userStoreId}`);
+                        } else {
+                            select.disabled = false; // قابل للتعديل للمدير العام
+                        }
+                    }
+                    
+                    if (sidebarSelect) {
+                        sidebarSelect.innerHTML = '<option value="">كل الفروع</option>';
+                        filteredStores.forEach(store => {
+                            const option = document.createElement('option');
+                            option.value = store.store_id;
+                            option.textContent = store.store_name;
+                            sidebarSelect.appendChild(option);
+                        });
+                        
+                        if (!this.isSuperAdmin && this.userStoreId !== '9999') {
+                            sidebarSelect.value = this.userStoreId;
+                            sidebarSelect.disabled = true;
+                        } else {
+                            sidebarSelect.disabled = false;
+                        }
+                    }
+                    
+                } catch (error) {
+                    console.error('خطأ في تحميل الفروع:', error);
+                    this.showToast('حدث خطأ في تحميل قائمة الفروع', 'error');
+                }
+            }
+
+            async generateReport() {
+                try {
+                    if (!this.el.fromDate || !this.el.toDate) {
+                        this.showToast('يرجى تحديث الصفحة وإعادة المحاولة', 'warning');
+                        return;
+                    }
+                    
+                    const from = this.el.fromDate.value;
+                    const to = this.el.toDate.value;
+                    const storeId = this.el.storeSelect ? this.el.storeSelect.value : '';
+                    
+                    if (!from || !to) {
+                        this.showToast('يرجى تحديد التاريخين', 'warning');
+                        return;
+                    }
+                    
+                    this.showLoading(true);
+                    
+                    // 🔐 تطبيق قاعدة الصلاحيات الذهبية على فلتر المخزن
+                    let effectiveStoreId = storeId;
+                    if (!this.isSuperAdmin && this.userStoreId !== '9999') {
+                        effectiveStoreId = this.userStoreId; // إجبار مخزن المستخدم العادي
+                        console.log(`🔒 تطبيق الصلاحيات: إجبار فلتر المخزن على: ${effectiveStoreId}`);
+                    }
+                    
+                    console.log(`🔍 جلب تقرير: ${from} إلى ${to}, مخزن: ${effectiveStoreId || 'الكل'}`);
+                    
+                    // جلب جميع البيانات مع تطبيق الصلاحيات
+                    const [stores, purchases, purchasesReturns, sales, salesReturns] = await Promise.all([
+                        this.fetchStores(),
+                        this.fetchData('purchases', from, to, effectiveStoreId),
+                        this.fetchData('purchases_return', from, to, effectiveStoreId),
+                        this.fetchData('sales', from, to, effectiveStoreId),
+                        this.fetchData('sales_return', from, to, effectiveStoreId)
+                    ]);
+                    
+                    // معالجة البيانات
+                    const reportData = this.processData(stores, purchases, purchasesReturns, sales, salesReturns);
+                    
+                    // عرض النتائج
+                    this.renderTable(reportData);
+                    this.renderChart(reportData);
+                    
+                    this.currentData = reportData;
+                    this.showToast('تم تحميل التقرير بنجاح');
+                    
+                } catch (error) {
+                    console.error('خطأ في إنشاء التقرير:', error);
+                    this.showError('حدث خطأ في تحميل البيانات: ' + error.message);
+                    this.showToast('فشل تحميل التقرير', 'error');
+                } finally {
+                    this.showLoading(false);
+                }
+            }
+
+            async fetchStores() {
+                try {
+                    let query = supabaseClient
+                        .from('stores')
+                        .select('store_id, store_name')
+                        .order('store_name');
+                    
+                    // 🔐 تطبيق قاعدة الصلاحيات الذهبية
+                    if (!this.isSuperAdmin && this.userStoreId !== '9999') {
+                        query = query.eq('store_id', this.userStoreId);
+                    }
+                        
+                    const { data, error } = await query;
+                    if (error) {
+                        console.error('خطأ في جلب الفروع:', error);
+                        return [];
+                    }
+                    
+                    console.log(`✅ تم جلب ${data.length} فرع`);
+                    return data || [];
+                } catch (error) {
+                    console.error('استثناء في جلب الفروع:', error);
+                    return [];
+                }
+            }
+
+            async fetchData(tableName, from, to, storeId) {
+                try {
+                    // محاولة جلب البيانات من الجدول المحدد
+                    let query = supabaseClient
+                        .from(tableName)
+                        .select('store_id, total_price, tran_date')
+                        .gte('tran_date', from + 'T00:00:00')
+                        .lte('tran_date', to + 'T23:59:59');
+                        
+                    if (storeId) query = query.eq('store_id', storeId);
+                    
+                    const { data, error } = await query;
+                    
+                    if (error) {
+                        console.log(`⚠️ خطأ في جدول ${tableName}:`, error.message);
+                        
+                        // محاولة الجدول البديل a_master
+                        let tranType = '';
+                        if (tableName === 'purchases') tranType = 'شراء';
+                        else if (tableName === 'sales') tranType = 'بيع';
+                        else if (tableName === 'purchases_return') tranType = 'مرتجع شراء';
+                        else if (tableName === 'sales_return') tranType = 'مرتجع بيع';
+                        
+                        if (tranType) {
+                            let fallbackQuery = supabaseClient
+                                .from('a_master')
+                                .select('store_id, total_price, tran_date')
+                                .eq('tran_type', tranType)
+                                .gte('tran_date', from)
+                                .lte('tran_date', to);
+                                
+                            if (storeId) fallbackQuery = fallbackQuery.eq('store_id', storeId);
+                            
+                            const { data: fallbackData } = await fallbackQuery;
+                            return fallbackData || [];
+                        }
+                        
+                        return [];
+                    }
+                    
+                    console.log(`✅ تم جلب ${data.length} سجل من ${tableName}`);
+                    return data || [];
+                } catch (error) {
+                    console.error(`خطأ في جلب ${tableName}:`, error);
+                    return [];
+                }
+            }
+
+            processData(stores, purchases, purchasesReturns, sales, salesReturns) {
+                if (!stores || !Array.isArray(stores)) {
+                    return [];
+                }
+                
+                return stores.map(store => {
+                    // حساب المشتريات
+                    const storePurchases = purchases.filter(p => p && p.store_id === store.store_id);
+                    const storePurchasesReturns = purchasesReturns.filter(pr => pr && pr.store_id === store.store_id);
+                    
+                    const grossPurchases = storePurchases.reduce((sum, p) => {
+                        const price = parseFloat(p.total_price || p.sale_price || 0);
+                        return sum + (isNaN(price) ? 0 : price);
+                    }, 0);
+                    
+                    const purchasesReturn = storePurchasesReturns.reduce((sum, pr) => {
+                        const price = parseFloat(pr.total_price || pr.sale_price || 0);
+                        return sum + (isNaN(price) ? 0 : price);
+                    }, 0);
+                    
+                    const netPurchases = grossPurchases - purchasesReturn;
+                    
+                    // حساب المبيعات
+                    const storeSales = sales.filter(s => s && s.store_id === store.store_id);
+                    const storeSalesReturns = salesReturns.filter(sr => sr && sr.store_id === store.store_id);
+                    
+                    const grossSales = storeSales.reduce((sum, s) => {
+                        const price = parseFloat(s.sale_price || s.total_price || 0);
+                        return sum + (isNaN(price) ? 0 : price);
+                    }, 0);
+                    
+                    const salesReturn = storeSalesReturns.reduce((sum, sr) => {
+                        const price = parseFloat(sr.total_price || sr.sale_price || 0);
+                        return sum + (isNaN(price) ? 0 : price);
+                    }, 0);
+                    
+                    const netSales = grossSales - salesReturn;
+                    
+                    // حساب الأرباح
+                    const expenses = 0; // يمكن إضافة المصاريف هنا
+                    const netProfit = netSales - netPurchases - expenses;
+                    const profitMargin = netPurchases > 0 ? (netProfit / netPurchases) * 100 : 0;
+                    
+                    return {
+                        store_id: store.store_id,
+                        store_name: store.store_name || 'غير معروف',
+                        gross_purchases: grossPurchases,
+                        purchases_return: purchasesReturn,
+                        net_purchases: netPurchases,
+                        gross_sales: grossSales,
+                        sales_return: salesReturn,
+                        net_sales: netSales,
+                        expenses: expenses,
+                        net_profit: netProfit,
+                        profit_margin: profitMargin,
+                        is_user_store: store.store_id == this.userStoreId
+                    };
+                }).sort((a, b) => b.net_profit - a.net_profit);
+            }
+
+            renderTable(data) {
+                if (!this.el.reportTableBody) {
+                    console.error('❌ خطأ: reportTableBody غير موجود');
+                    this.el.reportTableBody = document.getElementById('reportTableBody');
+                    if (!this.el.reportTableBody) {
+                        this.showError('حدث خطأ في عرض الجدول');
+                        return;
+                    }
+                }
+                
+                if (!data || data.length === 0) {
+                    // 🔑 إضافة معلومات الصلاحيات في رسالة عدم وجود بيانات
+                    let noDataMessage = '';
+                    if (this.isSuperAdmin) {
+                        noDataMessage = `
+                            <tr>
+                                <td colspan="11" style="text-align:center; padding:40px; color:#6c757d;">
+                                    <i class="fas fa-search" style="font-size: 40px; margin-bottom: 15px; display: block; opacity: 0.3;"></i>
+                                    ⚠️ لا توجد بيانات للعرض في الفترة المحددة
+                                </td>
+                            </tr>
+                        `;
+                    } else {
+                        noDataMessage = `
+                            <tr>
+                                <td colspan="11" style="text-align:center; padding:40px; color:#6c757d;">
+                                    <i class="fas fa-search" style="font-size: 40px; margin-bottom: 15px; display: block; opacity: 0.3;"></i>
+                                    ⚠️ لا توجد بيانات لمخزنك (${this.userStoreId}) في الفترة المحددة<br>
+                                    <small style="font-size: 12px; color: #999; margin-top: 10px;">يتم عرض بيانات مخزنك فقط</small>
+                                </td>
+                            </tr>
+                        `;
+                    }
+                    
+                    this.el.reportTableBody.innerHTML = noDataMessage;
+                    return;
+                }
+                
+                // 🔑 إضافة ترويسة توضح الصلاحيات
+                let headerInfo = '';
+                if (data.length > 0) {
+                    const storeFilter = this.el.storeSelect;
+                    const selectedStoreText = storeFilter.selectedOptions[0]?.textContent || '';
+                    
+                    headerInfo = `
+                        <tr class="table-info" style="background-color: #e3f2fd;">
+                            <td colspan="11" style="font-weight: bold; padding: 10px; text-align: center;">
+                                📊 عرض ${data.length} فرع | 
+                                ${this.isSuperAdmin ? 
+                                    (selectedStoreText ? `مخزن: ${selectedStoreText}` : 'جميع الفروع') : 
+                                    `مخزنك: ${selectedStoreText}`
+                                }
+                            </td>
+                        </tr>
+                    `;
+                }
+                
+                let html = headerInfo;
+                data.forEach((row, index) => {
+                    const profitClass = row.net_profit >= 0 ? '' : 'negative';
+                    const profitIcon = row.net_profit >= 0 ? '📈' : '📉';
+                    const userStoreBadge = row.is_user_store ? ' <span class="badge" style="background: #3b82f6; color: white; padding: 2px 6px; border-radius: 10px; font-size: 10px;">مخزنك</span>' : '';
+                    
+                    html += `
+                        <tr ${row.is_user_store ? 'style="background-color: #f0f9ff;"' : ''}>
+                            <td>${index + 1}</td>
+                            <td style="text-align: right; font-weight: 600;">
+                                ${row.store_name}${userStoreBadge}
+                            </td>
+                            
+                            <!-- أعمدة المشتريات -->
+                            <td><span style="font-family: 'Courier New', monospace;">${row.gross_purchases.toFixed(2)}</span></td>
+                            <td class="returns-cell"><span style="font-family: 'Courier New', monospace;">${row.purchases_return.toFixed(2)}</span></td>
+                            <td class="net-cell"><span style="font-family: 'Courier New', monospace;">${row.net_purchases.toFixed(2)}</span></td>
+                            
+                            <!-- أعمدة المبيعات -->
+                            <td><span style="font-family: 'Courier New', monospace;">${row.gross_sales.toFixed(2)}</span></td>
+                            <td class="returns-cell"><span style="font-family: 'Courier New', monospace;">${row.sales_return.toFixed(2)}</span></td>
+                            <td class="net-cell"><span style="font-family: 'Courier New', monospace;">${row.net_sales.toFixed(2)}</span></td>
+                            
+                            <!-- أعمدة النتائج -->
+                            <td><span style="font-family: 'Courier New', monospace;">${row.expenses.toFixed(2)}</span></td>
+                            <td class="${profitClass}">
+                                ${profitIcon} <span style="font-family: 'Courier New', monospace;">${row.net_profit.toFixed(2)}</span>
+                            </td>
+                            <td><span style="font-family: 'Courier New', monospace;">${row.profit_margin.toFixed(2)}%</span></td>
+                        </tr>
+                    `;
+                });
+                
+                this.el.reportTableBody.innerHTML = html;
+            }
+
+            renderChart(data) {
+                if (!this.el.reportChart) {
+                    console.warn('⚠️ عنصر المخطط البياني غير موجود');
+                    return;
+                }
+                
+                if (!data || data.length === 0) {
+                    if (this.chartInstance) {
+                        this.chartInstance.destroy();
+                    }
+                    return;
+                }
+                
+                // 🔑 عرض أفضل 10 فروع فقط في المخطط
+                const displayData = data.slice(0, 10);
+                const labels = displayData.map(row => {
+                    const storeName = row.store_name.length > 15 ? row.store_name.substring(0, 12) + '...' : row.store_name;
+                    return row.is_user_store ? `⭐ ${storeName}` : storeName;
+                });
+                const netPurchasesData = displayData.map(row => row.net_purchases);
+                const netSalesData = displayData.map(row => row.net_sales);
+                const netProfitData = displayData.map(row => row.net_profit);
+                
+                if (this.chartInstance) {
+                    this.chartInstance.destroy();
+                }
+                
+                const ctx = this.el.reportChart.getContext('2d');
+                this.chartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'المشتريات الصافية',
+                                data: netPurchasesData,
+                                backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                                borderColor: 'rgba(54, 162, 235, 1)',
+                                borderWidth: 1,
+                                yAxisID: 'y'
+                            },
+                            {
+                                label: 'المبيعات الصافية',
+                                data: netSalesData,
+                                backgroundColor: 'rgba(75, 192, 192, 0.7)',
+                                borderColor: 'rgba(75, 192, 192, 1)',
+                                borderWidth: 1,
+                                yAxisID: 'y'
+                            },
+                            {
+                                label: 'الأرباح الصافية',
+                                data: netProfitData,
+                                type: 'line',
+                                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                                borderColor: 'rgba(255, 99, 132, 1)',
+                                borderWidth: 2,
+                                fill: false,
+                                tension: 0.4,
+                                yAxisID: 'y1'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                rtl: true,
+                                labels: {
+                                    font: {
+                                        size: window.innerWidth <= 768 ? 10 : 12
+                                    }
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `${context.dataset.label}: ${context.parsed.y.toLocaleString('ar-EG')} ج.م`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                type: 'linear',
+                                display: true,
+                                position: 'left',
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return value.toLocaleString('ar-EG') + ' ج.م';
+                                    }
+                                }
+                            },
+                            y1: {
+                                type: 'linear',
+                                display: true,
+                                position: 'right',
+                                beginAtZero: true,
+                                grid: {
+                                    drawOnChartArea: false,
+                                },
+                                ticks: {
+                                    callback: function(value) {
+                                        return value.toLocaleString('ar-EG') + ' ج.م';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            exportExcel() {
+                if (!this.currentData || this.currentData.length === 0) {
+                    this.showToast('لا توجد بيانات للتصدير', 'warning');
+                    return;
+                }
+                
+                try {
+                    const ws = XLSX.utils.json_to_sheet(this.currentData.map(row => ({
+                        'اسم الفرع': row.store_name,
+                        'المشتريات الإجمالية': row.gross_purchases,
+                        'مرتجع المشتريات': row.purchases_return,
+                        'المشتريات الصافية': row.net_purchases,
+                        'المبيعات الإجمالية': row.gross_sales,
+                        'مرتجع المبيعات': row.sales_return,
+                        'المبيعات الصافية': row.net_sales,
+                        'المصاريف': row.expenses,
+                        'الأرباح الصافية': row.net_profit,
+                        'هامش الربح %': row.profit_margin
+                    })));
+                    
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, "تقرير الفروع");
+                    XLSX.writeFile(wb, `تقرير_الفروع_${new Date().toISOString().slice(0,10)}.xlsx`);
+                    
+                    this.showToast('تم تصدير الملف Excel بنجاح');
+                } catch (error) {
+                    console.error('خطأ في تصدير Excel:', error);
+                    this.showToast('فشل تصدير الملف', 'error');
+                }
+            }
+
+            exportPDF() {
+                if (!this.currentData || this.currentData.length === 0) {
+                    this.showToast('لا توجد بيانات للتصدير', 'warning');
+                    return;
+                }
+                
+                try {
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF('l', 'mm', 'a4');
+                    
+                    doc.setFontSize(16);
+                    doc.text('تقرير تحليلي تفصيلي للفروع', doc.internal.pageSize.width / 2, 15, { align: 'center' });
+                    
+                    // 🔑 إضافة معلومات الصلاحيات في PDF
+                    const fromDate = this.el.fromDate ? this.el.fromDate.value : '';
+                    const toDate = this.el.toDate ? this.el.toDate.value : '';
+                    const storeName = this.el.storeSelect ? this.el.storeSelect.selectedOptions[0]?.textContent : '';
+                    
+                    let periodInfo = `الفترة: من ${fromDate} إلى ${toDate}`;
+                    if (this.isSuperAdmin) {
+                        periodInfo += storeName ? ` | الفرع: ${storeName}` : ' | جميع الفروع';
+                    } else {
+                        periodInfo += ` | مخزنك: ${storeName}`;
+                    }
+                    
+                    doc.setFontSize(10);
+                    doc.text(periodInfo, doc.internal.pageSize.width / 2, 25, { align: 'center' });
+                    
+                    const tableData = this.currentData.map(row => [
+                        row.store_name,
+                        row.gross_purchases.toFixed(2),
+                        row.purchases_return.toFixed(2),
+                        row.net_purchases.toFixed(2),
+                        row.gross_sales.toFixed(2),
+                        row.sales_return.toFixed(2),
+                        row.net_sales.toFixed(2),
+                        row.expenses.toFixed(2),
+                        row.net_profit.toFixed(2),
+                        row.profit_margin.toFixed(2) + '%'
+                    ]);
+                    
+                    doc.autoTable({
+                        head: [[
+                            'اسم الفرع',
+                            'مشتريات إجمالية',
+                            'مرتجع مشتريات',
+                            'مشتريات صافية',
+                            'مبيعات إجمالية',
+                            'مرتجع مبيعات',
+                            'مبيعات صافية',
+                            'مصاريف',
+                            'أرباح صافية',
+                            'هامش ربح %'
+                        ]],
+                        body: tableData,
+                        startY: 35,
+                        styles: { 
+                            fontSize: 8, 
+                            halign: 'center',
+                            font: 'arabic'
+                        },
+                        headStyles: { 
+                            fillColor: [52, 73, 94],
+                            textColor: [255, 255, 255],
+                            fontSize: 8
+                        },
+                        columnStyles: {
+                            0: { cellWidth: 25 },
+                            1: { cellWidth: 20 },
+                            2: { cellWidth: 20 },
+                            3: { cellWidth: 20 },
+                            4: { cellWidth: 20 },
+                            5: { cellWidth: 20 },
+                            6: { cellWidth: 20 },
+                            7: { cellWidth: 15 },
+                            8: { cellWidth: 20 },
+                            9: { cellWidth: 15 }
+                        },
+                        margin: { left: 5, right: 5 }
+                    });
+                    
+                    doc.save(`تقرير_الفروع_${new Date().toISOString().slice(0,10)}.pdf`);
+                    this.showToast('تم تصدير الملف PDF بنجاح');
+                } catch (error) {
+                    console.error('خطأ في تصدير PDF:', error);
+                    this.showToast('فشل تصدير الملف', 'error');
+                }
+            }
+
+            // 🔑 إعادة تعيين الفلاتر مع تطبيق الصلاحيات
+            resetFilters() {
+                this.setDefaultDates();
+                if (this.el.storeSelect) {
+                    if (this.isSuperAdmin) {
+                        this.el.storeSelect.value = "";
+                        this.el.storeSelect.disabled = false;
+                    } else {
+                        this.el.storeSelect.value = this.userStoreId;
+                        this.el.storeSelect.disabled = true;
+                    }
+                }
+                this.generateReport();
+                this.showToast('تم إعادة تعيين الفلاتر');
+            }
+
+            handleScroll() {
+                const backToTop = document.getElementById('backToTop');
+                if (backToTop) {
+                    if (window.pageYOffset > 300) {
+                        backToTop.classList.add('show');
+                    } else {
+                        backToTop.classList.remove('show');
+                    }
+                }
+            }
+        }
+
+        // ======================== 🚀 تشغيل التطبيق ========================
+        let reportManager;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 بدء تحميل التطبيق...');
+            
+            try {
+                reportManager = new StoreReportManager();
+                
+                // تعريف الدوال العامة
+                window.closeSidebar = () => {
+                    const sidebar = document.getElementById('mobileSidebar');
+                    const overlay = document.getElementById('sidebarOverlay');
+                    if (sidebar) sidebar.classList.remove('active');
+                    if (overlay) overlay.classList.remove('active');
+                };
+                
+                window.applySidebarFilters = () => {
+                    const fromDate = document.getElementById('sidebarFromDate');
+                    const toDate = document.getElementById('sidebarToDate');
+                    const storeSelect = document.getElementById('sidebarStoreSelect');
+                    
+                    if (reportManager && reportManager.el) {
+                        if (fromDate && reportManager.el.fromDate) {
+                            reportManager.el.fromDate.value = fromDate.value;
+                        }
+                        if (toDate && reportManager.el.toDate) {
+                            reportManager.el.toDate.value = toDate.value;
+                        }
+                        if (storeSelect && reportManager.el.storeSelect) {
+                            reportManager.el.storeSelect.value = storeSelect.value;
+                        }
+                    }
+                    
+                    window.closeSidebar();
+                    if (reportManager) {
+                        reportManager.generateReport();
+                    }
+                };
+                
+                window.resetSidebarFilters = () => {
+                    const today = new Date();
+                    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+                    
+                    const sidebarFromDate = document.getElementById('sidebarFromDate');
+                    const sidebarToDate = document.getElementById('sidebarToDate');
+                    const sidebarStoreSelect = document.getElementById('sidebarStoreSelect');
+                    
+                    if (sidebarFromDate) {
+                        sidebarFromDate.value = firstDay.toISOString().split('T')[0];
+                    }
+                    if (sidebarToDate) {
+                        sidebarToDate.value = today.toISOString().split('T')[0];
+                    }
+                    if (sidebarStoreSelect) {
+                        if (reportManager.isSuperAdmin) {
+                            sidebarStoreSelect.value = "";
+                            sidebarStoreSelect.disabled = false;
+                        } else {
+                            sidebarStoreSelect.value = reportManager.userStoreId;
+                            sidebarStoreSelect.disabled = true;
+                        }
+                    }
+                    
+                    window.applySidebarFilters();
+                };
+                
+                window.exportFromSidebar = (type) => {
+                    if (reportManager) {
+                        if (type === 'excel') reportManager.exportExcel();
+                        else if (type === 'pdf') reportManager.exportPDF();
+                    }
+                };
+                
+                window.scrollToTop = () => {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                };
+                
+                console.log('✅ التطبيق جاهز للاستخدام');
+                
+            } catch (error) {
+                console.error('❌ خطأ في تحميل التطبيق:', error);
+                alert('حدث خطأ في تحميل التطبيق. يرجى إعادة تحميل الصفحة.\n\n' + error.message);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة الإدارات</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --primary: #5d7fe3;
+            --primary-dark: #4a6bd4;
+            --primary-light: #f0f4ff;
+            --secondary: #8a5bd6;
+            --success: #4cc9f0;
+            --warning: #f72585;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --gray: #6c757d;
+            --border: #dee2e6;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #e6ecff 0%, #f0f4ff 100%);
+            color: var(--dark);
+            line-height: 1.6;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 16px 16px 0 0;
+            margin-bottom: 0;
+            text-align: center;
+            box-shadow: var(--shadow);
+        }
+
+        h2 {
+            font-size: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin: 0;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 25px;
+            margin-top: 25px;
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            padding: 25px;
+            transition: var(--transition);
+            border: 1px solid var(--border);
+        }
+
+        .card:hover {
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--dark);
+            font-size: 1rem;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: var(--transition);
+            background-color: var(--light);
+            font-family: inherit;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(93, 127, 227, 0.2);
+            background-color: white;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            min-width: 120px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(93, 127, 227, 0.3);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, var(--secondary) 0%, #7a4bc4 100%);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(138, 91, 214, 0.3);
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+        }
+
+        .btn-outline:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+            flex-wrap: wrap;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            background: white;
+            margin-top: 25px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: white;
+            min-width: 600px;
+        }
+
+        th {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 16px 12px;
+            text-align: right;
+            font-weight: 600;
+            font-size: 0.95rem;
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 14px 12px;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.95rem;
+            text-align: right;
+        }
+
+        tr:hover {
+            background-color: rgba(93, 127, 227, 0.05);
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .actions button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            padding: 6px 8px;
+            border-radius: 6px;
+            transition: var(--transition);
+        }
+
+        .actions button:hover {
+            background-color: rgba(0, 0, 0, 0.1);
+            transform: scale(1.1);
+        }
+
+        .edit-btn {
+            color: var(--primary);
+        }
+
+        .delete-btn {
+            color: var(--warning);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--gray);
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        /* شريط الاتصال */
+        .connection-status {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: #fff;
+            padding: 8px 12px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1000;
+            font-size: 12px;
+            border-left: 4px solid #28a745;
+        }
+
+        .loading-spinner {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 9999;
+        }
+
+        .search-container {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 20px;
+        }
+
+        .search-box {
+            position: relative;
+            max-width: 400px;
+            width: 100%;
+        }
+
+        .search-box input {
+            padding-right: 40px;
+        }
+
+        .search-box i {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray);
+        }
+
+        /* تحسينات إضافية */
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .status-online {
+            background-color: rgba(76, 201, 240, 0.2);
+            color: #4cc9f0;
+        }
+
+        .status-offline {
+            background-color: rgba(247, 37, 133, 0.2);
+            color: #f72585;
+        }
+
+        /* تحسينات للجوال */
+        @media (max-width: 768px) {
+            body {
+                padding: 15px;
+            }
+            
+            .header {
+                padding: 20px;
+                border-radius: 12px 12px 0 0;
+            }
+            
+            h2 {
+                font-size: 1.6rem;
+            }
+            
+            .card {
+                padding: 20px;
+            }
+            
+            .form-actions {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+            
+            th, td {
+                padding: 12px 8px;
+            }
+
+            .search-container {
+                justify-content: center;
+            }
+
+            .search-box {
+                max-width: 100%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header {
+                border-radius: 10px 10px 0 0;
+            }
+            
+            h2 {
+                font-size: 1.4rem;
+            }
+            
+            .card {
+                padding: 15px;
+                border-radius: 12px;
+            }
+            
+            input, select {
+                padding: 12px 14px;
+            }
+            
+            .btn {
+                padding: 12px 20px;
+            }
+
+            .actions {
+                flex-direction: column;
+                gap: 5px;
+            }
+
+            .actions button {
+                width: 100%;
+                text-align: center;
+            }
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card, .table-container {
+            animation: fadeIn 0.5s ease;
+        }
+
+        /* تحسينات للنموذج */
+        .form-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--primary-light);
+        }
+
+        .form-header i {
+            color: var(--primary);
+            font-size: 1.5rem;
+        }
+
+        .form-header h4 {
+            margin: 0;
+            color: var(--dark);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- شريط حالة الاتصال -->
+        <div class="connection-status">
+            <span id="connection-status">
+                <i class="fas fa-spinner fa-spin"></i> جاري الاتصال...
+            </span>
+        </div>
+
+        <!-- مؤشر التحميل -->
+        <div id="loading-spinner" class="loading-spinner">
+            <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;">
+                <span class="visually-hidden">جاري التحميل...</span>
+            </div>
+        </div>
+
+        <div class="header">
+            <h2><i class="fas fa-building"></i> إدارة الإدارات</h2>
+        </div>
+
+        <div class="main-content">
+            <!-- نموذج الإضافة -->
+            <div class="card">
+                <div class="form-header">
+                    <i class="fas fa-plus-circle"></i>
+                    <h4>إضافة إدارة جديدة</h4>
+                </div>
+                <form id="dept-form">
+                    <input type="hidden" id="department_id">
+                    
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="department_name"><i class="fas fa-signature"></i> اسم الإدارة:</label>
+                            <input type="text" id="department_name" required placeholder="أدخل اسم الإدارة">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="manager_id"><i class="fas fa-user-tie"></i> المدير:</label>
+                            <select id="manager_id">
+                                <option value="">اختر المدير...</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="location"><i class="fas fa-map-marker-alt"></i> الموقع:</label>
+                            <input type="text" id="location" placeholder="أدخل موقع الإدارة">
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" id="save-btn" class="btn btn-primary">
+                            <i class="fas fa-save"></i> حفظ
+                        </button>
+                        <button type="button" id="clear-btn" class="btn btn-outline">
+                            <i class="fas fa-broom"></i> جديد
+                        </button>
+                        <button type="button" id="refresh-btn" class="btn btn-secondary" onclick="app.loadDepartments()">
+                            <i class="fas fa-sync"></i> تحديث
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- جدول الإدارات -->
+            <div class="card">
+                <div class="form-header">
+                    <i class="fas fa-list"></i>
+                    <h4>قائمة الإدارات</h4>
+                </div>
+                
+                <div class="search-container">
+                    <div class="search-box">
+                        <input type="text" id="searchBox" placeholder="🔍 بحث عن إدارة أو موقع..." oninput="app.filterTable()">
+                        <i class="fas fa-search"></i>
+                    </div>
+                </div>
+                
+                <div class="table-container">
+                    <table id="dept-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>اسم الإدارة</th>
+                                <th>المدير</th>
+                                <th>الموقع</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dept-table-body">
+                            <tr>
+                                <td colspan="5" class="empty-state">
+                                    <div><i class="fas fa-inbox"></i></div>
+                                    <p>لا توجد إدارات مسجلة بعد</p>
+                                    <small>قم بإضافة إدارة جديدة باستخدام النموذج</small>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+<script>
+    // dept.js - مع فحص الاتصال المحسن وتصميم عصري
+    class DepartmentApp {
+        constructor() {
+            // تكوين Supabase
+            this.SUPABASE_URL = 'https://rvjacvrrpguehbapvewe.supabase.co';
+            this.SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2amFjdnJycGd1ZWhiYXB2ZXdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwMjUxNTksImV4cCI6MjA3ODYwMTE1OX0.wSavKzxKOF7-56G-pzDMtbXNrCNAbGs0wvadw-cilBg';
+            this.supabase = null;
+            this.isOnline = false;
+            this.currentEditId = null;
+            
+            this.init();
+        }
+
+        async init() {
+            this.dom = this._initDOM();
+            this._bindEvents();
+            const connected = await this.initSupabase();
+            
+            if (connected) {
+                await this.loadManagers();
+                await this.loadDepartments();
+                this.updateConnectionStatus('success', '<i class="fas fa-cloud-check"></i> متصل Online');
+            } else {
+                this.showError('فشل في الاتصال بقاعدة البيانات. يرجى التحقق من الاتصال بالإنترنت.');
+            }
+        }
+
+        _initDOM() {
+            return {
+                form: document.getElementById("dept-form"),
+                deptId: document.getElementById("department_id"),
+                name: document.getElementById("department_name"),
+                manager: document.getElementById("manager_id"),
+                location: document.getElementById("location"),
+                saveBtn: document.getElementById("save-btn"),
+                clearBtn: document.getElementById("clear-btn"),
+                tableBody: document.querySelector("#dept-table-body"),
+                connectionStatus: document.getElementById("connection-status"),
+                loadingSpinner: document.getElementById("loading-spinner"),
+                searchBox: document.getElementById("searchBox")
+            };
+        }
+
+        _bindEvents() {
+            this.dom.form.addEventListener("submit", (e) => this.saveDepartment(e));
+            this.dom.clearBtn.addEventListener("click", () => this.clearForm());
+            
+            // إضافة مستمعات الأحداث للتنقل باستخدام Enter
+            document.addEventListener("keydown", (e) => {
+                if (e.key === "Enter") {
+                    const inputs = [...document.querySelectorAll("input, select")];
+                    const i = inputs.indexOf(document.activeElement);
+                    if (i >= 0 && i < inputs.length - 1) {
+                        e.preventDefault();
+                        inputs[i + 1].focus();
+                    }
+                }
+            });
+        }
+
+        async initSupabase() {
+            try {
+                this.showLoading(true);
+                this.updateConnectionStatus('warning', '<i class="fas fa-spinner fa-spin"></i> جاري الاتصال...');
+                
+                console.log('🔄 جاري تهيئة Supabase...');
+                this.supabase = supabase.createClient(this.SUPABASE_URL, this.SUPABASE_KEY);
+                
+                // اختبار الاتصال البسيط
+                const { data, error } = await this.supabase.auth.getSession();
+                
+                if (error) {
+                    console.error('❌ خطأ في المصادقة:', error);
+                    throw error;
+                }
+
+                // اختبار جدول departments
+                const { data: deptData, error: deptError } = await this.supabase
+                    .from('departments')
+                    .select('count')
+                    .limit(1)
+                    .single();
+
+                if (deptError && deptError.code !== 'PGRST116') {
+                    console.warn('⚠️ تحذير في جدول departments:', deptError);
+                }
+
+                // اختبار جدول employees
+                const { data: empData, error: empError } = await this.supabase
+                    .from('employees')
+                    .select('count')
+                    .limit(1)
+                    .single();
+
+                if (empError && empError.code !== 'PGRST116') {
+                    console.warn('⚠️ تحذير في جدول employees:', empError);
+                }
+
+                this.isOnline = true;
+                console.log('✅ Supabase متصل بنجاح');
+                return true;
+                
+            } catch (error) {
+                console.error('❌ فشل في الاتصال بـ Supabase:', error);
+                this.isOnline = false;
+                this.updateConnectionStatus('danger', '<i class="fas fa-cloud-slash"></i> غير متصل');
+                
+                // عرض تفاصيل الخطأ للمستخدم
+                let errorMessage = 'فشل في الاتصال بقاعدة البيانات';
+                if (error.message) {
+                    errorMessage += `: ${error.message}`;
+                }
+                this.showError(errorMessage);
+                return false;
+            } finally {
+                this.showLoading(false);
+            }
+        }
+
+        // تحديث حالة الاتصال
+        updateConnectionStatus(type, message) {
+            if (!this.dom.connectionStatus) return;
+            
+            this.dom.connectionStatus.innerHTML = message;
+            this.dom.connectionStatus.style.borderLeftColor = 
+                type === 'success' ? '#28a745' : 
+                type === 'danger' ? '#dc3545' : '#ffc107';
+        }
+
+        // إظهار/إخفاء مؤشر التحميل
+        showLoading(show) {
+            if (this.dom.loadingSpinner) {
+                this.dom.loadingSpinner.style.display = show ? 'block' : 'none';
+            }
+        }
+
+        async loadManagers() {
+            try {
+                this.showLoading(true);
+                console.log('🔄 جاري تحميل بيانات المديرين...');
+                
+                if (!this.supabase) {
+                    throw new Error('Supabase غير مهيئ');
+                }
+
+                const { data, error } = await this.supabase
+                    .from('employees')
+                    .select('emp_id, first_name, last_name')
+                    .order('first_name');
+
+                if (error) {
+                    console.error('❌ خطأ في تحميل المديرين:', error);
+                    
+                    // إذا كان الجدول غير موجود، نعرض بيانات تجريبية
+                    if (error.code === '42P01') {
+                        console.log('⚠️ جدول employees غير موجود، استخدام بيانات تجريبية');
+                        this.loadSampleManagers();
+                        return;
+                    }
+                    throw error;
+                }
+
+                console.log('✅ تم تحميل المديرين:', data);
+                this.dom.manager.innerHTML = `<option value="">-- اختر المدير --</option>` +
+                    (data || []).map(emp => 
+                        `<option value="${emp.emp_id}">${emp.first_name} ${emp.last_name}</option>`
+                    ).join("");
+                    
+            } catch (error) {
+                console.error('❌ خطأ في تحميل بيانات الموظفين:', error);
+                this.loadSampleManagers();
+            } finally {
+                this.showLoading(false);
+            }
+        }
+
+        // تحميل بيانات تجريبية للمديرين
+        loadSampleManagers() {
+            const sampleManagers = [
+                { emp_id: 1, first_name: 'أحمد', last_name: 'محمد' },
+                { emp_id: 2, first_name: 'محمد', last_name: 'علي' },
+                { emp_id: 3, first_name: 'فاطمة', last_name: 'أحمد' },
+                { emp_id: 4, first_name: 'يوسف', last_name: 'خالد' }
+            ];
+            
+            this.dom.manager.innerHTML = `<option value="">-- اختر المدير --</option>` +
+                sampleManagers.map(emp => 
+                    `<option value="${emp.emp_id}">${emp.first_name} ${emp.last_name}</option>`
+                ).join("");
+            
+            this.showInfo('يتم استخدام بيانات تجريبية للمديرين');
+        }
+
+        async loadDepartments() {
+            try {
+                this.showLoading(true);
+                console.log('🔄 جاري تحميل بيانات الإدارات...');
+                
+                if (!this.supabase) {
+                    throw new Error('Supabase غير مهيئ');
+                }
+
+                let query = this.supabase
+                    .from('departments')
+                    .select('*')
+                    .order('department_id');
+
+                const { data, error } = await query;
+
+                if (error) {
+                    console.error('❌ خطأ في تحميل الإدارات:', error);
+                    
+                    // إذا كان الجدول غير موجود، نعرض بيانات تجريبية
+                    if (error.code === '42P01') {
+                        console.log('⚠️ جدول departments غير موجود، استخدام بيانات تجريبية');
+                        this.loadSampleDepartments();
+                        return;
+                    }
+                    throw error;
+                }
+
+                console.log('✅ تم تحميل الإدارات:', data);
+                this.renderDepartments(data || []);
+                    
+            } catch (error) {
+                console.error('❌ خطأ في تحميل بيانات الإدارات:', error);
+                this.loadSampleDepartments();
+            } finally {
+                this.showLoading(false);
+            }
+        }
+
+        // تحميل بيانات تجريبية للإدارات
+        loadSampleDepartments() {
+            const sampleDepartments = [
+                {
+                    department_id: 1,
+                    department_name: 'تكنولوجيا المعلومات',
+                    manager_id: 1,
+                    location: 'الطابق الثالث'
+                },
+                {
+                    department_id: 2,
+                    department_name: 'المبيعات',
+                    manager_id: 2,
+                    location: 'الطابق الأول'
+                },
+                {
+                    department_id: 3,
+                    department_name: 'التسويق',
+                    manager_id: 3,
+                    location: 'الطابق الثاني'
+                }
+            ];
+            
+            this.renderDepartments(sampleDepartments);
+            this.showInfo('يتم استخدام بيانات تجريبية للإدارات');
+        }
+
+        renderDepartments(departments) {
+            if (!departments || departments.length === 0) {
+                this.dom.tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="empty-state">
+                            <div><i class="fas fa-inbox"></i></div>
+                            <p>لا توجد إدارات مسجلة بعد</p>
+                            <small>قم بإضافة إدارة جديدة باستخدام النموذج</small>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            this.dom.tableBody.innerHTML = departments.map(dep => {
+                // في البيانات التجريبية، نعرض اسم المدير بشكل بسيط
+                const managerName = dep.manager_name || `المدير ${dep.manager_id}`;
+
+                return `
+                    <tr>
+                        <td>${dep.department_id}</td>
+                        <td>${dep.department_name}</td>
+                        <td>${managerName}</td>
+                        <td>${dep.location || ""}</td>
+                        <td class="actions">
+                            <button class="edit-btn" onclick="app.editDepartment(${dep.department_id})">
+                                <i class="fas fa-edit"></i> تعديل
+                            </button>
+                            <button class="delete-btn" onclick="app.deleteDepartment(${dep.department_id})">
+                                <i class="fas fa-trash"></i> حذف
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join("");
+        }
+
+        async saveDepartment(e) {
+            e.preventDefault();
+            
+            const deptData = {
+                department_name: this.dom.name.value.trim(),
+                manager_id: this.dom.manager.value || null,
+                location: this.dom.location.value.trim()
+            };
+
+            // التحقق من البيانات
+            if (!deptData.department_name) {
+                this.showError('يرجى إدخال اسم الإدارة');
+                return;
+            }
+
+            try {
+                this.showLoading(true);
+                
+                if (!this.supabase || !this.isOnline) {
+                    this.showInfo('⚠️ لا يمكن الحفظ - غير متصل بالسحابة');
+                    return;
+                }
+
+                let result;
+                if (this.currentEditId) {
+                    // تحديث الإدارة الحالية
+                    const { data, error } = await this.supabase
+                        .from('departments')
+                        .update(deptData)
+                        .eq('department_id', this.currentEditId)
+                        .select();
+
+                    if (error) throw error;
+                    result = data;
+                    this.showSuccess('✅ تم تحديث الإدارة بنجاح');
+                } else {
+                    // إضافة إدارة جديدة
+                    const { data, error } = await this.supabase
+                        .from('departments')
+                        .insert([deptData])
+                        .select();
+
+                    if (error) throw error;
+                    result = data;
+                    this.showSuccess('✅ تم حفظ الإدارة بنجاح');
+                }
+
+                this.clearForm();
+                await this.loadDepartments();
+                    
+            } catch (error) {
+                console.error('❌ خطأ في حفظ الإدارة:', error);
+                this.showError('فشل في حفظ البيانات: ' + error.message);
+            } finally {
+                this.showLoading(false);
+            }
+        }
+
+        async deleteDepartment(id) {
+            if (!confirm("هل تريد حذف هذه الإدارة؟")) return;
+
+            try {
+                this.showLoading(true);
+                
+                if (!this.supabase || !this.isOnline) {
+                    this.showInfo('⚠️ لا يمكن الحذف - غير متصل بالسحابة');
+                    return;
+                }
+
+                const { error } = await this.supabase
+                    .from('departments')
+                    .delete()
+                    .eq('department_id', id);
+
+                if (error) {
+                    throw error;
+                }
+
+                this.showSuccess('✅ تم حذف الإدارة بنجاح');
+                await this.loadDepartments();
+                    
+            } catch (error) {
+                console.error('❌ خطأ في حذف الإدارة:', error);
+                this.showError('فشل في حذف البيانات: ' + error.message);
+            } finally {
+                this.showLoading(false);
+            }
+        }
+
+        async editDepartment(id) {
+            try {
+                this.showLoading(true);
+                
+                if (!this.supabase || !this.isOnline) {
+                    this.showInfo('⚠️ لا يمكن التعديل - غير متصل بالسحابة');
+                    return;
+                }
+
+                const { data, error } = await this.supabase
+                    .from('departments')
+                    .select('*')
+                    .eq('department_id', id)
+                    .single();
+
+                if (error) {
+                    throw error;
+                }
+
+                // تعبئة النموذج
+                this.dom.deptId.value = data.department_id;
+                this.dom.name.value = data.department_name;
+                this.dom.manager.value = data.manager_id || '';
+                this.dom.location.value = data.location || '';
+
+                // تحديث النموذج للحفظ كتعديل
+                this.currentEditId = id;
+                this.dom.saveBtn.innerHTML = '<i class="fas fa-edit"></i> تحديث';
+                this.dom.saveBtn.classList.remove('btn-primary');
+                this.dom.saveBtn.classList.add('btn-secondary');
+                
+                this.showInfo('يمكنك الآن تعديل بيانات الإدارة');
+                    
+            } catch (error) {
+                console.error('❌ خطأ في تحميل بيانات الإدارة:', error);
+                this.showError('فشل في تحميل بيانات الإدارة للتعديل');
+            } finally {
+                this.showLoading(false);
+            }
+        }
+
+        clearForm() {
+            this.dom.form.reset();
+            this.currentEditId = null;
+            this.dom.saveBtn.innerHTML = '<i class="fas fa-save"></i> حفظ';
+            this.dom.saveBtn.classList.remove('btn-secondary');
+            this.dom.saveBtn.classList.add('btn-primary');
+        }
+
+        // فلترة الجدول
+        filterTable() {
+            const query = this.dom.searchBox.value.toLowerCase();
+            const rows = document.querySelectorAll("#dept-table tbody tr");
+            let hasVisibleRows = false;
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                if (text.includes(query)) {
+                    row.style.display = "";
+                    hasVisibleRows = true;
+                } else {
+                    row.style.display = "none";
+                }
+            });
+
+            // إظهار رسالة إذا لم توجد نتائج
+            if (!hasVisibleRows) {
+                this.dom.tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="empty-state">
+                            <div><i class="fas fa-search"></i></div>
+                            <p>لا توجد نتائج للبحث</p>
+                            <small>جرب استخدام كلمات بحث مختلفة</small>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        // دوال مساعدة للرسائل
+        showError(message) {
+            this.showNotification('error', message);
+        }
+
+        showSuccess(message) {
+            this.showNotification('success', message);
+        }
+
+        showInfo(message) {
+            this.showNotification('info', message);
+        }
+
+        showNotification(type, message) {
+            // إنشاء عنصر الإشعار
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'info'} alert-dismissible fade show position-fixed`;
+            notification.style.cssText = `
+                top: 20px;
+                right: 20px;
+                z-index: 9999;
+                min-width: 300px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            `;
+            
+            const icon = type === 'error' ? '❌' : type === 'success' ? '✅' : 'ℹ️';
+            notification.innerHTML = `
+                <strong>${icon} ${message}</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // إزالة الإشعار تلقائياً بعد 5 ثواني
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, 5000);
+        }
+    }
+
+    // تهيئة التطبيق
+    const app = new DepartmentApp();
+</script>
+</html>

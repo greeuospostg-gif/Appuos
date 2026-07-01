@@ -1,0 +1,1495 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>تقرير حركات التحويل بين المخازن</title>
+<!-- إضافة Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<!-- إضافة Supabase JS -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --accent: #2f80ed;
+      --ok: #16a34a;
+      --warn: #f59e0b;
+      --err: #ef4444;
+      --bg: #f3f6fb;
+      --card: #fff;
+      --text: #0f172a;
+      --border: #e2e8f0;
+      --special-user: #9b59b6; /* لون المدير */
+      --normal-user: #2ecc71; /* لون المستخدم العادي */
+    }
+    
+    body {
+      font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+      background: var(--bg);
+      margin: 0;
+      padding: 14px;
+      color: var(--text);
+    }
+    
+    /* أشرطة الحالة */
+    .status-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    .connection-status, .permission-status {
+      background: var(--card);
+      padding: 8px 12px;
+      border-radius: 6px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .connection-status {
+      border-left: 4px solid #28a745;
+    }
+    
+    .connection-status.disconnected {
+      border-left-color: #dc3545;
+    }
+    
+    .permission-status {
+      border-left: 4px solid var(--accent);
+    }
+    
+    .permission-status.special {
+      border-left-color: var(--special-user);
+    }
+    
+    .permission-status.normal {
+      border-left-color: var(--normal-user);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    
+    .status-dot.connected {
+      background-color: #28a745;
+    }
+    
+    .status-dot.disconnected {
+      background-color: #dc3545;
+    }
+    
+    .user-info {
+      background: rgba(255, 255, 255, 0.9);
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: auto;
+    }
+
+    .user-type {
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: bold;
+    }
+    
+    .user-type.special {
+      background: var(--special-user);
+      color: white;
+    }
+    
+    .user-type.normal {
+      background: var(--normal-user);
+      color: white;
+    }
+
+    /* التنبيهات */
+    .toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: var(--ok);
+      color: white;
+      padding: 12px 16px;
+      border-radius: 6px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      z-index: 10000;
+      display: none;
+      font-weight: 600;
+      animation: slideInRight 0.3s ease;
+    }
+
+    @keyframes slideInRight {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    
+    .card {
+      background: var(--card);
+      border-radius: 8px;
+      padding: 12px;
+      box-shadow: 0 6px 18px rgba(12, 17, 43, 0.08);
+      margin-bottom: 12px;
+      position: relative;
+    }
+    
+    .row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    
+    .col {
+      flex: 1;
+    }
+    
+    label {
+      font-size: 13px;
+      margin-bottom: 6px;
+      display: block;
+      font-weight: 600;
+    }
+    
+    input[type="date"], select, input[type="text"] {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    select:disabled {
+      background-color: #f8f9fa;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+    
+    button {
+      padding: 9px 14px;
+      border-radius: 6px;
+      border: 0;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+    
+    .btn-outline {
+      background: transparent;
+      border: 1px solid #cbd5e1;
+      color: var(--text);
+    }
+    
+    .btn-success {
+      background: var(--ok);
+      color: #fff;
+    }
+    
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+    
+    @media (max-width: 900px) {
+      .controls {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    
+    .table-wrap {
+      overflow: auto;
+      max-height: 62vh;
+      border: 1px solid #e6eef8;
+      border-radius: 6px;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    
+    th, td {
+      padding: 8px 10px;
+      border-bottom: 1px solid #eef2f7;
+      text-align: center;
+    }
+    
+    th {
+      background: linear-gradient(90deg, var(--accent), #2563eb);
+      color: #fff;
+      position: sticky;
+      top: 0;
+      font-weight: 600;
+    }
+    
+    tr:hover {
+      background-color: #f8fafc;
+    }
+    
+    .status-pending {
+      background: #fde68a;
+      color: #92400e;
+      padding: 6px 10px;
+      border-radius: 16px;
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    
+    .status-completed {
+      background: #bbf7d0;
+      color: #064e3b;
+      padding: 6px 10px;
+      border-radius: 16px;
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    
+    .status-rejected {
+      background: #fecaca;
+      color: #7f1d1d;
+      padding: 6px 10px;
+      border-radius: 16px;
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    
+    .status-auto_returned {
+      background: #e0e7ff;
+      color: #1e3a8a;
+      padding: 6px 10px;
+      border-radius: 16px;
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    
+    .small {
+      font-size: 12px;
+      color: #475569;
+    }
+    
+    .top-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    
+    .summary {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    
+    .summary .item {
+      background: #f8fafc;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #e6eef8;
+      font-weight: 600;
+    }
+    
+    .loading-spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #fff;
+      border-radius: 50%;
+      border-top-color: transparent;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* مؤشر التحميل */
+    .loading-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255, 255, 255, 0.8);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+      border-radius: 8px;
+    }
+    
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    .error-message {
+      background-color: #ffebee;
+      color: #c62828;
+      padding: 12px;
+      border-radius: 8px;
+      margin: 15px 0;
+      text-align: center;
+      border-left: 4px solid #f44336;
+      display: none;
+    }
+    
+    .no-data {
+      text-align: center;
+      padding: 40px;
+      color: #7f8c8d;
+      font-size: 16px;
+    }
+    
+    /* تنسيق الموبايل */
+    @media (max-width: 768px) {
+      .status-bar {
+        flex-direction: column;
+      }
+      
+      .connection-status, .permission-status {
+        min-width: 100%;
+      }
+      
+      .user-info {
+        margin-left: 0;
+        justify-content: center;
+      }
+
+      body {
+        padding: 8px;
+        font-size: 14px;
+      }
+
+      .card {
+        padding: 10px;
+        margin-bottom: 10px;
+      }
+
+      .row {
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .col {
+        width: 100%;
+      }
+
+      .controls {
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+
+      .top-actions {
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
+      }
+
+      .summary {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px;
+      }
+
+      .summary .item {
+        flex: 1;
+        min-width: 120px;
+        text-align: center;
+      }
+
+      input[type="date"], select, input[type="text"] {
+        padding: 10px 12px;
+        font-size: 16px; /* لمنع التكبير في iOS */
+      }
+
+      button {
+        padding: 12px 16px;
+        font-size: 16px;
+        width: 100%;
+        justify-content: center;
+      }
+
+      .table-wrap {
+        max-height: 50vh;
+        border-radius: 4px;
+      }
+
+      table {
+        font-size: 12px;
+        min-width: 600px;
+      }
+
+      th, td {
+        padding: 6px 8px;
+      }
+
+      .status-pending,
+      .status-completed,
+      .status-rejected,
+      .status-auto_returned {
+        padding: 4px 8px;
+        font-size: 11px;
+      }
+
+      .loading-overlay {
+        border-radius: 8px;
+      }
+
+      .spinner {
+        width: 50px;
+        height: 50px;
+      }
+
+      .error-message {
+        padding: 10px;
+        margin: 10px 0;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .connection-status, .permission-status {
+        flex-direction: column;
+        gap: 8px;
+        padding: 8px 10px;
+      }
+
+      body {
+        padding: 5px;
+      }
+
+      .card {
+        padding: 8px;
+        margin-bottom: 8px;
+      }
+
+      .summary .item {
+        min-width: 100px;
+        font-size: 12px;
+      }
+
+      .table-wrap {
+        max-height: 45vh;
+      }
+
+      table {
+        min-width: 500px;
+      }
+
+      .no-data {
+        padding: 30px 20px;
+        font-size: 14px;
+      }
+    }
+
+    @media (max-width: 360px) {
+      .connection-status, .permission-status {
+        padding: 6px 8px;
+      }
+
+      body {
+        padding: 3px;
+      }
+
+      .card {
+        padding: 6px;
+      }
+
+      .summary {
+        gap: 5px;
+      }
+
+      .summary .item {
+        min-width: 80px;
+        padding: 6px;
+        font-size: 11px;
+      }
+
+      input[type="date"], select, input[type="text"] {
+        padding: 8px 10px;
+      }
+
+      button {
+        padding: 10px 12px;
+      }
+    }
+
+    /* طباعة: اطبع الجدول فقط */
+    @media print {
+      body * { visibility: hidden; }
+      #printArea, #printArea * { visibility: visible; }
+      #printArea { position: fixed; left: 0; top: 0; width: 100%; }
+      .connection-status, .permission-status, .toast, .no-print, .user-info { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- شريط الحالة -->
+<div class="status-bar">
+  <div class="connection-status" id="connectionStatus">
+    <span class="status-dot"></span>
+    <span id="statusText">جارٍ الاتصال...</span>
+  </div>
+  
+  <div class="permission-status" id="permissionStatus">
+    <i class="fas fa-user-shield"></i>
+    <span id="permissionText">جاري تحديد الصلاحيات...</span>
+  </div>
+</div>
+
+<!-- التنبيهات -->
+<div id="toast" class="toast"></div>
+
+<div class="card">
+  <div class="top-actions">
+    <div style="display:flex;gap:10px;align-items:center">
+      <h3 style="margin:0"><i class="fas fa-exchange-alt"></i> تقرير حركات التحويل بين المخازن</h3>
+      <div class="user-info" id="userInfo">
+        <i class="fas fa-user"></i>
+        <span id="userName">المستخدم: --</span>
+        <span class="user-type" id="userType">--</span>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;align-items:center">
+      <div class="summary">
+        <div class="item">النتائج: <span id="resultCount">0</span></div>
+        <div class="item">إجمالي الكميات: <span id="resultQty">0.00</span></div>
+      </div>
+      <button class="btn-primary" id="btnReload">
+        <i class="fas fa-sync-alt"></i> تحديث
+      </button>
+    </div>
+  </div>
+
+  <div class="controls card" style="padding:12px">
+    <!-- مؤشر التحميل -->
+    <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+      <div class="spinner"></div>
+    </div>
+    
+    <!-- رسالة الخطأ -->
+    <div id="errorMessage" class="error-message"></div>
+    
+    <div>
+      <label for="fromDate">من تاريخ</label>
+      <input type="date" id="fromDate">
+    </div>
+    <div>
+      <label for="toDate">إلى تاريخ</label>
+      <input type="date" id="toDate">
+    </div>
+    <div>
+      <label for="filterFromStore">من مخزن</label>
+      <select id="filterFromStore"><option value="0">الكل</option></select>
+    </div>
+    <div>
+      <label for="filterToStore">إلى مخزن</label>
+      <select id="filterToStore"><option value="0">الكل</option></select>
+    </div>
+
+    <div>
+      <label for="filterStatus">حالة التحويل</label>
+      <select id="filterStatus">
+        <option value="all">الكل</option>
+        <option value="معلق">معلق</option>
+        <option value="مكتمل">مكتمل</option>
+        <option value="مرفوض">مرفوض</option>
+        <option value="مرتجع تلقائي">مرتجع تلقائي</option>
+      </select>
+    </div>
+
+    <div>
+      <label for="qSearch">بحث (رقم تحويل / صنف / ملاحظة)</label>
+      <input type="text" id="qSearch" placeholder="اكتب للبحث...">
+    </div>
+
+    <div style="display:flex;align-items:end;gap:8px">
+      <button class="btn-primary" id="btnSearch">
+        <i class="fas fa-search"></i> عرض التقرير
+      </button>
+      <button class="btn-outline" id="btnClear">
+        <i class="fas fa-eraser"></i> مسح
+      </button>
+      <button class="btn-outline" id="btnPrint">
+        <i class="fas fa-print"></i> طباعة
+      </button>
+      <button class="btn-success" id="btnExport">
+        <i class="fas fa-file-export"></i> تصدير
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="printArea" class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <div><strong>تقرير حركات التحويل</strong><div class="small" id="periodText"></div></div>
+    <div class="small">تاريخ التقرير: <span id="reportDate"></span></div>
+  </div>
+
+  <div class="table-wrap">
+    <table id="reportTable">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>رقم التحويل</th>
+          <th>التاريخ</th>
+          <th>من مخزن</th>
+          <th>إلى مخزن</th>
+          <th>رمز الصنف</th>
+          <th>اسم الصنف</th>
+          <th>الكمية</th>
+          <th>الدفعة</th>
+          <th>الصلاحية</th>
+          <th>حالة</th>
+          <th>ملاحظات</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- تُملأ ديناميكياً -->
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- استبدل فقط الجزء الخاص بـ JavaScript مع إبقاء HTML و CSS كما هو -->
+  <script>
+    (function() {
+      'use strict';
+      
+      // 🎯 قاعدة الصلاحيات الذهبية
+      const USER_STORE_ID = localStorage.getItem('store_id') || sessionStorage.getItem('store_id') || '0';
+      const USER_NAME = localStorage.getItem('username') || sessionStorage.getItem('username') || 'مستخدم';
+      const STORE_NAME = localStorage.getItem('store_name') || sessionStorage.getItem('store_name') || 'غير محدد';
+      const IS_SPECIAL_USER = USER_STORE_ID === '9999'; // الشرط الأساسي
+      
+      console.log(`🔑 معلومات المستخدم:`);
+      console.log(`   - ID: ${USER_STORE_ID}`);
+      console.log(`   - اسم: ${USER_NAME}`);
+      console.log(`   - نوع: ${IS_SPECIAL_USER ? 'مدير النظام (9999)' : 'مستخدم عادي'}`);
+      
+      // 🔧 تكوين Supabase
+      const SUPABASE_URL = 'https://rvjacvrrpguehbapvewe.supabase.co';
+      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2amFjdnJycGd1ZWhiYXB2ZXdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwMjUxNTksImV4cCI6MjA3ODYwMTE1OX0.wSavKzxKOF7-56G-pzDMtbXNrCNAbGs0wvadw-cilBg';
+      
+      // متغيرات التطبيق
+      let supabaseClient = null;
+      let currentData = [];
+      let isOnline = false;
+
+      class TransferReport {
+        constructor() {
+          this.init();
+        }
+
+        async init() {
+          this.loadUserInfo();
+          this.updatePermissionStatus();
+          await this.checkConnection();
+          this.setDefaultDates();
+          if (isOnline) {
+            await this.loadStores();
+          }
+          this.setupEventListeners();
+          this.showWelcomeMessage();
+        }
+
+        // تحميل معلومات المستخدم
+        loadUserInfo() {
+          const userType = IS_SPECIAL_USER ? "مدير النظام" : "مستخدم عادي";
+          const userTypeClass = IS_SPECIAL_USER ? "special" : "normal";
+          
+          document.getElementById('userName').textContent = `${USER_NAME} - ${STORE_NAME}`;
+          document.getElementById('userType').textContent = userType;
+          document.getElementById('userType').className = `user-type ${userTypeClass}`;
+        }
+
+        // تحديث حالة الصلاحيات
+        updatePermissionStatus() {
+          const statusElement = document.getElementById('permissionStatus');
+          const textElement = document.getElementById('permissionText');
+          
+          if (IS_SPECIAL_USER) {
+            statusElement.className = 'permission-status special';
+            textElement.innerHTML = '<i class="fas fa-crown"></i> مدير النظام - صلاحيات كاملة';
+          } else {
+            statusElement.className = 'permission-status normal';
+            textElement.innerHTML = `<i class="fas fa-store"></i> مخزن ${USER_STORE_ID} - صلاحيات محدودة`;
+          }
+        }
+
+        async checkConnection() {
+          const statusElement = document.getElementById('connectionStatus');
+          const statusText = document.getElementById('statusText');
+          const dot = statusElement.querySelector('.status-dot');
+          
+          try {
+            // إنشاء عميل Supabase إذا لم يكن موجوداً
+            if (!supabaseClient) {
+              supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            }
+            
+            // اختبار الاتصال
+            const { data, error } = await supabaseClient
+              .from('stores')
+              .select('store_id')
+              .limit(1);
+            
+            if (!error) {
+              isOnline = true;
+              statusElement.classList.remove('disconnected');
+              dot.className = 'status-dot connected';
+              statusText.textContent = 'متصل بـ Supabase';
+            } else {
+              throw error;
+            }
+          } catch (error) {
+            isOnline = false;
+            statusElement.classList.add('disconnected');
+            dot.className = 'status-dot disconnected';
+            statusText.textContent = 'غير متصل';
+            console.error('الاتصال بـ Supabase فشل:', error);
+          }
+        }
+
+        // عرض رسالة تنبيه
+        showMessage(message, type = 'success') {
+          const toast = document.getElementById('toast');
+          toast.textContent = message;
+          toast.style.display = 'block';
+          toast.style.background = 
+            type === 'success' ? '#2ecc71' :
+            type === 'error' ? '#e74c3c' :
+            type === 'warning' ? '#f39c12' : '#3498db';
+
+          setTimeout(() => {
+            toast.style.display = 'none';
+          }, 4000);
+        }
+
+        // عرض/إخفاء مؤشر التحميل
+        setLoading(loading) {
+          const overlay = document.getElementById('loadingOverlay');
+          const btn = document.getElementById('btnSearch');
+          
+          if (loading) {
+            overlay.style.display = 'flex';
+            btn.innerHTML = '<div class="loading-spinner"></div> جارٍ التحميل...';
+            btn.disabled = true;
+          } else {
+            overlay.style.display = 'none';
+            btn.innerHTML = '<i class="fas fa-search"></i> عرض التقرير';
+            btn.disabled = false;
+          }
+        }
+
+        // عرض رسالة خطأ
+        showError(message) {
+          const errorElement = document.getElementById('errorMessage');
+          errorElement.textContent = message;
+          errorElement.style.display = 'block';
+          this.showMessage(message, 'error');
+        }
+
+        // إخفاء رسالة الخطأ
+        hideError() {
+          document.getElementById('errorMessage').style.display = 'none';
+        }
+
+        setDefaultDates() {
+          const today = new Date();
+          const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+          
+          document.getElementById('fromDate').value = this.formatDate(firstDay);
+          document.getElementById('toDate').value = this.formatDate(today);
+        }
+
+        formatDate(date) {
+          return date.toISOString().split('T')[0];
+        }
+
+        async loadStores() {
+          try {
+            console.log('🔄 جاري تحميل قائمة المخازن مع تطبيق الصلاحيات...');
+            
+            let query = supabaseClient
+              .from('stores')
+              .select('store_id, store_name')
+              .order('store_id');
+            
+            // 🔒 إذا لم يكن مستخدم خاص، يرى فقط مخزنه
+            if (!IS_SPECIAL_USER && USER_STORE_ID) {
+              query = query.eq('store_id', parseInt(USER_STORE_ID));
+              console.log(`🔒 تطبيق فلتر الصلاحيات: عرض مخزن ${USER_STORE_ID} فقط`);
+            }
+            
+            const { data, error } = await query;
+            
+            if (error) throw error;
+            
+            const fromStore = document.getElementById('filterFromStore');
+            const toStore = document.getElementById('filterToStore');
+            
+            // إضافة خيار جميع المخازن أولاً
+            fromStore.innerHTML = '<option value="0">الكل</option>';
+            toStore.innerHTML = '<option value="0">الكل</option>';
+            
+            data.forEach(store => {
+              const storeName = store.store_name || `المخزن ${store.store_id}`;
+              const option1 = new Option(storeName, store.store_id);
+              const option2 = new Option(storeName, store.store_id);
+              fromStore.add(option1);
+              toStore.add(option2);
+            });
+            
+            // 🔒 إذا لم يكن مستخدم خاص، قفل وتعيين المخزن تلقائياً
+            if (!IS_SPECIAL_USER && USER_STORE_ID && data.length > 0) {
+              fromStore.value = USER_STORE_ID;
+              toStore.value = USER_STORE_ID;
+              fromStore.disabled = true;
+              toStore.disabled = true;
+              console.log(`🔒 تم قفل خيار المخزن للمستخدم العادي: ${USER_STORE_ID}`);
+            }
+            
+            console.log(`✅ تم تحميل ${data.length} مخزن (بعد تطبيق الصلاحيات)`);
+            
+          } catch (error) {
+            console.error('Error loading stores:', error);
+            this.showError('❌ حدث خطأ في تحميل قائمة المخازن');
+          }
+        }
+
+        setupEventListeners() {
+          document.getElementById('btnSearch').addEventListener('click', () => this.fetchReport());
+          document.getElementById('btnReload').addEventListener('click', () => this.fetchReport());
+          document.getElementById('btnClear').addEventListener('click', () => this.clearFilters());
+          document.getElementById('btnPrint').addEventListener('click', () => this.printReport());
+          document.getElementById('btnExport').addEventListener('click', () => this.exportToExcel());
+          
+          document.getElementById('fromDate').addEventListener('change', () => this.validateDates());
+          document.getElementById('toDate').addEventListener('change', () => this.validateDates());
+          
+          // مراقبة حالة الاتصال
+          window.addEventListener('online', () => this.checkConnection());
+          window.addEventListener('offline', () => this.checkConnection());
+          
+          // إعداد التنقل بـ Enter
+          this.setupEnterNavigation();
+        }
+
+        // 🆕 دالة لإعداد التنقل بـ Enter
+        setupEnterNavigation() {
+          const fields = [
+            'fromDate', 'toDate', 'filterFromStore', 'filterToStore', 
+            'filterStatus', 'qSearch'
+          ];
+
+          fields.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (field) {
+              field.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  this.moveToNextField(fieldId);
+                }
+              });
+            }
+          });
+
+          // إضافة مستمع Enter لزر عرض التقرير
+          const searchBtn = document.getElementById('btnSearch');
+          if (searchBtn) {
+            searchBtn.addEventListener('keydown', (e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                this.fetchReport();
+              }
+            });
+          }
+        }
+
+        // 🆕 دالة للانتقال للحقل التالي
+        moveToNextField(currentFieldId) {
+          const fieldOrder = [
+            'fromDate', 'toDate', 
+            'filterFromStore', 'filterToStore', 
+            'filterStatus', 'qSearch'
+          ];
+
+          const currentIndex = fieldOrder.indexOf(currentFieldId);
+          if (currentIndex === -1 || currentIndex === fieldOrder.length - 1) {
+            // إذا كان آخر حقل، انتقل لزر عرض التقرير
+            document.getElementById('btnSearch').focus();
+            return;
+          }
+
+          const nextFieldId = fieldOrder[currentIndex + 1];
+          const nextField = document.getElementById(nextFieldId);
+          if (nextField) {
+            nextField.focus();
+            if (nextField.tagName === 'SELECT') {
+              setTimeout(() => nextField.click(), 10);
+            }
+          }
+        }
+
+        validateDates() {
+          const fromDate = new Date(document.getElementById('fromDate').value);
+          const toDate = new Date(document.getElementById('toDate').value);
+          
+          if (fromDate > toDate) {
+            this.showMessage('⚠️ تاريخ البداية يجب أن يكون قبل تاريخ النهاية', 'warning');
+            document.getElementById('fromDate').value = this.formatDate(toDate);
+          }
+        }
+
+        getFilters() {
+          const filters = {
+            fromDate: document.getElementById('fromDate').value || null,
+            toDate: document.getElementById('toDate').value || null,
+            fromStore: document.getElementById('filterFromStore').value || null,
+            toStore: document.getElementById('filterToStore').value || null,
+            status: document.getElementById('filterStatus').value || 'all',
+            search: document.getElementById('qSearch').value.trim() || null
+          };
+
+          // إزالة القيم الفارغة
+          Object.keys(filters).forEach(key => {
+            if (!filters[key] || filters[key] === '0' || filters[key] === 'all') {
+              delete filters[key];
+            }
+          });
+
+          return filters;
+        }
+
+        async fetchReport() {
+          try {
+            this.setLoading(true);
+            this.hideError();
+            
+            const filters = this.getFilters();
+            
+            // 🔒 التحقق من صلاحيات المخزن المحدد
+            const selectedFromStore = filters.fromStore;
+            const selectedToStore = filters.toStore;
+            
+            if (!IS_SPECIAL_USER) {
+              // التحقق من صلاحيات المخزن المصدر
+              if (selectedFromStore && selectedFromStore !== USER_STORE_ID) {
+                this.showError('❌ غير مصرح لك بالوصول إلى تحويلات هذا المخزن المصدر');
+                this.setLoading(false);
+                return;
+              }
+              
+              // التحقق من صلاحيات المخزن الهدف
+              if (selectedToStore && selectedToStore !== USER_STORE_ID) {
+                this.showError('❌ غير مصرح لك بالوصول إلى تحويلات هذا المخزن الهدف');
+                this.setLoading(false);
+                return;
+              }
+            }
+            
+            console.log('🔍 جاري جلب تقرير حركات التحويل...');
+            console.log('📅 الفترة:', filters.fromDate || 'الكل', 'إلى', filters.toDate || 'الكل');
+            console.log('🏪 المخزن المصدر:', selectedFromStore || 'الكل');
+            console.log('🏪 المخزن الهدف:', selectedToStore || 'الكل');
+            console.log('👤 صلاحيات المستخدم:', IS_SPECIAL_USER ? 'مدير كامل' : `مخزن ${USER_STORE_ID}`);
+            
+            // جلب البيانات من الجدول transfer_stores مع JOINs صحيحة
+            let query = supabaseClient
+              .from('transfer_stores')
+              .select(`
+                *,
+                from_store:from_store(
+                  store_id,
+                  store_name
+                ),
+                to_store:to_store(
+                  store_id,
+                  store_name
+                ),
+                items:item_id(
+                  item_id,
+                  item_nm
+                )
+              `);
+            
+            // تطبيق الفلاتر الأساسية
+            if (filters.fromDate) {
+              query = query.gte('tran_date', filters.fromDate + 'T00:00:00');
+            }
+            if (filters.toDate) {
+              query = query.lte('tran_date', filters.toDate + 'T23:59:59');
+            }
+            
+            // 🔒 تطبيق فلتر المخزن بناءً على الصلاحيات
+            if (!IS_SPECIAL_USER) {
+              // المستخدم العادي يرى فقط تحويلات مخزنه (كمصدر أو هدف)
+              query = query.or(`from_store.eq.${USER_STORE_ID},to_store.eq.${USER_STORE_ID}`);
+              console.log('🔒 تطبيق فلتر المخزن الآلي (OR):', USER_STORE_ID);
+            } else {
+              // المستخدم الخاص يختار المخزن يدوياً
+              if (filters.fromStore) {
+                query = query.eq('from_store', parseInt(filters.fromStore));
+              }
+              if (filters.toStore) {
+                query = query.eq('to_store', parseInt(filters.toStore));
+              }
+            }
+            
+            // تطبيق الفلاتر الأخرى
+            if (filters.status && filters.status !== 'all') {
+              query = query.eq('status', filters.status);
+            }
+            if (filters.search) {
+              query = query.or(`transfer_no.ilike.%${filters.search}%,item_id.ilike.%${filters.search}%,remarks.ilike.%${filters.search}%,batch_no.ilike.%${filters.search}%`);
+            }
+            
+            // تطبيق الترتيب
+            query = query.order('tran_date', { ascending: false });
+            
+            const { data, error } = await query;
+            
+            if (error) {
+              console.error('❌ خطأ في استعلام transfer_stores:', error);
+              
+              // محاولة بديلة: جلب البيانات بدون JOINs أولاً
+              console.log('🔄 جرب استعلام مبسط...');
+              
+              let simpleQuery = supabaseClient
+                .from('transfer_stores')
+                .select('*')
+                .order('tran_date', { ascending: false });
+              
+              if (filters.fromDate) {
+                simpleQuery = simpleQuery.gte('tran_date', filters.fromDate + 'T00:00:00');
+              }
+              if (filters.toDate) {
+                simpleQuery = simpleQuery.lte('tran_date', filters.toDate + 'T23:59:59');
+              }
+              
+              if (!IS_SPECIAL_USER) {
+                simpleQuery = simpleQuery.or(`from_store.eq.${USER_STORE_ID},to_store.eq.${USER_STORE_ID}`);
+              } else {
+                if (filters.fromStore) {
+                  simpleQuery = simpleQuery.eq('from_store', parseInt(filters.fromStore));
+                }
+                if (filters.toStore) {
+                  simpleQuery = simpleQuery.eq('to_store', parseInt(filters.toStore));
+                }
+              }
+              
+              if (filters.status && filters.status !== 'all') {
+                simpleQuery = simpleQuery.eq('status', filters.status);
+              }
+              
+              const { data: simpleData, error: simpleError } = await simpleQuery;
+              
+              if (simpleError) {
+                throw new Error(`فشل في جلب البيانات: ${error.message} | ${simpleError.message}`);
+              }
+              
+              // جلب البيانات الإضافية بشكل منفصل
+              currentData = await this.enrichTransferData(simpleData);
+              this.renderReport(currentData);
+              
+              console.log(`✅ تم جلب ${simpleData?.length || 0} سجل (بعد تطبيق الصلاحيات)`);
+            } else {
+              currentData = data || [];
+              this.renderReport(data || []);
+              
+              console.log(`✅ تم جلب ${data?.length || 0} سجل (بعد تطبيق الصلاحيات)`);
+            }
+            
+            if (currentData.length > 0) {
+              this.showMessage(`✅ تم تحميل ${currentData.length} سجل من التحويلات`);
+            } else {
+              this.showMessage('ℹ️ لا توجد بيانات للفترة المحددة', 'warning');
+            }
+            
+          } catch (error) {
+            console.error('Error loading report:', error);
+            this.showError(`❌ حدث خطأ في تحميل التقرير: ${error.message}`);
+            this.renderReport([]);
+          } finally {
+            this.setLoading(false);
+          }
+        }
+
+        // دالة لتحسين البيانات بجلب المعلومات الإضافية
+        async enrichTransferData(transferData) {
+          if (!transferData || transferData.length === 0) {
+            return [];
+          }
+          
+          try {
+            // جلب أسماء المخازن
+            const fromStoreIds = [...new Set(transferData.map(t => t.from_store).filter(id => id))];
+            const toStoreIds = [...new Set(transferData.map(t => t.to_store).filter(id => id))];
+            const allStoreIds = [...fromStoreIds, ...toStoreIds];
+            
+            let stores = [];
+            if (allStoreIds.length > 0) {
+              const { data: storesData, error: storesError } = await supabaseClient
+                .from('stores')
+                .select('store_id, store_name')
+                .in('store_id', allStoreIds);
+              
+              if (!storesError && storesData) {
+                stores = storesData;
+              }
+            }
+            
+            // جلب أسماء الأصناف
+            const itemIds = [...new Set(transferData.map(t => t.item_id).filter(id => id))];
+            let items = [];
+            if (itemIds.length > 0) {
+              const { data: itemsData, error: itemsError } = await supabaseClient
+                .from('items')
+                .select('item_id, item_nm')
+                .in('item_id', itemIds);
+              
+              if (!itemsError && itemsData) {
+                items = itemsData;
+              }
+            }
+            
+            // دمج البيانات
+            return transferData.map(transfer => {
+              const fromStore = stores.find(s => s.store_id === transfer.from_store);
+              const toStore = stores.find(s => s.store_id === transfer.to_store);
+              const item = items.find(i => i.item_id === transfer.item_id);
+              
+              return {
+                ...transfer,
+                from_store_obj: fromStore || { store_id: transfer.from_store, store_name: `مخزن ${transfer.from_store}` },
+                to_store_obj: toStore || { store_id: transfer.to_store, store_name: `مخزن ${transfer.to_store}` },
+                item_obj: item || { item_id: transfer.item_id, item_nm: `صنف ${transfer.item_id}` }
+              };
+            });
+            
+          } catch (error) {
+            console.error('❌ خطأ في تحسين البيانات:', error);
+            return transferData.map(t => ({
+              ...t,
+              from_store_obj: { store_id: t.from_store, store_name: `مخزن ${t.from_store}` },
+              to_store_obj: { store_id: t.to_store, store_name: `مخزن ${t.to_store}` },
+              item_obj: { item_id: t.item_id, item_nm: `صنف ${t.item_id}` }
+            }));
+          }
+        }
+
+        renderReport(rows) {
+          const tbody = document.querySelector('#reportTable tbody');
+          tbody.innerHTML = '';
+          
+          if (!rows || rows.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="12" class="no-data">⚠️ لا توجد بيانات تطابق معايير البحث</td></tr>';
+            document.getElementById('resultCount').textContent = '0';
+            document.getElementById('resultQty').textContent = '0.00';
+            document.getElementById('periodText').textContent = 'لا توجد بيانات';
+            return;
+          }
+
+          let totalQty = 0;
+          
+          rows.forEach((r, i) => {
+            totalQty += parseFloat(r.qty || 0);
+            
+            // التعامل مع كائنات المخازن والأصناف بشكل صحيح
+            const fromStoreName = r.from_store_obj ? r.from_store_obj.store_name : 
+                                (typeof r.from_store === 'object' ? r.from_store.store_name : 
+                                (r.from_store || '-'));
+            
+            const toStoreName = r.to_store_obj ? r.to_store_obj.store_name : 
+                              (typeof r.to_store === 'object' ? r.to_store.store_name : 
+                              (r.to_store || '-'));
+            
+            const itemName = r.item_obj ? r.item_obj.item_nm : 
+                          (typeof r.items === 'object' ? (r.items.item_nm || r.items.name || '-') : 
+                          (r.items || '-'));
+            
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>${i+1}</td>
+              <td><strong>${r.transfer_no || r.ser_no || '-'}</strong></td>
+              <td>${this.formatDateTime(r.tran_date)}</td>
+              <td>${fromStoreName}</td>
+              <td>${toStoreName}</td>
+              <td><strong>${r.item_id || '-'}</strong></td>
+              <td style="text-align:right">${itemName}</td>
+              <td><strong>${Number(r.qty || 0).toFixed(2)}</strong></td>
+              <td>${r.batch_no || '-'}</td>
+              <td>${r.expiry_date ? this.formatDateOnly(r.expiry_date) : '-'}</td>
+              <td>${this.renderStatusBadge(r.status)}</td>
+              <td style="text-align:right" title="${r.remarks || ''}">${this.truncateText(r.remarks || '', 30)}</td>
+            `;
+            tbody.appendChild(tr);
+          });
+          
+          document.getElementById('resultCount').textContent = rows.length;
+          document.getElementById('resultQty').textContent = totalQty.toFixed(2);
+          
+          const filters = this.getFilters();
+          let periodText = `من ${filters.fromDate || 'بداية'} إلى ${filters.toDate || 'النهاية'}`;
+          if (filters.fromStore) {
+            const fromStoreSelect = document.getElementById('filterFromStore');
+            const fromStoreName = fromStoreSelect.selectedOptions[0]?.textContent || filters.fromStore;
+            periodText += ` | فرع مصدر: ${fromStoreName}`;
+          }
+          if (filters.toStore) {
+            const toStoreSelect = document.getElementById('filterToStore');
+            const toStoreName = toStoreSelect.selectedOptions[0]?.textContent || filters.toStore;
+            periodText += ` | فرع هدف: ${toStoreName}`;
+          }
+          if (filters.status && filters.status !== 'all') {
+            periodText += ` | حالة: ${document.getElementById('filterStatus').selectedOptions[0].textContent}`;
+          }
+          
+          document.getElementById('periodText').textContent = periodText;
+          document.getElementById('reportDate').textContent = new Date().toLocaleString('ar-EG');
+        }
+
+        formatDateTime(dt) {
+          if (!dt) return '-';
+          try {
+            const d = new Date(dt);
+            if (isNaN(d.getTime())) return dt;
+            return d.toLocaleString('ar-EG');
+          } catch (e) {
+            return dt;
+          }
+        }
+
+        formatDateOnly(dt) {
+          if (!dt) return '-';
+          try {
+            const d = new Date(dt);
+            if (isNaN(d.getTime())) return dt;
+            return d.toLocaleDateString('ar-EG');
+          } catch (e) {
+            return dt;
+          }
+        }
+
+        truncateText(text, maxLength) {
+          if (!text) return '';
+          return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+        }
+
+        renderStatusBadge(status) {
+          if (!status) return '-';
+          const map = {
+            'معلق': `<span class="status-pending">معلق</span>`,
+            'مكتمل': `<span class="status-completed">مكتمل</span>`,
+            'مرفوض': `<span class="status-rejected">مرفوض</span>`,
+            'مرتجع تلقائي': `<span class="status-auto_returned">مرتجع تلقائي</span>`,
+            'قيد الانتظار': `<span class="status-pending">قيد الانتظار</span>`,
+            'مرفوضة': `<span class="status-rejected">مرفوضة</span>`
+          };
+          return map[status] || `<span>${status}</span>`;
+        }
+
+        clearFilters() {
+          document.getElementById('fromDate').value = '';
+          document.getElementById('toDate').value = '';
+          
+          // للمستخدم العادي، إعادة تعيين المخزن لقيمته الأصلية
+          if (!IS_SPECIAL_USER) {
+            document.getElementById('filterFromStore').value = USER_STORE_ID;
+            document.getElementById('filterToStore').value = USER_STORE_ID;
+          } else {
+            document.getElementById('filterFromStore').value = '0';
+            document.getElementById('filterToStore').value = '0';
+          }
+          
+          document.getElementById('filterStatus').value = 'all';
+          document.getElementById('qSearch').value = '';
+          
+          this.setDefaultDates();
+          document.getElementById('resultCount').textContent = '0';
+          document.getElementById('resultQty').textContent = '0.00';
+          document.getElementById('periodText').textContent = '';
+          this.hideError();
+          
+          this.showMessage('تم مسح الفلاتر بنجاح', 'info');
+          
+          // التركيز على أول حقل بعد المسح
+          setTimeout(() => {
+            document.getElementById('fromDate').focus();
+          }, 100);
+        }
+
+        printReport() {
+          if (currentData.length === 0) {
+            this.showError('⚠️ لا توجد بيانات للطباعة');
+            return;
+          }
+          
+          // 🔒 التحقق من أن المستخدم العادي لا يطبع بيانات غير مخزنه
+          if (!IS_SPECIAL_USER) {
+            const selectedFromStore = document.getElementById('filterFromStore').value;
+            const selectedToStore = document.getElementById('filterToStore').value;
+            
+            if ((selectedFromStore && selectedFromStore !== USER_STORE_ID && selectedFromStore !== '0') ||
+                (selectedToStore && selectedToStore !== USER_STORE_ID && selectedToStore !== '0')) {
+              this.showError('❌ غير مصرح لك بطباعة بيانات هذه المخازن');
+              return;
+            }
+          }
+          
+          window.print();
+        }
+
+        exportToExcel() {
+          if (currentData.length === 0) {
+            this.showError('⚠️ لا توجد بيانات للتصدير');
+            return;
+          }
+          
+          // 🔒 التحقق من أن المستخدم العادي لا يقوم بتصدير بيانات غير مخزنه
+          if (!IS_SPECIAL_USER) {
+            const selectedFromStore = document.getElementById('filterFromStore').value;
+            const selectedToStore = document.getElementById('filterToStore').value;
+            
+            if ((selectedFromStore && selectedFromStore !== USER_STORE_ID && selectedFromStore !== '0') ||
+                (selectedToStore && selectedToStore !== USER_STORE_ID && selectedToStore !== '0')) {
+              this.showError('❌ غير مصرح لك بتصدير بيانات هذه المخازن');
+              return;
+            }
+          }
+
+          // إنشاء بيانات CSV
+          const headers = [
+            'رقم التحويل', 'التاريخ', 'من مخزن', 'إلى مخزن', 'رمز الصنف', 
+            'اسم الصنف', 'الكمية', 'الدفعة', 'تاريخ الصلاحية', 'الحالة', 'ملاحظات'
+          ];
+
+          const data = currentData.map(row => {
+            // التعامل مع كائنات المخازن والأصناف بشكل صحيح
+            const fromStoreName = row.from_store_obj ? row.from_store_obj.store_name : 
+                                (typeof row.from_store === 'object' ? row.from_store.store_name : 
+                                (row.from_store || ''));
+            
+            const toStoreName = row.to_store_obj ? row.to_store_obj.store_name : 
+                              (typeof row.to_store === 'object' ? row.to_store.store_name : 
+                              (row.to_store || ''));
+            
+            const itemName = row.item_obj ? row.item_obj.item_nm : 
+                          (typeof row.items === 'object' ? (row.items.item_nm || row.items.name || '') : 
+                          (row.items || ''));
+            
+            return [
+              row.transfer_no || row.ser_no || '',
+              this.formatDateTime(row.tran_date),
+              fromStoreName,
+              toStoreName,
+              row.item_id || '',
+              itemName,
+              row.qty || 0,
+              row.batch_no || '',
+              row.expiry_date ? this.formatDateOnly(row.expiry_date) : '',
+              row.status || '',
+              row.remarks || ''
+            ];
+          });
+
+          let csvContent = '\uFEFF'; // BOM للتعرف على الأحرف العربية
+          csvContent += headers.join(',') + '\n';
+          
+          data.forEach(row => {
+            csvContent += row.map(field => `"${field}"`).join(',') + '\n';
+          });
+
+          const storeInfo = IS_SPECIAL_USER ? 'جميع-المخازن' : `مخزن-${USER_STORE_ID}`;
+          const fileName = `تحويلات_المخازن_${storeInfo}_${new Date().toISOString().slice(0,10)}.csv`;
+          
+          this.downloadFile(csvContent, fileName, 'text/csv;charset=utf-8;');
+          this.showMessage('✅ تم تصدير البيانات إلى Excel بنجاح');
+        }
+
+        // دالة تنزيل الملف
+        downloadFile(content, fileName, mimeType) {
+          try {
+            const blob = new Blob(['\uFEFF' + content], { type: mimeType });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = fileName;
+            link.click();
+          } catch (error) {
+            console.error('Error downloading file:', error);
+            this.showError('❌ فشل في تنزيل الملف');
+          }
+        }
+
+        // عرض رسالة ترحيبية
+        showWelcomeMessage() {
+          setTimeout(() => {
+            if (IS_SPECIAL_USER) {
+              this.showMessage('👑 مرحباً بمدير النظام! لديك صلاحيات كاملة على جميع التحويلات', 'success');
+            } else {
+              this.showMessage(`🔐 مرحباً! يمكنك عرض تحويلات مخزنك فقط (المخزن: ${USER_STORE_ID})`, 'info');
+            }
+          }, 1000);
+        }
+      }
+
+      // تهيئة التقرير عند تحميل الصفحة
+      document.addEventListener('DOMContentLoaded', function() {
+        window.transferReport = new TransferReport();
+      });
+      
+      // تصدير الدوال الضرورية للسكوب العالمي
+      window.TransferReportApp = {
+        fetchReport: () => window.transferReport.fetchReport(),
+        clearFilters: () => window.transferReport.clearFilters(),
+        printReport: () => window.transferReport.printReport(),
+        exportToExcel: () => window.transferReport.exportToExcel()
+      };
+      
+    })(); // نهاية IIFE
+  </script>
+</body>
+</html>

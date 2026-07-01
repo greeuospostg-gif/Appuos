@@ -1,0 +1,1394 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🔐 صلاحيات المستخدمين</title>
+  <link rel="icon" href="data:,">
+  <!-- إضافة Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- إضافة Font Awesome للرموز -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary: #5d7fe3;
+      --primary-dark: #4a6bd4;
+      --primary-light: #f0f4ff;
+      --secondary: #8a5bd6;
+      --success: #4cc9f0;
+      --warning: #f72585;
+      --light: #f8f9fa;
+      --dark: #212529;
+      --gray: #6c757d;
+      --border: #dee2e6;
+      --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      --transition: all 0.3s ease;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #e6ecff 0%, #f0f4ff 100%);
+      color: var(--dark);
+      line-height: 1.6;
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .header {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      color: white;
+      padding: 25px;
+      border-radius: 16px 16px 0 0;
+      margin-bottom: 0;
+      text-align: center;
+      box-shadow: var(--shadow);
+    }
+
+    h2 {
+      font-size: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin: 0;
+    }
+
+    .main-content {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 25px;
+      margin-top: 25px;
+    }
+
+    @media (max-width: 1024px) {
+      .main-content {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      padding: 25px;
+      transition: var(--transition);
+      border: 1px solid var(--border);
+    }
+
+    .card:hover {
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+      transform: translateY(-2px);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: var(--dark);
+      font-size: 1rem;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 14px 16px;
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      font-size: 1rem;
+      transition: var(--transition);
+      background-color: var(--light);
+      font-family: inherit;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(93, 127, 227, 0.2);
+      background-color: white;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 14px 24px;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      min-width: 120px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(93, 127, 227, 0.3);
+    }
+
+    .btn-secondary {
+      background: linear-gradient(135deg, var(--secondary) 0%, #7a4bc4 100%);
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(138, 91, 214, 0.3);
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--primary);
+      border: 2px solid var(--primary);
+    }
+
+    .btn-outline:hover {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-success {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+    }
+
+    .btn-success:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(16, 185, 129, 0.3);
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 15px;
+      margin-top: 25px;
+      flex-wrap: wrap;
+    }
+
+    .table-container {
+      overflow-x: auto;
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      background: white;
+      margin-top: 25px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: white;
+      min-width: 600px;
+    }
+
+    th {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: white;
+      padding: 16px 12px;
+      text-align: right;
+      font-weight: 600;
+      font-size: 0.95rem;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 14px 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.95rem;
+      text-align: right;
+    }
+
+    tr:hover {
+      background-color: rgba(93, 127, 227, 0.05);
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+    }
+
+    .actions button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1.1rem;
+      padding: 6px 8px;
+      border-radius: 6px;
+      transition: var(--transition);
+    }
+
+    .actions button:hover {
+      background-color: rgba(0, 0, 0, 0.1);
+      transform: scale(1.1);
+    }
+
+    .edit-btn {
+      color: var(--primary);
+    }
+
+    .delete-btn {
+      color: var(--warning);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--gray);
+    }
+
+    .empty-state i {
+      font-size: 3rem;
+      margin-bottom: 15px;
+      opacity: 0.5;
+    }
+
+    /* شريط الاتصال */
+    .connection-status {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      background: #fff;
+      padding: 8px 12px;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      z-index: 1000;
+      font-size: 12px;
+      border-left: 4px solid #28a745;
+    }
+
+    .loading-spinner {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 9999;
+    }
+
+    .search-box {
+      max-width: 300px;
+      margin-bottom: 15px;
+    }
+
+    /* تحسينات لل checkboxes */
+    .permissions-container {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 10px;
+      margin: 10px 0;
+      border: 1px solid var(--border);
+    }
+
+    .permissions-container label {
+      display: inline-block;
+      margin: 8px 15px 8px 0;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .permissions-container input[type="checkbox"] {
+      margin-left: 5px;
+      cursor: pointer;
+      transform: scale(1.2);
+    }
+
+    /* تحسينات للجوال */
+    @media (max-width: 768px) {
+      body {
+        padding: 15px;
+      }
+      
+      .header {
+        padding: 20px;
+        border-radius: 12px 12px 0 0;
+      }
+      
+      h2 {
+        font-size: 1.6rem;
+      }
+      
+      .card {
+        padding: 20px;
+      }
+      
+      .form-actions {
+        flex-direction: column;
+      }
+      
+      .btn {
+        width: 100%;
+      }
+      
+      th, td {
+        padding: 12px 8px;
+      }
+
+      .permissions-container label {
+        display: block;
+        margin: 10px 0;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .header {
+        border-radius: 10px 10px 0 0;
+      }
+      
+      h2 {
+        font-size: 1.4rem;
+      }
+      
+      .card {
+        padding: 15px;
+        border-radius: 12px;
+      }
+      
+      input, select {
+        padding: 12px 14px;
+      }
+      
+      .btn {
+        padding: 12px 20px;
+      }
+
+      .permissions-container {
+        padding: 10px;
+      }
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .card, .table-container {
+      animation: fadeIn 0.5s ease;
+    }
+
+    /* تحسينات إضافية */
+    .status-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .status-online {
+      background-color: rgba(76, 201, 240, 0.2);
+      color: #4cc9f0;
+    }
+
+    .status-offline {
+      background-color: rgba(247, 37, 133, 0.2);
+      color: #f72585;
+    }
+
+    .search-container {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 20px;
+    }
+
+    .search-box {
+      position: relative;
+      max-width: 400px;
+      width: 100%;
+    }
+
+    .search-box input {
+      padding-right: 40px;
+    }
+
+    .search-box i {
+      position: absolute;
+      right: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--gray);
+    }
+
+    /* ✅ أزرار متقدمة */
+    .advanced-actions {
+      margin-top: 20px;
+      padding: 15px;
+      background: rgba(93, 127, 227, 0.1);
+      border-radius: 10px;
+      border: 1px solid rgba(93, 127, 227, 0.2);
+    }
+
+    .advanced-actions h5 {
+      margin-bottom: 10px;
+      color: var(--primary);
+      font-size: 1.1rem;
+    }
+
+    .advanced-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .btn-sm {
+      padding: 8px 15px;
+      font-size: 0.9rem;
+      min-width: auto;
+    }
+  </style>
+</head>
+<body>
+  <!-- شريط حالة الاتصال -->
+  <div id="connectionStatus" class="connection-status">
+    <i class="fas fa-cloud-check"></i> متصل بـ Supabase
+  </div>
+
+  <div class="container">
+    <div class="header">
+      <h2><i class="fas fa-user-shield"></i> شاشة صلاحيات المستخدمين</h2>
+    </div>
+
+    <div class="main-content">
+      <!-- نموذج الصلاحيات -->
+      <div class="card">
+        <h4 class="mb-4"><i class="fas fa-plus-circle"></i> إضافة صلاحية جديدة</h4>
+        <form id="priv-form">
+          <input type="hidden" id="priv_id">
+
+          <div class="form-group">
+            <label for="user_id"><i class="fas fa-user"></i> المستخدم</label>
+            <select id="user_id"></select>
+          </div>
+
+          <div class="form-group">
+            <label for="priv_name"><i class="fas fa-desktop"></i> اسم الشاشة</label>
+            <select id="priv_name">
+              <option value="">جارِ تحميل الشاشات...</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="description"><i class="fas fa-file-alt"></i> الوصف</label>
+            <input type="text" id="description" placeholder="وصف مختصر">
+          </div>
+
+          <div class="form-group">
+            <label>الصلاحيات:</label>
+            <div class="permissions-container">
+              <label><input type="checkbox" id="select_all"> <i class="fas fa-check-double"></i> تحديد كل الصلاحيات</label>
+              <label><input type="checkbox" id="can_view"> <i class="fas fa-eye"></i> عرض</label>
+              <label><input type="checkbox" id="can_add"> <i class="fas fa-plus"></i> إضافة</label>
+              <label><input type="checkbox" id="can_edit"> <i class="fas fa-edit"></i> تعديل</label>
+              <label><input type="checkbox" id="can_delete"> <i class="fas fa-trash"></i> حذف</label>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" onclick="savePrivilege()" class="btn btn-primary">
+              <i class="fas fa-save"></i> حفظ
+            </button>
+            <button type="button" onclick="loadPrivileges()" class="btn btn-secondary">
+              <i class="fas fa-sync"></i> عرض
+            </button>
+            <button type="button" onclick="resetForm()" class="btn btn-outline">
+              <i class="fas fa-broom"></i> جديد
+            </button>
+            <button type="button" onclick="syncScreens()" class="btn btn-outline">
+              <i class="fas fa-sync-alt"></i> مزامنة
+            </button>
+          </div>
+
+          <!-- ✅ قسم الأوامر المتقدمة -->
+          <div class="advanced-actions">
+            <h5><i class="fas fa-magic"></i> أوامر متقدمة</h5>
+            <div class="advanced-buttons">
+              <button type="button" onclick="grantAllPrivileges()" class="btn btn-success btn-sm">
+                <i class="fas fa-check-circle"></i> إعطاء كل الصلاحيات مرة واحدة
+              </button>
+              <button type="button" onclick="grantViewOnly()" class="btn btn-outline btn-sm">
+                <i class="fas fa-eye"></i> صلاحية عرض فقط
+              </button>
+              <button type="button" onclick="grantFullAccess()" class="btn btn-primary btn-sm">
+                <i class="fas fa-user-shield"></i> صلاحية كاملة
+              </button>
+              <button type="button" onclick="removeAllPrivileges()" class="btn btn-sm" style="background: #f72585; color: white;">
+                <i class="fas fa-ban"></i> إلغاء كل الصلاحيات
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <!-- جدول الصلاحيات -->
+      <div class="card">
+        <h4 class="mb-4"><i class="fas fa-list"></i> قائمة الصلاحيات</h4>
+        
+        <div class="search-container">
+          <div class="search-box">
+            <input type="text" id="searchBox" placeholder="🔍 بحث عن مستخدم أو شاشة..." oninput="filterTable()">
+            <i class="fas fa-search"></i>
+          </div>
+        </div>
+        
+        <div class="table-container">
+          <table id="privTable">
+            <thead>
+              <tr>
+                <th>المستخدم</th>
+                <th>الشاشة</th>
+                <th>عرض</th>
+                <th>إضافة</th>
+                <th>تعديل</th>
+                <th>حذف</th>
+                <th>الإجراءات</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td colspan="7" class="empty-state">
+                  <div><i class="fas fa-inbox"></i></div>
+                  <p>لا توجد صلاحيات مسجلة بعد</p>
+                  <small>قم بإضافة صلاحية جديدة باستخدام النموذج</small>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ⚡ التهيئة العالمية - Supabase فقط
+    //const SUPABASE_URL = 'https://rvjacvrrpguehbapvewe.supabase.co';
+    //const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2amFjdnJycGd1ZWhiYXB2ZXdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwMjUxNTksImV4cCI6MjA3ODYwMTE1OX0.wSavKzxKOF7-56G-pzDMtbXNrCNAbGs0wvadw-cilBg';
+    
+    // ✅ تغيير اسم المتغير لتجنب التضارب
+    let supabaseClient;
+
+    // ✅ قائمة الشاشات الثابتة - متوافقة مع main.html
+    const SCREEN_NAMES = [
+      // شئون الموظفين
+      'ادخال الاقسام',
+      'ادخال الموظفين',
+      'ادخال المرتبات',
+      'ادخال حضور وانصراف',
+      
+      // البيانات الأساسية
+      'بيانات المنشأة',
+      'اكواد الفروع',
+      'أكواد الوحدات',
+      'أكواد الشركات',
+      'أكواد الموردين',
+      'أكواد عملاء',
+      'أكواد الاصناف',
+      'بيانات الأصناف بالفروع',
+      'تحويل بين الفروع',
+      'استلام التحويل',
+      'عروض الاسعار',
+
+      // المشتريات
+      'إدخال المشتريات',
+      'مرتجع المشتريات',
+
+      // المبيعات
+      'إدخال المبيعات',
+      'مرتجع المبيعات',
+      
+      // التقارير
+      'تقرير المشتريات',
+      'تقرير مرتجع مشتريات',
+      'تقرير المبيعات',
+      'تقرير مرتجع مبيعات',
+      'تقرير حركة الفروع',
+      'تقرير تحويل بين الفروع',
+      'تقرير استلام التحويل',
+      'تقرير جرود الفروع',
+      'تقرير الكاشير',
+      'تقرير تحليلى شامل الفروع',
+
+      // الحسابات المالية
+      'اكواد الحسابات',
+      'شجرة الحسابات',
+      'حركة الحسابات',
+      'التقارير المالية',
+      'تقرير تحليلى حسابات',
+
+      // البحث
+      'بحث بالكود او بالاسم',
+      'العروض المتاحه',
+
+      // الإعدادات
+      'ادخال مستخدم جديد للنظام',
+      'صلاحيات المستخدمين',
+      'تقرير بتعاملات النظام'
+    ];
+
+    // ✅ تهيئة تحكم الصلاحيات
+    function initializePermissionsControl() {
+        console.log('🔧 تهيئة تحكم الصلاحيات...');
+        
+        const selectAll = document.getElementById('select_all');
+        const checkboxes = [
+            document.getElementById('can_view'),
+            document.getElementById('can_add'),
+            document.getElementById('can_edit'),
+            document.getElementById('can_delete')
+        ];
+
+        // إضافة مستمع حدث لتحديد الكل
+        selectAll.addEventListener('change', function() {
+            console.log('🔄 تغيير حالة تحديد الكل:', this.checked);
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+            updateSelectAllState();
+        });
+
+        // إضافة مستمعات الأحداث للcheckboxes الفردية
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                console.log('🔄 تغيير صلاحية:', this.id, this.checked);
+                updateSelectAllState();
+            });
+        });
+
+        console.log('✅ تم تهيئة تحكم الصلاحيات بنجاح');
+    }
+
+    // ✅ تحديث حالة "تحديد الكل"
+    function updateSelectAllState() {
+        const checkboxes = [
+            document.getElementById('can_view'),
+            document.getElementById('can_add'),
+            document.getElementById('can_edit'),
+            document.getElementById('can_delete')
+        ];
+        
+        const allChecked = checkboxes.every(checkbox => checkbox.checked);
+        const someChecked = checkboxes.some(checkbox => checkbox.checked);
+        
+        const selectAll = document.getElementById('select_all');
+        selectAll.checked = allChecked;
+        selectAll.indeterminate = !allChecked && someChecked;
+    }
+
+    // ✅ تهيئة Supabase
+    function initializeSupabase() {
+        try {
+            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            console.log('✅ Supabase initialized');
+            return true;
+        } catch (error) {
+            console.error('❌ Failed to initialize Supabase:', error);
+            return false;
+        }
+    }
+
+    // ✅ تحميل المستخدمين من Supabase
+    async function loadUsers() {
+      const statusDiv = document.getElementById('connectionStatus');
+      statusDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري تحميل المستخدمين...';
+      
+      try {
+        console.log('🔄 جاري تحميل المستخدمين من Supabase');
+
+        if (!supabaseClient) initializeSupabase();
+        
+        const { data, error } = await supabaseClient
+            .from('users')
+            .select('user_id, username')
+            .order('user_id');
+        
+        if (error) throw error;
+        
+        const select = document.getElementById("user_id");
+        select.innerHTML = '<option value="">اختر المستخدم...</option>';
+        data.forEach(u => {
+            const opt = document.createElement("option");
+            opt.value = u.user_id;
+            opt.textContent = `${u.user_id} - ${u.username}`;
+            select.appendChild(opt);
+        });
+        
+        console.log(`✅ تم تحميل ${data.length} مستخدم من Supabase`);
+        statusDiv.innerHTML = '<i class="fas fa-cloud-check"></i> متصل بـ Supabase';
+        
+      } catch (err) {
+        console.error('❌ خطأ في تحميل المستخدمين:', err);
+        statusDiv.innerHTML = '<i class="fas fa-exclamation-triangle"></i> فشل تحميل المستخدمين';
+        alert('❌ فشل في تحميل المستخدمين: ' + err.message);
+      }
+    }
+
+    // ✅ تحميل أسماء الشاشات من القائمة الثابتة
+    async function loadScreens() {
+      try {
+        console.log('🔄 جاري تحميل الشاشات');
+        const screenSelect = document.getElementById('priv_name');
+        screenSelect.innerHTML = '<option value="">اختر الشاشة...</option>';
+        
+        SCREEN_NAMES.forEach(screen => {
+            const option = document.createElement('option');
+            option.value = screen;
+            option.textContent = screen;
+            screenSelect.appendChild(option);
+        });
+        
+        console.log(`✅ تم تحميل ${SCREEN_NAMES.length} شاشة`);
+      } catch (err) {
+        console.error('❌ خطأ أثناء تحميل أسماء الشاشات:', err);
+      }
+    }
+
+    // ✅ تحميل الصلاحيات من Supabase
+    async function loadPrivileges() {
+      const statusDiv = document.getElementById('connectionStatus');
+      statusDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري تحميل الصلاحيات...';
+      
+      try {
+        console.log('🔄 جاري تحميل الصلاحيات من Supabase');
+
+        if (!supabaseClient) initializeSupabase();
+        
+        const { data, error } = await supabaseClient
+            .from('privileges')
+            .select('priv_id, user_id, priv_name, description, can_view, can_add, can_edit, can_delete')
+            .order('priv_id');
+        
+        if (error) {
+            console.error('❌ خطأ في تحميل الصلاحيات من Supabase:', error);
+            throw error;
+        }
+        
+        const tbody = document.querySelector("#privTable tbody");
+        tbody.innerHTML = "";
+        
+        if (data.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="empty-state">
+                        <div><i class="fas fa-inbox"></i></div>
+                        <p>لا توجد صلاحيات مسجلة بعد</p>
+                        <small>قم بإضافة صلاحية جديدة باستخدام النموذج</small>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+        
+        // ✅ جلب أسماء المستخدمين بشكل منفصل
+        const userIds = [...new Set(data.map(p => p.user_id))];
+        const userMap = await getUserNames(userIds);
+        
+        data.forEach(p => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${userMap[p.user_id] || p.user_id}</td>
+                <td>${p.priv_name}</td>
+                <td>${p.can_view ? '<span class="status-badge status-online"><i class="fas fa-check"></i></span>' : '<span class="status-badge status-offline"><i class="fas fa-times"></i></span>'}</td>
+                <td>${p.can_add ? '<span class="status-badge status-online"><i class="fas fa-check"></i></span>' : '<span class="status-badge status-offline"><i class="fas fa-times"></i></span>'}</td>
+                <td>${p.can_edit ? '<span class="status-badge status-online"><i class="fas fa-check"></i></span>' : '<span class="status-badge status-offline"><i class="fas fa-times"></i></span>'}</td>
+                <td>${p.can_delete ? '<span class="status-badge status-online"><i class="fas fa-check"></i></span>' : '<span class="status-badge status-offline"><i class="fas fa-times"></i></span>'}</td>
+                <td class="actions">
+                    <button class="edit-btn" onclick="editPriv(${p.priv_id})">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="delete-btn" onclick="deletePriv(${p.priv_id})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+        
+        console.log(`✅ تم تحميل ${data.length} صلاحية من Supabase`);
+        statusDiv.innerHTML = '<i class="fas fa-cloud-check"></i> متصل بـ Supabase';
+        
+      } catch (err) {
+        console.error('❌ خطأ في تحميل الصلاحيات:', err);
+        statusDiv.innerHTML = '<i class="fas fa-exclamation-triangle"></i> فشل تحميل الصلاحيات';
+      }
+    }
+
+    // ✅ دالة مساعدة لجلب أسماء المستخدمين
+    async function getUserNames(userIds) {
+        try {
+            if (!supabaseClient) initializeSupabase();
+            
+            const { data, error } = await supabaseClient
+                .from('users')
+                .select('user_id, username')
+                .in('user_id', userIds);
+            
+            if (error) {
+                console.error('❌ خطأ في جلب أسماء المستخدمين:', error);
+                return {};
+            }
+            
+            const userMap = {};
+            data.forEach(user => {
+                userMap[user.user_id] = user.username;
+            });
+            
+            return userMap;
+        } catch (err) {
+            console.error('❌ خطأ في جلب أسماء المستخدمين:', err);
+            return {};
+        }
+    }
+
+    // ✅ حفظ الصلاحيات في Supabase
+    async function savePrivilege() {
+      const priv = {
+        priv_id: document.getElementById("priv_id").value,
+        user_id: document.getElementById("user_id").value,
+        priv_name: document.getElementById("priv_name").value,
+        description: document.getElementById("description").value,
+        can_view: document.getElementById("can_view").checked,
+        can_add: document.getElementById("can_add").checked,
+        can_edit: document.getElementById("can_edit").checked,
+        can_delete: document.getElementById("can_delete").checked
+      };
+      
+      if (!priv.user_id || !priv.priv_name) {
+        alert("⚠️ يرجى تحديد المستخدم واسم الشاشة.");
+        return;
+      }
+
+      try {
+        console.log('💾 جاري حفظ الصلاحية في Supabase');
+
+        if (!supabaseClient) initializeSupabase();
+        
+        let result;
+        if (priv.priv_id) {
+            // تعديل
+            const { data, error } = await supabaseClient
+                .from('privileges')
+                .update({
+                    user_id: priv.user_id,
+                    priv_name: priv.priv_name,
+                    description: priv.description,
+                    can_view: priv.can_view,
+                    can_add: priv.can_add,
+                    can_edit: priv.can_edit,
+                    can_delete: priv.can_delete
+                })
+                .eq('priv_id', priv.priv_id)
+                .select();
+            
+            if (error) {
+                console.error('❌ خطأ في تعديل الصلاحية:', error);
+                throw error;
+            }
+            result = data;
+        } else {
+            // إضافة - إزالة priv_id لأنها تلقائية
+            const { data, error } = await supabaseClient
+                .from('privileges')
+                .insert([{
+                    user_id: priv.user_id,
+                    priv_name: priv.priv_name,
+                    description: priv.description,
+                    can_view: priv.can_view,
+                    can_add: priv.can_add,
+                    can_edit: priv.can_edit,
+                    can_delete: priv.can_delete
+                }])
+                .select();
+            
+            if (error) {
+                console.error('❌ خطأ في إضافة الصلاحية:', error);
+                throw error;
+            }
+            result = data;
+        }
+        
+        alert("✅ تم حفظ الصلاحية بنجاح في Supabase");
+        
+        // إشعار التطبيقات الأخرى
+        localStorage.setItem('privileges_updated', Date.now());
+        if (window.opener && !window.opener.closed) {
+            window.opener.postMessage({ type: "PRIV_UPDATED" }, "*");
+        }
+
+        resetForm();
+        loadPrivileges();
+        
+      } catch (err) {
+        console.error('❌ خطأ في حفظ الصلاحية:', err);
+        alert(`❌ فشل في حفظ الصلاحية: ${err.message}`);
+      }
+    }
+
+    // ✅ تعديل (من Supabase)
+    async function editPriv(id) {
+      try {
+        console.log(`✏️ جاري تحميل الصلاحية للتعديل: ${id}`);
+
+        if (!supabaseClient) initializeSupabase();
+        
+        const { data, error } = await supabaseClient
+            .from('privileges')
+            .select('*')
+            .eq('priv_id', id)
+            .single();
+        
+        if (error) {
+            console.error('❌ خطأ في تحميل الصلاحية:', error);
+            throw error;
+        }
+        
+        const p = data;
+        
+        document.getElementById("priv_id").value = p.priv_id;
+        document.getElementById("user_id").value = p.user_id;
+        document.getElementById("priv_name").value = p.priv_name;
+        document.getElementById("description").value = p.description || "";
+        document.getElementById("can_view").checked = p.can_view;
+        document.getElementById("can_add").checked = p.can_add;
+        document.getElementById("can_edit").checked = p.can_edit;
+        document.getElementById("can_delete").checked = p.can_delete;
+
+        // تحديث حالة "تحديد الكل"
+        updateSelectAllState();
+        
+        console.log('✅ تم تحميل الصلاحية للتعديل');
+      } catch (err) {
+        console.error('❌ خطأ في تحميل الصلاحية:', err);
+        alert('❌ فشل في تحميل بيانات الصلاحية');
+      }
+    }
+
+    // ✅ حذف (من Supabase)
+    async function deletePriv(id) {
+      if (!confirm("هل تريد حذف هذه الصلاحية؟")) return;
+      
+      try {
+        console.log(`🗑️ جاري حذف الصلاحية: ${id}`);
+
+        if (!supabaseClient) initializeSupabase();
+        
+        const { error } = await supabaseClient
+            .from('privileges')
+            .delete()
+            .eq('priv_id', id);
+        
+        if (error) {
+            console.error('❌ خطأ في حذف الصلاحية:', error);
+            throw error;
+        }
+        
+        await loadPrivileges();
+        alert('✅ تم حذف الصلاحية بنجاح');
+      } catch (err) {
+        console.error('❌ خطأ في حذف الصلاحية:', err);
+        alert('❌ فشل في حذف الصلاحية');
+      }
+    }
+
+    // ✅ إعادة تعيين النموذج
+    function resetForm() {
+      document.querySelectorAll("input[type=text], select").forEach(el => el.value = "");
+      document.querySelectorAll("input[type=checkbox]").forEach(el => el.checked = false);
+      document.getElementById("priv_id").value = "";
+      updateSelectAllState();
+      console.log('🧹 تم تنظيف النموذج');
+    }
+
+    // ✅ مزامنة الشاشات مع قاعدة البيانات
+    async function syncScreens() {
+      if (!confirm("سيتم إنشاء صلاحيات لجميع الشاشات لجميع المستخدمين. هل تريد المتابعة؟")) return;
+      
+      try {
+        console.log('📂 جاري مزامنة الشاشات مع قاعدة البيانات');
+
+        if (!supabaseClient) initializeSupabase();
+        
+        // ✅ جلب جميع المستخدمين النشطين
+        const { data: users, error: usersError } = await supabaseClient
+            .from('users')
+            .select('user_id')
+            .eq('active', true);
+        
+        if (usersError) throw usersError;
+
+        let addedCount = 0;
+        let updatedCount = 0;
+        
+        // ✅ لكل شاشة وكل مستخدم، التأكد من وجود الصلاحية
+        for (const screenName of SCREEN_NAMES) {
+            for (const user of users) {
+                const { data: existing, error: checkError } = await supabaseClient
+                    .from('privileges')
+                    .select('priv_id')
+                    .eq('user_id', user.user_id)
+                    .eq('priv_name', screenName)
+                    .limit(1);
+                
+                if (checkError) throw checkError;
+                
+                if (!existing || existing.length === 0) {
+                    // إدخال سجل افتراضي للشاشة لهذا المستخدم
+                    const { error: insertError } = await supabaseClient
+                        .from('privileges')
+                        .insert([{
+                            user_id: user.user_id,
+                            priv_name: screenName,
+                            description: `شاشة ${screenName}`,
+                            can_view: false,
+                            can_add: false,
+                            can_edit: false,
+                            can_delete: false
+                        }]);
+                    
+                    if (insertError) throw insertError;
+                    addedCount++;
+                } else {
+                    // تحديث وصف الصلاحية الحالية
+                    const { error: updateError } = await supabaseClient
+                        .from('privileges')
+                        .update({
+                            description: `شاشة ${screenName}`
+                        })
+                        .eq('priv_id', existing[0].priv_id);
+                    
+                    if (updateError) throw updateError;
+                    updatedCount++;
+                }
+            }
+        }
+        
+        alert(`✅ تمت المزامنة بنجاح:
+        • عدد الشاشات: ${SCREEN_NAMES.length}
+        • عدد المستخدمين: ${users.length}
+        • تم إضافة ${addedCount} صلاحية جديدة
+        • تم تحديث ${updatedCount} صلاحية`);
+        
+        loadPrivileges();
+        
+      } catch (err) {
+        console.error('❌ خطأ في مزامنة الشاشات:', err);
+        alert(`❌ فشل في المزامنة: ${err.message}`);
+      }
+    }
+
+    // ✅ فلترة فورية للجدول
+    function filterTable() {
+        const query = document.getElementById("searchBox").value.toLowerCase();
+        const rows = document.querySelectorAll("#privTable tbody tr");
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            row.style.display = text.includes(query) ? "" : "none";
+        });
+    }
+
+    // 🆕✅ دالة إعطاء كل الصلاحيات مرة واحدة (للمستخدم المحدد)
+    async function grantAllPrivileges() {
+        const userId = document.getElementById("user_id").value;
+        const usernameSelect = document.getElementById("user_id");
+        const username = usernameSelect.options[usernameSelect.selectedIndex]?.text || userId;
+        
+        if (!userId) {
+            alert("⚠️ يرجى تحديد المستخدم أولاً");
+            return;
+        }
+        
+        if (!confirm(`هل تريد إعطاء كافة الصلاحيات للمستخدم: ${username}؟\n\nسيتم منح صلاحيات (عرض، إضافة، تعديل، حذف) لجميع الشاشات.`)) {
+            return;
+        }
+        
+        try {
+            console.log(`🎯 جاري منح كل الصلاحيات للمستخدم: ${userId}`);
+            
+            if (!supabaseClient) initializeSupabase();
+            
+            let processed = 0;
+            let created = 0;
+            let updated = 0;
+            
+            // معالجة كل شاشة
+            for (const screenName of SCREEN_NAMES) {
+                processed++;
+                
+                // التحقق من وجود الصلاحية
+                const { data: existing, error: checkError } = await supabaseClient
+                    .from('privileges')
+                    .select('priv_id')
+                    .eq('user_id', userId)
+                    .eq('priv_name', screenName)
+                    .limit(1);
+                
+                if (checkError) throw checkError;
+                
+                if (!existing || existing.length === 0) {
+                    // إنشاء صلاحية جديدة بكل الصلاحيات
+                    const { error: insertError } = await supabaseClient
+                        .from('privileges')
+                        .insert([{
+                            user_id: userId,
+                            priv_name: screenName,
+                            description: `شاشة ${screenName}`,
+                            can_view: true,
+                            can_add: true,
+                            can_edit: true,
+                            can_delete: true
+                        }]);
+                    
+                    if (insertError) throw insertError;
+                    created++;
+                } else {
+                    // تحديث الصلاحية الحالية لمنح كل الصلاحيات
+                    const { error: updateError } = await supabaseClient
+                        .from('privileges')
+                        .update({
+                            can_view: true,
+                            can_add: true,
+                            can_edit: true,
+                            can_delete: true,
+                            description: `شاشة ${screenName}`
+                        })
+                        .eq('priv_id', existing[0].priv_id);
+                    
+                    if (updateError) throw updateError;
+                    updated++;
+                }
+            }
+            
+            alert(`✅ تم منح كافة الصلاحيات بنجاح!
+            المستخدم: ${username}
+            الشاشات المعالجة: ${processed}
+            تم إنشاء: ${created} صلاحية جديدة
+            تم تحديث: ${updated} صلاحية
+            
+            ✅ تم منح صلاحيات (عرض، إضافة، تعديل، حذف) لجميع الشاشات.`);
+            
+            // تحديث الجدول
+            loadPrivileges();
+            
+            // إشعار التطبيقات الأخرى بالتحديث
+            localStorage.setItem('privileges_updated', Date.now());
+            
+        } catch (err) {
+            console.error('❌ خطأ في منح الصلاحيات:', err);
+            alert(`❌ فشل في منح الصلاحيات: ${err.message}`);
+        }
+    }
+
+    // 🆕✅ دالة منح صلاحية عرض فقط
+    async function grantViewOnly() {
+        const userId = document.getElementById("user_id").value;
+        const usernameSelect = document.getElementById("user_id");
+        const username = usernameSelect.options[usernameSelect.selectedIndex]?.text || userId;
+        
+        if (!userId) {
+            alert("⚠️ يرجى تحديد المستخدم أولاً");
+            return;
+        }
+        
+        if (!confirm(`هل تريد منح صلاحية العرض فقط للمستخدم: ${username}؟\n\nسيتم منح صلاحية عرض لجميع الشاشات دون إضافة أو تعديل أو حذف.`)) {
+            return;
+        }
+        
+        try {
+            console.log(`👁️ جاري منح صلاحية عرض فقط للمستخدم: ${userId}`);
+            
+            if (!supabaseClient) initializeSupabase();
+            
+            let processed = 0;
+            
+            // معالجة كل شاشة
+            for (const screenName of SCREEN_NAMES) {
+                processed++;
+                
+                // التحقق من وجود الصلاحية
+                const { data: existing, error: checkError } = await supabaseClient
+                    .from('privileges')
+                    .select('priv_id')
+                    .eq('user_id', userId)
+                    .eq('priv_name', screenName)
+                    .limit(1);
+                
+                if (checkError) throw checkError;
+                
+                if (!existing || existing.length === 0) {
+                    // إنشاء صلاحية جديدة بصلاحية عرض فقط
+                    const { error: insertError } = await supabaseClient
+                        .from('privileges')
+                        .insert([{
+                            user_id: userId,
+                            priv_name: screenName,
+                            description: `شاشة ${screenName}`,
+                            can_view: true,
+                            can_add: false,
+                            can_edit: false,
+                            can_delete: false
+                        }]);
+                    
+                    if (insertError) throw insertError;
+                } else {
+                    // تحديث الصلاحية الحالية
+                    const { error: updateError } = await supabaseClient
+                        .from('privileges')
+                        .update({
+                            can_view: true,
+                            can_add: false,
+                            can_edit: false,
+                            can_delete: false,
+                            description: `شاشة ${screenName}`
+                        })
+                        .eq('priv_id', existing[0].priv_id);
+                    
+                    if (updateError) throw updateError;
+                }
+            }
+            
+            alert(`✅ تم منح صلاحية العرض فقط بنجاح!
+            المستخدم: ${username}
+            الشاشات المعالجة: ${processed}
+            
+            ✅ تم منح صلاحية عرض فقط لجميع الشاشات.`);
+            
+            // تحديث الجدول
+            loadPrivileges();
+            
+            // إشعار التطبيقات الأخرى بالتحديث
+            localStorage.setItem('privileges_updated', Date.now());
+            
+        } catch (err) {
+            console.error('❌ خطأ في منح صلاحية العرض فقط:', err);
+            alert(`❌ فشل في منح الصلاحيات: ${err.message}`);
+        }
+    }
+
+    // 🆕✅ دالة منح صلاحية كاملة
+    async function grantFullAccess() {
+        const userId = document.getElementById("user_id").value;
+        const usernameSelect = document.getElementById("user_id");
+        const username = usernameSelect.options[usernameSelect.selectedIndex]?.text || userId;
+        
+        if (!userId) {
+            alert("⚠️ يرجى تحديد المستخدم أولاً");
+            return;
+        }
+        
+        if (!confirm(`هل تريد منح صلاحية كاملة للمستخدم: ${username}؟\n\nسيتم منح صلاحيات (عرض، إضافة، تعديل، حذف) لجميع الشاشات.`)) {
+            return;
+        }
+        
+        // تفعيل كل الصلاحيات في النموذج
+        document.getElementById('can_view').checked = true;
+        document.getElementById('can_add').checked = true;
+        document.getElementById('can_edit').checked = true;
+        document.getElementById('can_delete').checked = true;
+        document.getElementById('select_all').checked = true;
+        
+        alert(`✅ تم تفعيل كل الصلاحيات في النموذج.\n\nيمكنك الآن حفظها لكل شاشة على حدة، أو استخدام زر "إعطاء كل الصلاحيات مرة واحدة".`);
+    }
+
+    // 🆕✅ دالة إلغاء كل الصلاحيات
+    async function removeAllPrivileges() {
+        const userId = document.getElementById("user_id").value;
+        const usernameSelect = document.getElementById("user_id");
+        const username = usernameSelect.options[usernameSelect.selectedIndex]?.text || userId;
+        
+        if (!userId) {
+            alert("⚠️ يرجى تحديد المستخدم أولاً");
+            return;
+        }
+        
+        if (!confirm(`⚠️ تحذير: هل تريد إلغاء جميع الصلاحيات للمستخدم: ${username}؟\n\nهذا الإجراء سيزيل جميع صلاحيات هذا المستخدم من جميع الشاشات.`)) {
+            return;
+        }
+        
+        try {
+            console.log(`🚫 جاري إلغاء جميع الصلاحيات للمستخدم: ${userId}`);
+            
+            if (!supabaseClient) initializeSupabase();
+            
+            const { error } = await supabaseClient
+                .from('privileges')
+                .delete()
+                .eq('user_id', userId);
+            
+            if (error) throw error;
+            
+            alert(`✅ تم إلغاء جميع الصلاحيات بنجاح!
+            المستخدم: ${username}
+            
+            🚫 تم إزالة جميع صلاحيات المستخدم من جميع الشاشات.`);
+            
+            // تحديث الجدول
+            loadPrivileges();
+            
+            // إشعار التطبيقات الأخرى بالتحديث
+            localStorage.setItem('privileges_updated', Date.now());
+            
+        } catch (err) {
+            console.error('❌ خطأ في إلغاء الصلاحيات:', err);
+            alert(`❌ فشل في إلغاء الصلاحيات: ${err.message}`);
+        }
+    }
+
+    // ✅ التنقل بـ Enter
+    document.addEventListener("keydown", e => {
+      if (e.key === "Enter") {
+        const inputs = [...document.querySelectorAll("input, select")];
+        const i = inputs.indexOf(document.activeElement);
+        if (i >= 0 && i < inputs.length - 1) {
+          e.preventDefault();
+          inputs[i + 1].focus();
+        }
+      }
+    });
+
+    // ✅ التهيئة عند تحميل الصفحة
+    document.addEventListener("DOMContentLoaded", () => {
+      console.log('🚀 بدء تحميل شاشة الصلاحيات...');
+      
+      // تهيئة Supabase
+      initializeSupabase();
+      
+      // تهيئة تحكم الصلاحيات
+      initializePermissionsControl();
+      
+      // تحميل البيانات
+      loadUsers();
+      loadScreens();
+      loadPrivileges();
+    });
+  </script>
+</body>
+</html>
